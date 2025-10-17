@@ -41,6 +41,7 @@ AppAsset::register($this);
         Login
     </div>
 </header>
+<div id="notification-banner" class="notification"></div>
 <div class="app">
 
     <aside class="sidebar">
@@ -202,6 +203,7 @@ $(function() {
                                     }
                                 }, 200); // small delay ensures data is ready
                             });
+                            showBanner('Folder created successfully!', 'success');
                         } else {
                             alert('Error creating folder' + (res && res.errors ? ': ' + JSON.stringify(res.errors) : ''));
                         }
@@ -218,6 +220,13 @@ $(function() {
         open: function() {
             \$('#folder-name').val('').focus();
             \$('#folder-error').hide();
+            
+            $('#folder-name').off('keypress').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    e.preventDefault();
+                    $(".ui-dialog-buttonpane button:contains('Create')").trigger('click');
+                }
+            });            
         }
     });
 
@@ -226,6 +235,23 @@ $(function() {
         \$('#new-folder-dialog').dialog('open');
     });
 });
+
+function showBanner(message, type = 'error') {
+    var \$banner = $('#notification-banner');
+    var bgColor = '#F4B6B6'; // default red
+
+    if (type === 'success') bgColor = '#AEE8B2'; // green
+
+    \$banner.stop(true, true)
+        .css({
+            'background-color': bgColor,
+            'display': 'none'
+        })
+        .text(message)
+        .slideDown(200)
+        .delay(1500) // visible for 4 seconds
+        .fadeOut(600);
+}
 JS;
 $this->registerJs($js);
 ?>

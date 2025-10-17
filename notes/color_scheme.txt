@@ -1,0 +1,39 @@
+Blues (primary / accent)
+
+Primary Blue: #3B82F6 (vibrant but soft blue, modern feel)
+
+Hover Blue: #2563EB (slightly darker for hover states)
+
+Muted Blue: #93C5FD (light accent, for highlights or backgrounds)
+
+Grays (backgrounds & text)
+
+Background Gray (light panels): #F9FAFB (very light, almost white)
+
+Card / Sidebar Gray: #F3F4F6 (soft light gray for containers/menus)
+
+Border Gray: #E5E7EB (neutral divider lines/borders)
+
+Text Gray (secondary): #6B7280 (medium gray, good for muted text)
+
+Text Gray (main): #111827 (almost black, strong contrast for headers)
+
+Optional Supporting
+
+Success Green: #10B981 (fresh green, for “success” indicators)
+
+Warning Amber: #F59E0B (friendly orange, not too harsh)
+
+Danger Red: #EF4444 (clean modern red for errors)
+
+🖌 How to Use
+
+Header background: #3B82F6 (blue) with white text.
+
+Sidebar background: #F3F4F6 with #111827 text, hover states in #E5E7EB or #93C5FD.
+
+Main background: #F9FAFB (keeps things light and airy).
+
+Buttons/links: Primary in #3B82F6, hover #2563EB.
+
+Borders/dividers: #E5E7EB so they don’t feel too heavy.

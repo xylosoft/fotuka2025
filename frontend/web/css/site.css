@@ -1,0 +1,143 @@
+* { box-sizing: border-box; }
+html, body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    height: 100%;
+}
+
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: #DBEAFE;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 1000;
+    border-bottom: 1px solid #6B7280;
+}
+
+.app {
+    display: flex;
+    flex-wrap: nowrap;
+    min-height: 100vh;
+    width: 100%;
+    margin-top: 70px;
+    height: calc(100vh - 70px);
+}
+
+.sidebar {
+    flex: 0 0 300px;
+    width: 250px;
+    background: #F3F4F6;
+    border-right: 1px solid #6B7280;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.main {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 20px;
+    overflow: auto;
+    background: #F9FAFB;
+}
+
+.jstree-icon.fa-folder{
+    color: #E2CB91;
+}
+.jstree-icon.fa-folder-open{
+    color: #E2CB91;
+}
+.jstree-children {
+    margin-left: 0px !important;
+}
+
+.asset {
+    width: 250px;
+    height: 250px;
+    object-fit: cover;          /* keeps image proportions while filling the box */
+    border-radius: 12px;        /* rounded corners */
+    margin: 8px;                /* space between images */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* soft shadow for subtle depth */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Optional: slight hover effect */
+.asset:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+
+
+/*
+main > .container, main > .container-fluid
+{
+    padding: 70px 15px 20px;
+}
+
+.footer {
+    background-color: #f5f5f5;
+    font-size: .9em;
+    height: 60px;
+}
+
+.footer > .container, .footer > .container-fluid {
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.not-set {
+    color: #c55;
+    font-style: italic;
+}
+
+a.asc:after, a.desc:after {
+    content: '';
+    left: 3px;
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border: solid 5px transparent;
+    margin: 4px 4px 2px 4px;
+    background: transparent;
+}
+
+a.asc:after {
+    border-bottom: solid 7px #212529;
+    border-top-width: 0;
+}
+
+a.desc:after {
+    border-top: solid 7px #212529;
+    border-bottom-width: 0;
+}
+
+.grid-view th,
+.grid-view td:last-child {
+    white-space: nowrap;
+}
+
+.grid-view .filters input,
+.grid-view .filters select {
+    min-width: 50px;
+}
+
+.hint-block {
+    display: block;
+    margin-top: 5px;
+    color: #999;
+}
+
+.error-summary {
+    color: #a94442;
+    background: #fdf7f7;
+    border-left: 3px solid #eed3d7;
+    padding: 10px 20px;
+    margin: 0 0 15px 0;
+}
+*/

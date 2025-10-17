@@ -24,6 +24,7 @@ return [
                 '/json/folders' => 'json/folders',
                 '/folder/add' => 'folder/add',
                 '/folder/move' => 'folder/move',
+                '/folder/rename' => 'folder/rename',
             ],
         ],
     ],

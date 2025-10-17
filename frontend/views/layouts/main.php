@@ -92,7 +92,18 @@ $(function() {
             default: { icon: 'fa fa-folder' },
             opened: { icon: 'fa fa-folder-open' }
         },
-        'plugins' : ['types', 'wholerow','dnd']
+        'plugins' : ['types', 'wholerow','dnd', 'contextmenu'],
+        contextmenu: {
+        items: function(node) {
+          var tree = $('#folderTree').jstree(true);
+          return {
+            renameItem: {
+              label: '<i class="fa fa-pencil-alt"></i> Rename',
+              action: function() { tree.edit(node); } // opens inline rename input
+            }
+          };
+        }
+      },
     }).on('open_node.jstree', function (e, data) {
         if (Number.isInteger(data.node.id)) {
             data.instance.set_icon(data.node, 'fa fa-folder-open');
@@ -252,6 +263,30 @@ function showBanner(message, type = 'error') {
         .delay(1500) // visible for 4 seconds
         .fadeOut(600);
 }
+
+$('#folderTree').on('rename_node.jstree', function(e, data) {
+  $.ajax({
+    url: '/folder/rename',
+    type: 'POST',
+    dataType: 'json',
+    data: {
+      id: data.node.id,
+      name: data.text,
+      _csrf: yii.getCsrfToken()
+    },
+    success: function(res) {
+      if (!res.ok) {
+        showBanner(res.message || 'Rename failed', 'error');
+      } else {
+        showBanner('Folder renamed successfully', 'success');
+      }
+    },
+    error: function() {
+      showBanner('Error communicating with server', 'error');
+    }
+  });
+});
+
 JS;
 $this->registerJs($js);
 ?>

@@ -117,4 +117,27 @@ class FolderController extends Controller
             'errors' => $folder->getErrors(),
         ];
     }
+
+    public function actionRename()
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        $id = Yii::$app->request->post('id');
+        $name = Yii::$app->request->post('name');
+
+        $folder = Folder::findOne($id);
+        if (!$folder) {
+            return ['ok' => false, 'message' => 'Folder not found'];
+        }
+
+        $folder->name = $name;
+        if ($folder->save()) {
+            return ['ok' => true];
+        }
+
+        return [
+            'ok' => false,
+            'message' => 'Failed to rename folder',
+            'errors' => $folder->getErrors(),
+        ];
+    }
 }

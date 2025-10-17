@@ -89,6 +89,72 @@ header {
     border:1px solid #6B7280;
 }
 
+.vakata-context {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    border-radius: 0 !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+}
+
+.vakata-context li > a {
+    display: flex;
+    align-items: center;
+    padding: 0px 8px;
+    gap: 6px;
+    line-height: 1.3;
+    color: #222;
+    min-height: auto;
+    background: #f9f9f9 !important;
+    border-radius: 0 !important;
+}
+
+.vakata-context li > a:hover {
+    background: #E3F2FD !important;
+    color: #000 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.vakata-context li > a:focus {
+    background: #f9f9f9 !important;
+    color: #000 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.vakata-context li > a > i.fa {
+    color: #000;
+    font-size: 13px;
+    width: 14px;
+    text-align: center;
+    background: none !important;
+    border: none !important;
+    margin-left: -30px;
+}
+
+.vakata-context li > a::before {
+    display: none !important;
+}
+
+/* Optional: remove any inner highlight box */
+.vakata-context li > a:active {
+    background: #E3F2FD !important;
+    box-shadow: none !important;
+}
+
+/* 🔹 FIX: ensure first element can be highlighted on hover */
+.vakata-context li > a.vakata-context-hover {
+    background: #f9f9f9 !important;
+    color: #000 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.vakata-context li > a.vakata-context-hover:hover,
+.vakata-context li > a:hover {
+    background: #E3F2FD !important;  /* your palette blue */
+    color: #000 !important;
+}
 
 /*
 main > .container, main > .container-fluid

@@ -44,8 +44,9 @@ class Folder extends \yii\db\ActiveRecord
         return [
             [['status'], 'default', 'value' => null],
             [['thumbnail_id'], 'default', 'value' => 0],
-            [['parent_id', 'customer_id', 'user_id', 'name'], 'required'],
-            [['parent_id', 'customer_id', 'user_id', 'folder_size', 'asset_count', 'thumbnail_id'], 'integer'],
+            [['customer_id', 'user_id', 'name'], 'required'],
+            [['customer_id', 'user_id', 'folder_size', 'asset_count', 'thumbnail_id'], 'integer'],
+            [['parent_id'], 'integer', 'skipOnEmpty' => true],
             [['created'], 'safe'],
             [['status'], 'string'],
             [['name'], 'string', 'max' => 50],

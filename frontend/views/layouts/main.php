@@ -2,9 +2,7 @@
 /** @var \yii\web\View $this */
 /** @var string $content */
 
-use common\widgets\Alert;
 use frontend\assets\AppAsset;
-use yii\bootstrap5\Breadcrumbs;
 use yii\bootstrap5\Html;
 
 AppAsset::register($this);
@@ -19,11 +17,17 @@ AppAsset::register($this);
     <title><?= Html::encode($this->title) ?></title>
     <?php $this->head() ?>
 
-    <?
-    //$this->registerCssFile('@web/css/lucide.css');
+    <?php
+    // Minimal: keep your existing assets
     $this->registerCssFile('@web/css/awesome.min.css');
     $this->registerCssFile('@web/jstree/themes/default/style.min.css');
     $this->registerJsFile('@web/jstree/jstree.min.js', ['depends' => [\yii\web\JqueryAsset::class]]);
+
+    // Minimal add: jQuery UI for the dialog
+    $this->registerCssFile('https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css');
+    $this->registerJsFile('https://code.jquery.com/ui/1.13.2/jquery-ui.min.js', [
+        'depends' => [\yii\web\JqueryAsset::class],
+    ]);
     ?>
 </head>
 <body class="d-flex flex-column h-100">
@@ -42,7 +46,8 @@ AppAsset::register($this);
     <aside class="sidebar">
         <h4>
             Folders
-            <img src="/icons/square-plus.svg" style="float:right;height:24px;"/>
+            <!-- Minimal change: add id to the button image -->
+            <img src="/icons/square-plus.svg" id="btn-new-folder" style="float:right;height:20px;"/>
         </h4>
         <div style="padding-left:10px">
             <div id="folderTree"></div>
@@ -54,8 +59,12 @@ AppAsset::register($this);
     </main>
 </div>
 
-
-
+<!-- Minimal add: jQuery UI dialog markup (hidden by default) -->
+<div id="new-folder-dialog" title="Create Folder" style="display:none;">
+    <p style="margin-bottom:8px;">Enter folder name:</p>
+    <input type="text" id="folder-name" style="width:100%; padding:6px;">
+    <div id="folder-error" style="color:red; margin-top:6px; display:none;"></div>
+</div>
 
 <footer class="footer mt-auto py-3 text-muted">
     <div class="container">
@@ -67,32 +76,117 @@ AppAsset::register($this);
 <?php
 $js = <<<JS
 $(function() {
-    $('#folderTree').jstree({
+    // Your existing jsTree init (unchanged)
+    var \$treeEl = \$('#folderTree');
+    \$treeEl.jstree({
         'core' : {
             'data' : {
-                'url' : '/json/folders',   // <-- your controller action path
+                'url' : '/json/folders',
                 'dataType' : 'json'
             },
-            'themes': {
-                'variant': 'large'
-            }
+            'themes': { 'variant': 'large' }
         },
         types: {
             default: { icon: 'fa fa-folder' },
             opened: { icon: 'fa fa-folder-open' }
-        },        
+        },
         'plugins' : ['types', 'wholerow']
     }).on('open_node.jstree', function (e, data) {
-        data.instance.set_icon(data.node, 'fa fa-folder-open');
+        if (Number.isInteger(data.node.id)) {
+            data.instance.set_icon(data.node, 'fa fa-folder-open');
+        }
     }).on('close_node.jstree', function (e, data) {
-        data.instance.set_icon(data.node, 'fa fa-folder');
+        if (Number.isInteger(data.node.id)) {
+            data.instance.set_icon(data.node, 'fa fa-folder');
+        }
     });
-    ;
-    
-    // Click Action
-    $('#folderTree').on('select_node.jstree', function(e, data) {
-        //alert('Selected: ' + data.node.text);
-        //alert('Selected: ' + data.node.id);
+
+    // Keep your existing click handler (unchanged)
+    \$treeEl.on('select_node.jstree', function(e, data) {
+        // selected node logic (if any)
+    });
+
+    // Minimal add: init jQuery UI dialog
+    \$('#new-folder-dialog').dialog({
+        autoOpen: false,
+        modal: true,
+        width: 380,
+        buttons: {
+            "Create": function() {
+                var name = \$('#folder-name').val().trim();
+                if (!name) {
+                    \$('#folder-error').text('Please enter a folder name.').show();
+                    return;
+                }
+
+                var tree = $('#folderTree').jstree(true);
+                var selectedNode = tree.get_selected(true)[0]; // returns the full node object
+                var parentId = selectedNode ? selectedNode.id : null;
+                var csrf = (typeof yii !== 'undefined' && yii.getCsrfToken) ? yii.getCsrfToken() : \$('meta[name="csrf-token"]').attr('content');
+
+                \$.ajax({
+                    url: '/folder/add',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        name: name,
+                        parent_id: (!parentId || parentId === '#' || parentId.startsWith('j1_')) ? null : parentId,
+                        _csrf: csrf
+                    },
+                    success: function(res) {
+                        if (res && res.ok) {
+                            // Insert node client-side under selected parent
+                            var jsParent = parentId && parentId !== '' ? parentId : '#';
+                            jsParent = jsParent ? String(jsParent) : '#';
+                            var folderId = res.node.id;
+                            
+                            if (!Number.isInteger(parseInt(jsParent))) {
+                                jsParent = '#';
+                            }
+                            
+                            var tree = $('#folderTree').jstree(true);
+                            tree.refresh();
+                            
+                            $('#folderTree').on('refresh.jstree', function() {
+                                var t = $(this).jstree(true);
+                                // Wait a short moment for async loading to complete
+                                setTimeout(function() {
+                                    if (jsParent === '#') {
+                                        var roots = t.get_node('#').children;
+                                        if (roots.length) {
+                                            t.open_node(roots[0]);
+                                            tree.deselect_all();
+                                            t.select_node(folderId);
+                                        }
+                                    }else{
+                                        t.open_node(jsParent);
+                                        tree.deselect_all();
+                                        t.select_node(folderId);
+                                    }
+                                }, 200); // small delay ensures data is ready
+                            });
+                        } else {
+                            alert('Error creating folder' + (res && res.errors ? ': ' + JSON.stringify(res.errors) : ''));
+                        }
+                    },
+                    error: function() {
+                        alert('Error creating folder');
+                    }
+                });
+
+                \$(this).dialog('close');
+            },
+            "Cancel": function() { \$(this).dialog('close'); }
+        },
+        open: function() {
+            \$('#folder-name').val('').focus();
+            \$('#folder-error').hide();
+        }
+    });
+
+    // Minimal add: open dialog on plus icon click
+    \$('#btn-new-folder').on('click', function() {
+        \$('#new-folder-dialog').dialog('open');
     });
 });
 JS;
@@ -102,4 +196,4 @@ $this->registerJs($js);
 <?php $this->endBody() ?>
 </body>
 </html>
-<?php $this->endPage();
+<?php $this->endPage(); ?>

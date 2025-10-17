@@ -12,6 +12,15 @@ return [
     'bootstrap' => ['log'],
     'controllerNamespace' => 'frontend\controllers',
     'components' => [
+        'assetManager' => [
+            'bundles' => [
+                'yii\\bootstrap\\BootstrapAsset' => false,
+                'yii\\bootstrap\\BootstrapPluginAsset' => false,
+                'yii\\bootstrap4\\BootstrapAsset' => false,
+                'yii\\bootstrap4\\BootstrapPluginAsset' => false,
+                'yii\\bootstrap5\\BootstrapAsset' => false,
+            ],
+        ],
         'request' => [
             'csrfParam' => '_csrf-frontend',
         ],

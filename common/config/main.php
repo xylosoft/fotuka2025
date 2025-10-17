@@ -22,6 +22,7 @@ return [
                 '/reset-password' => 'site/request-password-reset',
                 '/resend-verification' => 'site/resend-verification-email',
                 '/json/folders' => 'json/folders',
+                '/folder/add' => 'folder/add',
             ],
         ],
     ],

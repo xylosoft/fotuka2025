@@ -4,6 +4,7 @@ namespace frontend\controllers;
 
 use yii\web\Controller;
 use yii\web\Response;
+use common\models\Folder;
 
 class JsonController extends Controller
 {
@@ -11,18 +12,35 @@ class JsonController extends Controller
     {
         \Yii::$app->response->format = Response::FORMAT_JSON;
 
-        // Hardcoded example data
+        // Recursive function to build folder hierarchy
+        $buildTree = function ($parentId = null) use (&$buildTree) {
+            $folders = Folder::find()
+                ->where(['parent_id' => $parentId])
+                ->orderBy(['name' => SORT_ASC])
+                ->all();
+
+            $children = [];
+            foreach ($folders as $folder) {
+                $children[] = [
+                    'id' => (string)$folder->id,
+                    'text' => $folder->name,
+                    'children' => $buildTree($folder->id),
+                    'icon' => 'fa fa-folder'
+                ];
+            }
+            return $children;
+        };
+
+        // Root node "Home" (not from DB)
         return [
             [
-                "id" => "1",
-                "text" => "Root Folder",
-                "children" => [
-                    [ "id" => "2", "text" => "Photos", "children" => [
-                        [ "id" => "5", "text" => "Blah" ],
-                    ]],
-                    [ "id" => "3", "text" => "Videos" ],
-                    [ "id" => "4", "text" => "Documents" ]
-                ]
+                'id' => null,
+                'text' => 'Home',
+                'state' => [
+                    'opened' => ("#") // 👈 auto-open folder 24
+                ],
+                'children' => $buildTree(null),
+                'icon' => 'fa fa-home'
             ]
         ];
     }

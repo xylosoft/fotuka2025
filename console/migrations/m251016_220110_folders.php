@@ -8,14 +8,14 @@ class m251016_220110_folders extends Migration
         $this->execute("
             CREATE TABLE `folders` (
                 `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
-                `parent_id` int UNSIGNED NOT NULL,
+                `parent_id` int UNSIGNED NULL,
                 `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `customer_id` int UNSIGNED NOT NULL,
                 `user_id` int UNSIGNED NOT NULL,    
                 `name` varchar(50) not null,
                 `folder_size` int UNSIGNED not null default 0,
                 `asset_count` int unsigned not null default 0,
-                `status` enum('active','inactive','deleted'),
+                `status` enum('active','inactive','deleted') default 'active',
                 `thumbnail_id` int UNSIGNED not null default 0,
                 primary key (id),
                 INDEX `idx_parent_id` (`parent_id`),

@@ -84,13 +84,14 @@ $(function() {
                 'url' : '/json/folders',
                 'dataType' : 'json'
             },
+            check_callback: true,
             'themes': { 'variant': 'large' }
         },
         types: {
             default: { icon: 'fa fa-folder' },
             opened: { icon: 'fa fa-folder-open' }
         },
-        'plugins' : ['types', 'wholerow']
+        'plugins' : ['types', 'wholerow','dnd']
     }).on('open_node.jstree', function (e, data) {
         if (Number.isInteger(data.node.id)) {
             data.instance.set_icon(data.node, 'fa fa-folder-open');
@@ -99,6 +100,42 @@ $(function() {
         if (Number.isInteger(data.node.id)) {
             data.instance.set_icon(data.node, 'fa fa-folder');
         }
+    }).on('move_node.jstree', function(e, data) {
+        // data.node.id — the node being moved
+        // data.parent — the new parent ID
+        // data.position — position among siblings
+        // data.old_parent — the old parent
+
+        // Optionally convert parent to null if 'root'
+        var newParent = data.parent;
+        if (!/^\d+$/.test(newParent)) {
+            newParent = null;
+        }
+
+        // Send to backend to update
+        $.ajax({
+            url: '/folder/move',  // you need an action for this
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                id: data.node.id,
+                parent_id: newParent,
+                position: data.position,
+                _csrf: yii.getCsrfToken()
+            },
+            success: function(res) {
+                if (!res.ok) {
+                    alert('Failed to move folder: ' + (res.error || 'unknown'));
+                    // Optionally, rollback move in jsTree
+                    data.instance.refresh();  // or restore old state
+                }
+                data.instance.refresh();
+            },
+            error: function() {
+                alert('Server error while moving folder');
+                data.instance.refresh();
+            }
+        });
     });
 
     // Keep your existing click handler (unchanged)

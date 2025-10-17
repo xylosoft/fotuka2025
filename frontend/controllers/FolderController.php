@@ -26,8 +26,7 @@ class FolderController extends Controller
      * Expected POST fields at minimum: parent_id, name
      * (Optionally: customer_id, user_id — or set them from the session/identity)
      */
-    public function actionAdd()
-    {
+    public function actionAdd(){
         Yii::$app->response->format = Response::FORMAT_JSON;
 
         $model = new Folder();
@@ -53,8 +52,6 @@ class FolderController extends Controller
 
         $model->parent_id = $parentId;
 
-        error_log("PARENT: -" . $model->parent_id . "-");
-
         if ($model->save()) {
             return [
                 'ok'   => true,
@@ -68,13 +65,56 @@ class FolderController extends Controller
             ];
         }
 
-        error_log(print_r($model->errors, true));
-
         // Validation failed
         Yii::$app->response->statusCode = 422;
         return [
             'ok'     => false,
             'errors' => $model->getErrors(),
+        ];
+    }
+
+    public function actionMove()
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $request = Yii::$app->request;
+        $id = $request->post('id');
+        $parentId = $request->post('parent_id');
+
+        // Normalize parent_id: empty string or non-numeric means NULL
+        if ($parentId === '' || $parentId === null || !is_numeric($parentId)) {
+            $parentId = null;
+        }
+
+        /** @var Folder $folder */
+        $folder = Folder::findOne($id);
+        if (!$folder) {
+            return [
+                'ok' => false,
+                'message' => 'Folder not found.',
+            ];
+        }
+
+        $folder->parent_id = $parentId;
+
+        if ($folder->save()) {
+            return [
+                'ok' => true,
+                'message' => 'Folder moved successfully.',
+                'node' => [
+                    'id' => (string)$folder->id,
+                    'parent' => $folder->parent_id ? (string)$folder->parent_id : null,
+                    'text' => $folder->name,
+                ]
+            ];
+        }
+
+        error_log(print_r($folder->getErrors(),1));
+
+        return [
+            'ok' => false,
+            'message' => 'Failed to move folder.',
+            'errors' => $folder->getErrors(),
         ];
     }
 }

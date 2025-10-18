@@ -25,6 +25,7 @@ return [
                 '/folder/add' => 'folder/add',
                 '/folder/move' => 'folder/move',
                 '/folder/rename' => 'folder/rename',
+                '/folders' => 'folder/folders',
             ],
         ],
     ],

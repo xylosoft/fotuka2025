@@ -12,6 +12,7 @@ use common\models\User;
 class SignupForm extends Model
 {
     public $username;
+    public $customer;
     public $email;
     public $password;
 
@@ -22,6 +23,10 @@ class SignupForm extends Model
     public function rules()
     {
         return [
+            ['customer', 'trim'],
+            ['customer', 'unique', 'targetClass' => '\common\models\Customer', 'message' => 'This customer name has already been taken.'],
+            ['customer', 'string', 'max' => 100],
+
             ['username', 'trim'],
             ['username', 'required'],
             ['username', 'unique', 'targetClass' => '\common\models\User', 'message' => 'This username has already been taken.'],
@@ -37,6 +42,17 @@ class SignupForm extends Model
             ['password', 'string', 'min' => Yii::$app->params['user.passwordMinLength']],
         ];
     }
+
+    public function attributeLabels()
+    {
+        return [
+            'username' => 'Username',
+            'email' => 'Email Address',
+            'customer' => 'Company Name',
+            'password' => 'Password',
+        ];
+    }
+
 
     /**
      * Signs user up.

@@ -1,9 +1,17 @@
 <?php
-
 /** @var yii\web\View $this */
-
-$this->title = 'My Yii Application';
+$this->title = 'Fotuka';
 ?>
+<div class="site-index">
+    <img class="asset" src="/images/sample1.jpg"/>
+    <img class="asset" src="/images/sample2.jpg"/>
+    <img class="asset" src="/images/sample3.jpg"/>
+    <img class="asset" src="/images/sample4.jpg"/>
+    <img class="asset" src="/images/sample5.jpg"/>
+    <img class="asset" src="/images/sample6.jpg"/>
+    <img class="asset" src="/images/sample7.jpg"/>
+</div>
+<!--
 <div class="site-index">
     <div class="p-5 mb-4 bg-transparent rounded-3">
         <div class="container-fluid py-5 text-center">
@@ -50,3 +58,4 @@ $this->title = 'My Yii Application';
 
     </div>
 </div>
+-->

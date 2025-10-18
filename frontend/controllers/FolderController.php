@@ -21,6 +21,16 @@ class FolderController extends Controller{
     }
 
     /**
+     * Displays the folder tree with assets on the right panel
+     * @return void
+     */
+    public function actionFolders(){
+        $this->layout = "folder";
+        return $this->render('folder');
+    }
+
+
+    /**
      * Adds a folder
      * @return array
      * @throws \yii\db\Exception

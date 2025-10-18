@@ -2,7 +2,6 @@
 
 namespace frontend\controllers;
 
-use common\models\Customer;
 use frontend\models\ResendVerificationEmailForm;
 use frontend\models\VerifyEmailForm;
 use Yii;
@@ -156,19 +155,8 @@ class SiteController extends Controller
     {
         $model = new SignupForm();
         if ($model->load(Yii::$app->request->post()) && $model->signup()) {
-
-            // Create customer record. 
-            $customer = new Customer();
-            $customer->display_name = $model->customer?$model->customer:$model->email;
-            $customer->ip_country_code = null;
-            $customer->referral_url = null;
-            $customer->status = Customer::STATUS_ACTIVE;
-            $customer->seo_name = null;
-            $customer->referral_url = null;
-            $customer->save();
-
             Yii::$app->session->setFlash('success', 'Thank you for registration. Please check your inbox for verification email.');
-            return $this->goHome();
+            return $this->redirect(['folder/folders']);
         }
 
         return $this->render('signup', [

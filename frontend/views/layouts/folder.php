@@ -34,22 +34,24 @@ FolderAsset::register($this);
 <?php $this->beginBody() ?>
 
 <header>
-    <div style="float:left">
+    <div>
         <img src="/images/logo.png" width="70%"/>
     </div>
-    <div style="float:right">
-        <?php
-        if (Yii::$app->user->isGuest) {
-            echo Html::tag('div',Html::a('Login',['/site/login'],['class' => ['btn btn-link login text-decoration-none']]),['class' => ['d-flex']]);
-        } else {
-            echo Html::beginForm(['/site/logout'], 'post', ['class' => 'd-flex'])
-                . Html::submitButton(
-                    'Logout (' . Yii::$app->user->identity->username . ')',
-                    ['class' => 'btn btn-link logout text-decoration-none']
-                )
-                . Html::endForm();
-        }
-        ?>
+    <div>
+        <div style="float:left">
+            <?php
+            if (Yii::$app->user->isGuest) {
+                ?>
+                <a href="/login">Login</a>
+                <?php
+            } else {
+                ?>
+                <a href="/logout">Logout (<?=Yii::$app->user->identity->username?>)</a>
+                <?php
+            }
+            ?>
+        </div>
+        <div class="user-profile" style="float:right;"><img src="/images/profile_icon.jpg" alt="User profile" class="profile-pic"></div>
     </div>
 </header>
 <div id="notification-banner" class="notification"></div>

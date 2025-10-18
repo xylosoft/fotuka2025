@@ -18,6 +18,33 @@ header {
     padding: 0 20px;
     z-index: 1000;
     border-bottom: 1px solid #6B7280;
+    justify-content: space-between; /* 👈 This is the key */
+}
+
+header a {
+    display: flex;
+    align-items: center;
+    font-family: "Roboto", Arial, sans-serif; /* same Google font */
+    font-size: 16px;
+    font-weight: 400;
+    color: #6B7280;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+header a:hover {
+    color: #4B5563;                             /* slightly lighter gray on hover */
+    text-decoration: none;
+}
+
+header > div:last-child {
+    display: flex;
+    align-items: center;   /* vertically center links & avatar */
+    gap: 10px;             /* optional space between link and profile picture */
 }
 
 .app {
@@ -173,4 +200,30 @@ header {
 
 .folder-search input::placeholder {
     color: #aaa;
+}
+
+.user-profile {
+    position: relative;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: 1px solid #6B7280; /* 👈 gray border */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 10px;
+    cursor: pointer;
+    background-color: #f9fafb; /* light neutral background behind image */
+}
+
+.profile-pic {
+    width: 51px;
+    height: 51px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-profile:hover {
+    transform: scale(1.05);
+    transition: 0.2s ease;
 }

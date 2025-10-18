@@ -7,10 +7,9 @@ use yii\web\Response;
 use yii\filters\VerbFilter;
 use common\models\Folder;
 
-class FolderController extends Controller
-{
-    public function behaviors()
-    {
+class FolderController extends Controller{
+
+    public function behaviors(){
         return [
             'verbs' => [
                 'class' => VerbFilter::class,
@@ -22,9 +21,9 @@ class FolderController extends Controller
     }
 
     /**
-     * POST /folder/add
-     * Expected POST fields at minimum: parent_id, name
-     * (Optionally: customer_id, user_id — or set them from the session/identity)
+     * Adds a folder
+     * @return array
+     * @throws \yii\db\Exception
      */
     public function actionAdd(){
         Yii::$app->response->format = Response::FORMAT_JSON;
@@ -73,8 +72,12 @@ class FolderController extends Controller
         ];
     }
 
-    public function actionMove()
-    {
+    /**
+     * Moves a folder from one parent folder to a new one.
+     * @return array
+     * @throws \yii\db\Exception
+     */
+    public function actionMove(){
         Yii::$app->response->format = Response::FORMAT_JSON;
 
         $request = Yii::$app->request;
@@ -118,8 +121,12 @@ class FolderController extends Controller
         ];
     }
 
-    public function actionRename()
-    {
+    /**
+     * Renames a folder
+     * @return array|bool[]
+     * @throws \yii\db\Exception
+     */
+    public function actionRename(){
         Yii::$app->response->format = Response::FORMAT_JSON;
         $id = Yii::$app->request->post('id');
         $name = Yii::$app->request->post('name');
@@ -139,5 +146,28 @@ class FolderController extends Controller
             'message' => 'Failed to rename folder',
             'errors' => $folder->getErrors(),
         ];
+    }
+
+    /**
+     * Deletes a folder
+     * @return array|bool[]
+     * @throws \yii\db\Exception\
+     */
+    public function actionDelete(){
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        $id = Yii::$app->request->post('id');
+        $folder = Folder::findOne($id);
+
+        if (!$folder) {
+            return ['ok' => false, 'message' => 'Folder not found.'];
+        }
+
+        // Optional: mark as deleted instead of removing it completely
+        $folder->status = Folder::STATUS_DELETED;
+        if ($folder->save(false)) {
+            return ['ok' => true];
+        }
+
+        return ['ok' => false, 'message' => 'Failed to delete folder.'];
     }
 }

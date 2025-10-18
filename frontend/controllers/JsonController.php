@@ -15,7 +15,7 @@ class JsonController extends Controller
         // Recursive function to build folder hierarchy
         $buildTree = function ($parentId = null) use (&$buildTree) {
             $folders = Folder::find()
-                ->where(['parent_id' => $parentId])
+                ->where(['parent_id' => $parentId, 'status' => Folder::STATUS_ACTIVE])
                 ->orderBy(['name' => SORT_ASC])
                 ->all();
 
@@ -37,7 +37,8 @@ class JsonController extends Controller
                 'id' => null,
                 'text' => 'Home',
                 'state' => [
-                    'opened' => ("#") // 👈 auto-open folder 24
+                    'opened' => ("#"),
+                    'selected' => true,
                 ],
                 'children' => $buildTree(null),
                 'icon' => 'fa fa-home'

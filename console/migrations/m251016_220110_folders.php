@@ -17,11 +17,13 @@ class m251016_220110_folders extends Migration
                 `asset_count` int unsigned not null default 0,
                 `status` enum('active','inactive','deleted') default 'active',
                 `thumbnail_id` int UNSIGNED not null default 0,
+                `deleted` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `deleted_by_user_id` INT UNSIGNED NULL,
                 primary key (id),
                 INDEX `idx_parent_id` (`parent_id`),
                 INDEX `idx_customer_id` (`customer_id`),
                 INDEX `idx_user_id` (`user_id`),
-                UNIQUE INDEX `idx_parent_name` (`parent_id`, `name`)            
+                INDEX `idx_status` (`status`)            
            ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
     }

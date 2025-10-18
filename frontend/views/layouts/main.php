@@ -38,13 +38,17 @@ AppAsset::register($this);
         <img src="/images/logo.png" width="70%"/>
     </div>
     <div style="float:right">
-        Login
+        <a href="/login">Login</a>
     </div>
 </header>
 <div id="notification-banner" class="notification"></div>
 <div class="app">
 
     <aside class="sidebar">
+        <div class="folder-search">
+            <i class="fa fa-search"></i>
+            <input type="text" id="folderSearch" placeholder="Search">
+        </div>
         <h4>
             Folders
             <!-- Minimal change: add id to the button image -->
@@ -67,13 +71,6 @@ AppAsset::register($this);
     <div id="folder-error" style="color:red; margin-top:6px; display:none;"></div>
 </div>
 
-<footer class="footer mt-auto py-3 text-muted">
-    <div class="container">
-        <p class="float-start">&copy; <?= Html::encode(Yii::$app->name) ?> <?= date('Y') ?></p>
-        <p class="float-end"><?= Yii::powered() ?></p>
-    </div>
-</footer>
-
 <?php
 $js = <<<JS
 $(function() {
@@ -81,6 +78,7 @@ $(function() {
     var \$treeEl = \$('#folderTree');
     \$treeEl.jstree({
         'core' : {
+            'multiple': false,
             'data' : {
                 'url' : '/json/folders',
                 'dataType' : 'json'
@@ -100,7 +98,46 @@ $(function() {
             renameItem: {
               label: '<i class="fa fa-pencil-alt"></i> Rename',
               action: function() { tree.edit(node); } // opens inline rename input
-            }
+            },
+            deleteItem: {
+                label: '<i class="fa fa-trash-alt"></i> Delete',
+                action: function() {
+                  if (confirm('Are you sure you want to delete this folder?')) {
+                    $.ajax({
+                      url: '/folder/delete',
+                      type: 'POST',
+                      dataType: 'json',
+                      data: {
+                        id: node.id,
+                        _csrf: yii.getCsrfToken()
+                      },
+                      success: function(res) {
+                        if (res && res.ok) {
+                            var parentId = node.parent;
+                            if (parentId && parentId !== '#') {
+                                tree.deselect_all();
+                                tree.select_node(parentId);
+                            } else {
+                                var roots = tree.get_node('#').children;
+                                if (roots.length) {
+                                    tree.open_node(roots[0]);
+                                    tree.deselect_all();
+                                    tree.select_node(roots[0]);
+                                }
+                            }
+                            tree.delete_node(node); 
+                            showBanner('Folder deleted successfully', 'success');
+                        } else {
+                            showBanner(res.message || 'Failed to delete folder', 'error');
+                        }
+                      },
+                      error: function() {
+                          showBanner('Error deleting folder', 'error');
+                      }
+                    });
+                }
+              }
+            }            
           };
         }
       },
@@ -113,20 +150,13 @@ $(function() {
             data.instance.set_icon(data.node, 'fa fa-folder');
         }
     }).on('move_node.jstree', function(e, data) {
-        // data.node.id — the node being moved
-        // data.parent — the new parent ID
-        // data.position — position among siblings
-        // data.old_parent — the old parent
-
-        // Optionally convert parent to null if 'root'
         var newParent = data.parent;
         if (!/^\d+$/.test(newParent)) {
             newParent = null;
         }
-
-        // Send to backend to update
+        
         $.ajax({
-            url: '/folder/move',  // you need an action for this
+            url: '/folder/move',
             type: 'POST',
             dataType: 'json',
             data: {
@@ -197,22 +227,20 @@ $(function() {
                             tree.refresh();
                             
                             $('#folderTree').on('refresh.jstree', function() {
-                                var t = $(this).jstree(true);
-                                // Wait a short moment for async loading to complete
-                                setTimeout(function() {
-                                    if (jsParent === '#') {
-                                        var roots = t.get_node('#').children;
-                                        if (roots.length) {
-                                            t.open_node(roots[0]);
-                                            tree.deselect_all();
-                                            t.select_node(folderId);
-                                        }
-                                    }else{
-                                        t.open_node(jsParent);
+                                var tree = $('#folderTree').jstree(true);
+                                
+                                if (jsParent === '#') {
+                                    var roots = tree.get_node('#').children;
+                                    if (roots.length) {
+                                        tree.open_node(roots[0]);
                                         tree.deselect_all();
-                                        t.select_node(folderId);
+                                        tree.select_node(roots[0]);
                                     }
-                                }, 200); // small delay ensures data is ready
+                                }else{
+                                    tree.open_node(jsParent);
+                                    tree.deselect_all();
+                                    tree.select_node(jsParent);
+                                }
                             });
                             showBanner('Folder created successfully!', 'success');
                         } else {
@@ -287,6 +315,9 @@ $('#folderTree').on('rename_node.jstree', function(e, data) {
   });
 });
 
+$('#folderSearch').on('input', function() {
+  console.log('Searching for:', $(this).val());
+});
 JS;
 $this->registerJs($js);
 ?>

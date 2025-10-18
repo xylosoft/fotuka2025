@@ -45,9 +45,10 @@ class FolderController extends Controller{
         // $model->user_id = Yii::$app->user->id;
 
         // Load raw POST (no form name)
+        $user = \Yii::$app->user->identity;
         $model->load(Yii::$app->request->post(), '');
-        $model->customer_id = 1;
-        $model->user_id = 1;
+        $model->customer_id = $user->customer_id;
+        $model->user_id = $user->id;
 
         // Minimal required defaults (if your DB doesn’t set them):
         if ($model->status === null) {
@@ -172,8 +173,14 @@ class FolderController extends Controller{
             return ['ok' => false, 'message' => 'Folder not found.'];
         }
 
-        // Optional: mark as deleted instead of removing it completely
+        // logged in user
+        $user = \Yii::$app->user->identity;
+
         $folder->status = Folder::STATUS_DELETED;
+        $folder->deleted = date('Y-m-d H:i:s');
+        $folder->deleted_by_user_id = $user->id;
+
+
         if ($folder->save(false)) {
             return ['ok' => true];
         }

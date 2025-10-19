@@ -54,6 +54,7 @@ class JsonController extends Controller
         $offset = (int)\Yii::$app->request->get('offset', 0);
         $limit  = (int)\Yii::$app->request->get('limit', 20);
 
+        $root = Folder::findOne($id);
         $query = Folder::find()
             ->select(['id', 'name', 'thumbnail_id'])
             ->where(['parent_id' => $id, 'status' => 'active'])
@@ -77,6 +78,7 @@ class JsonController extends Controller
 
         return [
             'ok' => true,
+            'folder_name' => $root->name,
             'subfolders' => $subfolders,
             'count' => count($subfolders),
             'total' => $total,

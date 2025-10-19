@@ -333,16 +333,16 @@ header > div:last-child {
 
 /* Folder Header */
 .folder-header {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
     border-bottom: 1px solid #e5e7eb;
     padding-bottom: 8px;
-    position: sticky;
     top: 0;
     background: #f9fafb;
-    z-index: 10;
+    z-index: 1;
 }
 
 .folder-title {
@@ -457,7 +457,7 @@ header > div:last-child {
 .folder-card .thumb img {
     width: 100%; height: 100%;
     object-fit: cover;
-    background-color: E2CB91;
+    background-color: #E2CB91;
 }
 
 .folder-card .thumb--placeholder .emoji {
@@ -587,17 +587,17 @@ header > div:last-child {
 
 .asset-card img {
     width: 100%;
-    height: 200px;
+    height: 220px;
     object-fit: cover;
 }
 
 .asset-card .asset-title {
     display: block;
-    padding: 6px;
+    padding: 4px 12px 6px 12px;
     font-size: 14px;
-    color: #4b5563;
+    color: #374151;
+    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
 }
-

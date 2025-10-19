@@ -28,7 +28,6 @@ $this->title = 'Fotuka';
         </div>
         <div class="folder-section" id="subfolders"></div>
         <div id="folderControls" class="folder-controls"></div>
-        <div class="folder-section" id="subfolders"></div>
 
         <div class="section-header">
             <span class="section-title">Assets</span>
@@ -56,18 +55,29 @@ $js = <<<JS
               offset: 0,
               limit: 20,
               allLoaded: false
+            };            
+            
+            let assetPagination = {
+              folderId: null,
+              offset: 0,
+              limit: 25,
+              allLoaded: false
             };
             
-            function loadFolder(folderId, append = false, loadAll = false) {
-              // Reset pagination if this is a new folder (or not appending)
-              if (folderPagination.folderId !== folderId || !append) {
-                folderPagination = { folderId, offset: 0, limit: 20, allLoaded: false };
-                $('#subfolders').empty(); // ✅ clear only on first load or when switching folders
-              }
+            function loadFolder(folderId) {
+              // reset state
+              folderPagination = { folderId, offset: 0, limit: 20, allLoaded: false };
+              \$('#subfolders').empty();
+              \$('#subfolderCount').text('');
             
+              // fetch first page (and folder name)
+              fetchFolders(folderId, /*append*/ false, /*loadAll*/ false);
+            }
+
+            function fetchFolders(folderId, append = false, loadAll = false) {
               const params = {
-                offset: folderPagination.offset,
-                limit: loadAll ? 0 : folderPagination.limit // 0 = load all
+                offset: append ? folderPagination.offset : 0,
+                limit: loadAll ? 0 : folderPagination.limit
               };
             
               \$.ajax({
@@ -76,72 +86,142 @@ $js = <<<JS
                 data: params,
                 dataType: 'json',
                 success: function(res) {
-                  if (res.ok) {
-                    if (res.subfolders.length) {
-                      renderSubfolders(res.subfolders, append);
-                
-                      // ✅ Scroll for both "Load More" and "Show All"
-                      if (loadAll || append) {
-                        scrollToAssetsPeek(60); // shows ~60px of assets
-                      }
-                    }
-                
-                    folderPagination.offset += res.subfolders.length;
-                    folderPagination.allLoaded = res.allLoaded;
-                
+                  if (!res || res.ok === false) {
+                    showBanner('Error loading subfolders', 'error');
+                    return;
+                  }
+            
+                  // Update folder name if provided
+                  if (res.folder_name) {
+                    \$('#currentFolderName').text(res.folder_name);
+                  }
+            
+                  // Render
+                  const items = res.subfolders || [];
+                  renderSubfolders(items, append);
+            
+                  // Update counts / state
+                  if (typeof res.total === 'number') {
                     \$('#subfolderCount').text(res.total + ' total');
-                    updateFolderButtons();
+                  } else {
+                    \$('#subfolderCount').text(\$('#subfolders .folder-card').length + ' total');
+                  }
+            
+                  if (append) {
+                    folderPagination.offset += items.length;
+                  } else {
+                    folderPagination.offset = items.length;
+                  }
+            
+                  // Prefer server flag; otherwise derive it
+                  folderPagination.allLoaded = (res.allLoaded === true) ||
+                    (!loadAll && typeof res.total === 'number' && folderPagination.offset >= res.total) ||
+                    (loadAll && true);
+            
+                  updateFolderButtons();
+            
+                  // Smooth scroll for appended / show-all loads (peek assets start)
+                  if (append || loadAll) {
+                    scrollToAssetsPeek(computeScrollOffset());
                   }
                 },
                 error: function() {
-                  showBanner('Error loading subfolders', 'error');
+                  showBanner('Server error while loading subfolders', 'error');
                 }
               });
             }
-
+            
+            function computeScrollOffset() {
+              const \$folders = \$('#folderGrid');
+              if (\$folders.length && !isNaN(\$folders.outerHeight())) {
+                // subtract 100 to peek into assets
+                return Math.max(0, \$folders.outerHeight() - 100);
+              }
+              return 850; // fallback
+            }            
             function scrollToAssetsPeek(peekOffset) {
-              const \$panel = \$('#rightPanel');
+              const \$panel       = \$('#rightPanel');
               const \$assetsStart = \$('#assetGrid');
+              const \$foldersEnd  = \$('#folderGrid'); // if you use a different id, update this
             
-              setTimeout(() => {
-                const hasPanel = \$panel.length && \$panel[0];
-                const panelEl = hasPanel ? \$panel[0] : null;
-                const panelCanScroll = panelEl && panelEl.scrollHeight > panelEl.clientHeight;
+              // Optional: measure any sticky header inside the panel so we don't hide content under it
+              const \$stickyHeader = \$('#rightPanel .sticky-header');
+              const headerOffset = \$stickyHeader.length ? \$stickyHeader.outerHeight() : 0;
             
-                if (panelCanScroll) {
-                  // Convert assets top to panel scroll space
-                  const target =
-                    \$assetsStart.offset().top      // assets top (page space)
-                    - \$panel.offset().top          // minus panel top (page space)
-                    + \$panel.scrollTop()           // plus panel current scroll
-                    - (peekOffset || 60);           // small extra reveal
+              // Default peek if none provided
+              const peek = (typeof peekOffset === 'number' ? peekOffset : 100);
             
-                  \$panel.animate({ scrollTop: target }, 1000);
-                } else {
-                  // Fallback: scroll the page (if rightPanel isn't the scroller)
-                  const target = \$assetsStart.offset().top - (peekOffset || 60);
-                  \$('html, body').animate({ scrollTop: target }, 400);
-                }
-              }, 100); // let DOM paint first
+              // Use rAF twice to let the layout settle (images, fonts) before measuring
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  const hasPanel = \$panel.length && \$panel[0];
+                  const panelEl = hasPanel ? \$panel[0] : null;
+                  const panelCanScroll = !!(panelEl && (panelEl.scrollHeight - panelEl.clientHeight > 1));
+            
+                  // Decide which element we measure from:
+                  // 1) bottom of folders block if it exists
+                  // 2) otherwise top of assets block
+                  const useFoldersBottom = \$foldersEnd && \$foldersEnd.length > 0;
+                  const \$measureEl = useFoldersBottom ? \$foldersEnd : \$assetsStart;
+            
+                  if (!\$measureEl || \$measureEl.length === 0) {
+                    // Nothing to scroll to — bail safely
+                    return;
+                  }
+            
+                  const panelTopInDoc = \$panel.offset() ? \$panel.offset().top : 0;
+                  const currentScroll = hasPanel ? \$panel.scrollTop() : \$(window).scrollTop();
+            
+                  let targetInDoc;
+                  if (useFoldersBottom) {
+                    // Bottom edge of the folders section in document space
+                    targetInDoc = \$measureEl.offset().top + \$measureEl.outerHeight();
+                  } else {
+                    // Top of the assets section in document space
+                    targetInDoc = \$measureEl.offset().top;
+                  }
+            
+                  // We want target inside the panel's scroll space:
+                  // currentScroll + (targetInDoc - panelTopInDoc) - (peek + headerOffset)
+                  const desiredOffset = peek + headerOffset;
+                  let target = currentScroll + (targetInDoc - panelTopInDoc) - desiredOffset;
+            
+                  if (panelCanScroll) {
+                    // Clamp to valid panel range
+                    const maxScroll = panelEl.scrollHeight - panelEl.clientHeight;
+                    if (target < 0) target = 0;
+                    if (target > maxScroll) target = maxScroll;
+            
+                    \$panel.stop(true).animate({ scrollTop: target }, 700, 'swing');
+                  } else {
+                    // Fallback: scroll the page (if rightPanel isn't actually scrollable)
+                    // For page scroll, we already have document coords in targetInDoc
+                    const pageTarget = Math.max(0, targetInDoc - desiredOffset);
+                    \$('html, body').stop(true).animate({ scrollTop: pageTarget }, 700, 'swing');
+                  }
+                });
+              });
             }
-                        
+
+
+            
             function updateFolderButtons() {
               const \$controls = \$('#folderControls');
               \$controls.empty();
             
-              // Show buttons only if not all loaded and there are results
               if (!folderPagination.allLoaded && folderPagination.folderId) {
                 \$controls.append('<button id="loadMoreBtn">Load More</button>');
                 \$controls.append('<button id="showAllBtn">Show All</button>');
+            
+                // bind fresh (avoid duplicates)
+                \$('#loadMoreBtn').off('click').on('click', function() {
+                  fetchFolders(folderPagination.folderId, /*append*/ true, /*loadAll*/ false);
+                });
+            
+                \$('#showAllBtn').off('click').on('click', function() {
+                  fetchFolders(folderPagination.folderId, /*append*/ false, /*loadAll*/ true);
+                });
               }
-            
-              $('#loadMoreBtn').on('click', function() {
-                loadFolder(folderPagination.folderId, true);
-              });
-            
-              $('#showAllBtn').on('click', function() {
-                loadFolder(folderPagination.folderId, false, true);
-              });
             }
 
             function renderSubfolders(folders, append = false) {
@@ -170,16 +250,7 @@ $js = <<<JS
             
                 container.append(card);
               });
-            }
-
-
-            function renderAssets(assets) {
-                const container = \$('#assetGrid');
-                container.empty();
-                assets.forEach(a => {
-                    const img = \$(`<img class="asset" src="\${a}"/>`);
-                    container.append(img);
-                });
+              updateFolderButtons();
             }
 
             // Drag & Drop
@@ -206,67 +277,64 @@ $js = <<<JS
             loadFolder(1);
             loadAssets(1);
         });
+         
+        function loadAssets(folderId, showAll = false, offset = 0) {
+            const limit = showAll ? 0 : 25;
         
+            \$.getJSON('/json/assets/' + folderId, { limit: limit, offset: offset }, function(response) {
+                if (response && response.assets) {
+                    // Append or replace based on showAll
+                    renderAssets(response.assets, offset > 0);
         
-        // ASSET PAGINATION
-        let assetPagination = {
-          folderId: null,
-          offset: 0,
-          limit: 25,
-          allLoaded: false
-        };
+                    // Update counter
+                    \$('#assetCount').text(\$('.asset-card').length);
         
-        function loadAssets(folderId, append = false, loadAll = false) {
-          // Reset pagination if new folder or not appending
-          if (assetPagination.folderId !== folderId || !append) {
-            assetPagination = { folderId, offset: 0, limit: 25, allLoaded: false };
-            \$('#assetGrid').empty();
-          }
-        
-          const params = {
-            offset: assetPagination.offset,
-            limit: loadAll ? 0 : assetPagination.limit
-          };
-        
-          \$.ajax({
-            url: '/json/assets/' + folderId,
-            type: 'GET',
-            data: params,
-            dataType: 'json',
-            success: function(res) {
-              if (res.ok) {
-                if (res.assets.length) {
-                  renderAssets(res.assets, append);
-        
-                  assetPagination.offset += res.assets.length;
-                  assetPagination.allLoaded = res.allLoaded;
-        
-                  \$('#assetCount').text(res.total + ' total');
-                  updateAssetButtons();
+                    // Disable Load More if no more assets
+                    if (response.assets.length < 25 || showAll) {
+                        allAssetsLoaded = true;
+                        \$('#loadMoreAssets').prop('disabled', true);
+                    }
+                } else {
+                    showBanner('No assets found in this folder.', 'info');
                 }
-              } else {
-                showBanner('Error loading assets', 'error');
-              }
-            },
-            error: function() {
-              showBanner('Server error while loading assets', 'error');
-            }
-          });
+            }).fail(function() {
+                showBanner('Error loading assets.', 'error');
+            });
         }
+
         
         function renderAssets(assets, append = false) {
-          const container = \$('#assetGrid');
-          if (!append) container.empty();
+            const \$grid = \$('#assetGrid');
         
-          assets.forEach(a => {
-            const card = \$(`
-              <div class="asset-card" title="\${a.title}">
-                <img src="\${a.thumbnail_url}" alt="\${a.title}" onerror="this.onerror=null;this.src='/images/no-thumbnail.png';">
-                <span class="asset-title">\${a.title.length > 25 ? a.title.slice(0,25)+'…' : a.title}</span>
-              </div>
-            `);
-            container.append(card);
-          });
+            // 🧹 Clear previous items only if not appending
+            if (!append) {
+                \$grid.empty();
+            }
+        
+            // 🟢 Render each asset card
+            assets.forEach(asset => {
+                const card = `
+                    <div class="asset-card" data-title="\${asset.title || ''}">
+                        <img src="\${asset.thumbnail_url || '/images/placeholder.png'}" alt="">
+                        <span class="asset-title">\${asset.title || 'Untitled'}</span>
+                    </div>
+                `;
+                \$grid.append(card);
+            });
+        
+            // 🟢 Update asset count
+            \$('#assetCount').text(\$('.asset-card').length);
+        
+            // 🟢 Add Load More / Show All buttons (only once)
+            if (!\$('.asset-controls').length) {
+                const controls = `
+                    <div class="asset-controls">
+                        <button id="loadMoreAssets">Load More</button>
+                        <button id="showAllAssets">Show All</button>
+                    </div>
+                `;
+                \$grid.after(controls);
+            }
         }
         
         function updateAssetButtons() {
@@ -277,17 +345,19 @@ $js = <<<JS
             \$controls.append('<button id="loadMoreAssetsBtn">Load More</button>');
             \$controls.append('<button id="showAllAssetsBtn">Show All</button>');
           }
+          
+        // 🟢 Load More button
+        \$(document).on('click', '#loadMoreAssets', function() {
+            if (!allAssetsLoaded) {
+                assetOffset += assetLimit;
+                loadAssets(currentFolderId, false, assetOffset);
+            }
+        });
         
-          \$('#loadMoreAssetsBtn').on('click', function() {
-            loadAssets(assetPagination.folderId, true);
-            scrollToAssetsEnd();
-          });
-        
-          \$('#showAllAssetsBtn').on('click', function() {
-            loadAssets(assetPagination.folderId, false, true);
-            scrollToAssetsEnd();
-          });
-        }
+        // 🟢 Show All button
+        \$(document).on('click', '#showAllAssets', function() {
+            loadAssets(currentFolderId, true);
+        });        }
         
         function scrollToAssetsEnd() {
           const \$panel = \$('#rightPanel');

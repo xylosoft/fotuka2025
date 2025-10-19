@@ -199,15 +199,32 @@ $(function() {
                 _csrf: yii.getCsrfToken()
             },
             success: function(res) {
-                if (!res.ok) {
-                    alert('Failed to move folder: ' + (res.error || 'unknown'));
-                    // Optionally, rollback move in jsTree
-                    data.instance.refresh();  // or restore old state
+                const tree = data.instance;
+        
+                if (!res || !res.ok) {
+                    // Show server message if available
+                    const msg = res && res.message
+                        ? res.message
+                        : 'Failed to move folder due to an unknown error.';
+                    showBanner(msg, 'error');
+        
+                    // Rollback or refresh to revert to original state
+                    tree.refresh();
+                    return;
                 }
-                data.instance.refresh();
+        
+                // Everything OK
+                showBanner('Folder moved successfully!', 'success');
+                tree.refresh();
             },
-            error: function() {
-                alert('Server error while moving folder');
+            error: function(xhr, status, errorThrown) {
+                const msg =
+                    (xhr.responseJSON && xhr.responseJSON.message) ||
+                    xhr.responseText ||
+                    errorThrown ||
+                    'Server error while moving folder.';
+                showBanner(msg, 'error');
+        
                 data.instance.refresh();
             }
         });
@@ -325,27 +342,34 @@ function showBanner(message, type = 'error') {
         .fadeOut(600);
 }
 
+// Folder Renaming
 $('#folderTree').on('rename_node.jstree', function(e, data) {
-  $.ajax({
-    url: '/folder/rename',
-    type: 'POST',
-    dataType: 'json',
-    data: {
-      id: data.node.id,
-      name: data.text,
-      _csrf: yii.getCsrfToken()
-    },
-    success: function(res) {
-      if (!res.ok) {
-        showBanner(res.message || 'Rename failed', 'error');
-      } else {
-        showBanner('Folder renamed successfully', 'success');
-      }
-    },
-    error: function() {
-      showBanner('Error communicating with server', 'error');
-    }
-  });
+    const tree = $('#folderTree').jstree(true);
+    const oldName = data.old;  // original folder name
+    const newName = data.text; // new attempted name
+
+    $.ajax({
+        url: '/folder/rename',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            id: data.node.id,
+            name: newName,
+            _csrf: yii.getCsrfToken()
+        },
+        success: function(res) {
+            if (!res.ok) {
+                showBanner(res.message, 'error');
+                // revert to old name
+                tree.set_text(data.node, oldName);
+            }
+        },
+        error: function() {
+            showBanner('Error communicating with server', 'error');
+            // revert to old name
+            tree.set_text(data.node, oldName);
+        }
+    });
 });
 
 $('#folderSearch').on('input', function() {

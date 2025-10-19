@@ -123,12 +123,9 @@ class FolderController extends Controller{
                 ]
             ];
         }
-
-        error_log(print_r($folder->getErrors(),1));
-
         return [
             'ok' => false,
-            'message' => 'Failed to move folder.',
+            'message' => 'A folder with this name already exists in this location.',
             'errors' => $folder->getErrors(),
         ];
     }
@@ -155,7 +152,7 @@ class FolderController extends Controller{
 
         return [
             'ok' => false,
-            'message' => 'Failed to rename folder',
+            'message' => 'A folder with this name already exists in this location.',
             'errors' => $folder->getErrors(),
         ];
     }

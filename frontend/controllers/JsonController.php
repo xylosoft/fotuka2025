@@ -5,6 +5,7 @@ namespace frontend\controllers;
 use yii\web\Controller;
 use yii\web\Response;
 use common\models\Folder;
+use common\models\Asset;
 
 class JsonController extends Controller
 {
@@ -44,5 +45,90 @@ class JsonController extends Controller
                 'icon' => 'fa fa-home'
             ]
         ];
+    }
+
+    public function actionFolder($id)
+    {
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        $offset = (int)\Yii::$app->request->get('offset', 0);
+        $limit  = (int)\Yii::$app->request->get('limit', 20);
+
+        $query = Folder::find()
+            ->select(['id', 'name', 'thumbnail_id'])
+            ->where(['parent_id' => $id, 'status' => 'active'])
+            ->orderBy(['name' => SORT_ASC]);
+
+        $total = (clone $query)->count();
+
+        if ($limit > 0) {
+            $query->offset($offset)->limit($limit);
+        }
+
+        $rows = $query->asArray()->all();
+
+        $subfolders = array_map(function ($folder) {
+            return [
+                'id' => $folder['id'],
+                'name' => $folder['name'],
+                'thumbnail' => $this->getThumbnailUrl($folder['thumbnail_id']),
+            ];
+        }, $rows);
+
+        return [
+            'ok' => true,
+            'subfolders' => $subfolders,
+            'count' => count($subfolders),
+            'total' => $total,
+            'allLoaded' => ($limit === 0 || ($offset + count($subfolders)) >= $total),
+        ];
+    }
+
+
+    public function actionAssets($id)
+    {
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        $offset = (int)\Yii::$app->request->get('offset', 0);
+        $limit  = (int)\Yii::$app->request->get('limit', 25); // default 25
+
+        $query = Asset::find()
+            ->select(['id', 'title', 'thumbnail_url'])
+            ->where(['folder_id' => $id, 'status' => 'active'])
+            ->orderBy(['created' => SORT_DESC]);
+
+        $total = (clone $query)->count();
+
+        if ($limit > 0) {
+            $query->offset($offset)->limit($limit);
+        }
+
+        $rows = $query->asArray()->all();
+
+        $assets = array_map(function ($a) {
+            return [
+                'id' => $a['id'],
+                'title' => $a['title'] ?: 'Untitled',
+                'thumbnail_url' => $a['thumbnail_url'] ?: '/images/no-thumbnail.png',
+            ];
+        }, $rows);
+
+        return [
+            'ok' => true,
+            'assets' => $assets,
+            'count' => count($assets),
+            'total' => $total,
+            'allLoaded' => ($limit === 0 || ($offset + count($assets)) >= $total),
+        ];
+    }
+
+
+    private function getThumbnailUrl($thumbnailId){
+        if (!$thumbnailId) {
+            return null;
+        }
+        // Assuming your thumbnails table or folder stores file paths
+        // Replace this with your actual logic later
+        return '/uploads/thumbnails/' . $thumbnailId . '.jpg';
     }
 }

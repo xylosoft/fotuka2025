@@ -22,6 +22,8 @@ return [
                 '/reset-password' => 'site/request-password-reset',
                 '/resend-verification' => 'site/resend-verification-email',
                 '/json/folders' => 'json/folders',
+                'json/folder/<id:\d+>' => 'json/folder',
+                'json/assets/<id:\d+>' => 'json/assets',
                 '/folder/add' => 'folder/add',
                 '/folder/move' => 'folder/move',
                 '/folder/rename' => 'folder/rename',

@@ -9,6 +9,8 @@ use common\models\Folder;
 
 class FolderController extends Controller{
 
+    public $enableCsrfValidation = false;
+
     public function behaviors(){
         return [
             'verbs' => [

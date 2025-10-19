@@ -96,7 +96,6 @@ FolderAsset::register($this);
     </main>
 </div>
 
-<!-- Minimal add: jQuery UI dialog markup (hidden by default) -->
 <div id="new-folder-dialog" title="Create Folder" style="display:none;">
     <p style="margin-bottom:8px;">Enter folder name:</p>
     <input type="text" id="folder-name" style="width:100%; padding:6px;">

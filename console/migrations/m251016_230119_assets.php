@@ -17,6 +17,7 @@ class m251016_230119_assets extends Migration
                 `status` enum('active','inactive','deleted') DEFAULT 'active',
                 `title` varchar(100) DEFAULT NULL,
                 `description` varchar(255) DEFAULT NULL,
+                `thumbnail_url` varchar(500) null, 
                 PRIMARY KEY (`id`),
                 KEY `idx_customerid` (`customer_id`),
                 KEY `idx_folder_id` (`folder_id`),

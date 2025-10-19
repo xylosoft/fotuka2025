@@ -51,7 +51,13 @@ class Folder extends \yii\db\ActiveRecord
             [['status'], 'string'],
             [['name'], 'string', 'max' => 50],
             ['status', 'in', 'range' => array_keys(self::optsStatus())],
-            [['parent_id', 'name'], 'unique', 'targetAttribute' => ['parent_id', 'name']],
+            [['parent_id', 'name'], 'unique',
+                'targetAttribute' => ['parent_id', 'name', 'status'],
+                'message' => 'A folder with this name already exists in this location.',
+                'when' => function ($model) {
+                    return $model->status === Folder::STATUS_ACTIVE;
+                },
+            ],
         ];
     }
 

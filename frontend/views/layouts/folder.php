@@ -51,7 +51,28 @@ FolderAsset::register($this);
             }
             ?>
         </div>
-        <div class="user-profile" style="float:right;"><img src="/images/profile_icon.jpg" alt="User profile" class="profile-pic"></div>
+        <div style="float:right;padding-right: 10px">
+            <a href="/settings"><i class="fa fa-cog"></i></a>
+        </div>
+        <div class="user-profile" style="float:right;">
+            <div class="user-menu-container">
+                <div class="user-profile">
+                    <img src="/images/profile_icon.jpg" alt="User profile" class="profile-pic">
+                </div>
+                <div class="user-dropdown-menu">
+                    <div class="menu-item" id="menu-profile">
+                        <span class="menu-icon">👤</span> Profile
+                    </div>
+                    <div class="menu-item" id="menu-settings">
+                        <span class="menu-icon">⚙️</span> Settings
+                    </div>
+                    <div class="menu-separator"></div>
+                    <div class="menu-item" id="menu-logout">
+                        <span class="menu-icon">🚪</span> Logout
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </header>
 <div id="notification-banner" class="notification"></div>
@@ -64,7 +85,6 @@ FolderAsset::register($this);
         </div>
         <h4>
             Folders
-            <!-- Minimal change: add id to the button image -->
             <img src="/icons/square-plus.svg" id="btn-new-folder" style="float:right;height:20px;"/>
         </h4>
         <div style="padding-left:10px">
@@ -109,11 +129,11 @@ $(function() {
           var tree = $('#folderTree').jstree(true);
           return {
             renameItem: {
-              label: '<i class="fa fa-pencil-alt"></i> Rename',
+              label: '<span style="font-size:16px;padding-right:10px;">✏️</span> Rename',
               action: function() { tree.edit(node); } // opens inline rename input
             },
             deleteItem: {
-                label: '<i class="fa fa-trash-alt"></i> Delete',
+                label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Delete',
                 action: function() {
                   if (confirm('Are you sure you want to delete this folder?')) {
                     $.ajax({
@@ -256,12 +276,12 @@ $(function() {
                                 }
                             });
                             showBanner('Folder created successfully!', 'success');
-                        } else {
-                            alert('Error creating folder' + (res && res.errors ? ': ' + JSON.stringify(res.errors) : ''));
                         }
                     },
-                    error: function() {
-                        alert('Error creating folder');
+                    error: function(xhr, status, errorThrown) {
+                        const firstField = Object.keys(xhr.responseJSON.errors)[0];
+                        let message = xhr.responseJSON.errors[firstField][0];
+                        showBanner(message, 'error');
                     }
                 });
 
@@ -301,7 +321,7 @@ function showBanner(message, type = 'error') {
         })
         .text(message)
         .slideDown(200)
-        .delay(1500) // visible for 4 seconds
+        .delay(3000) // visible for 4 seconds
         .fadeOut(600);
 }
 
@@ -331,6 +351,44 @@ $('#folderTree').on('rename_node.jstree', function(e, data) {
 $('#folderSearch').on('input', function() {
   console.log('Searching for:', $(this).val());
 });
+
+// Context Menu
+$(document).ready(function() {
+    const \$menu = $('.user-dropdown-menu');
+    const \$container = $('.user-menu-container');
+
+    // Toggle dropdown when clicking profile image
+    $('.user-profile').on('click', function(e) {
+        e.stopPropagation();
+        \$menu.toggle();
+    });
+
+    // Hide dropdown when clicking anywhere else
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.user-menu-container').length) {
+            \$menu.hide();
+        }
+    });
+
+    // Hide dropdown when mouse leaves the menu area
+    \$container.on('mouseleave', function() {
+        \$menu.hide();
+    });
+
+    // Example actions
+    $('#menu-profile').on('click', function() {
+        alert('Go to Profile');
+    });
+
+    $('#menu-settings').on('click', function() {
+        alert('Open Settings');
+    });
+
+    $('#menu-logout').on('click', function() {
+        alert('Log out');
+    });
+});
+
 JS;
 $this->registerJs($js);
 ?>

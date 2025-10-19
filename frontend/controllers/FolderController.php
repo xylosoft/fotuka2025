@@ -77,6 +77,7 @@ class FolderController extends Controller{
 
         // Validation failed
         Yii::$app->response->statusCode = 422;
+        error_log(print_r($model->getErrors(), 1));
         return [
             'ok'     => false,
             'errors' => $model->getErrors(),

@@ -16,7 +16,7 @@ class m251016_220110_folders extends Migration
                 `folder_size` int UNSIGNED not null default 0,
                 `asset_count` int UNSIGNED not null default 0,
                 `status` enum('active','inactive','deleted') default 'active',
-                `thumbnail_id` int UNSIGNED not null default 0,
+                `thumbnail_id` int UNSIGNED null,
                 `deleted` timestamp NULL,
                 `deleted_by_user_id` INT UNSIGNED NULL,
                 primary key (id),

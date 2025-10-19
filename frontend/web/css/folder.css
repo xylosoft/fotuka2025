@@ -51,14 +51,14 @@ header > div:last-child {
 .app {
     display: flex;
     flex-wrap: nowrap;
-    height: calc(100vh - 70px); /* fills everything below the header */
+    height: calc(100vh - 70px);
     width: 100%;
     margin-top: 70px;
 }
 
 .sidebar {
     flex: 0 0 300px;
-    width: 250px;
+    width: 450px;
     background: #F3F4F6;
     border-right: 1px solid #6B7280;
     padding: 20px;

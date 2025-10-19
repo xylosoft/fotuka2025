@@ -77,11 +77,10 @@ FolderAsset::register($this);
 </header>
 <div id="notification-banner" class="notification"></div>
 <div class="app">
-
     <aside class="sidebar">
         <div class="folder-search">
             <i class="fa fa-search"></i>
-            <input type="text" id="folderSearch" placeholder="Search">
+            <input type="text" id="folderSearch" placeholder="Folder Search">
         </div>
         <h4>
             Folders
@@ -170,7 +169,18 @@ $(function() {
                     });
                 }
               }
-            }            
+            },
+            collapseAll: {
+                label: '<span style="font-size:16px;padding-right:10px;">📂️</span> Collapse All',
+                separator_before: false,
+                action: function() {
+                    var selectedNode = tree.get_selected(true)[0];
+                    tree.close_all(selectedNode);
+                    tree.open_node(selectedNode);
+                    tree.deselect_all();
+                    tree.select_node(selectedNode);
+                }               
+            }
           };
         }
       },
@@ -372,14 +382,97 @@ $('#folderTree').on('rename_node.jstree', function(e, data) {
     });
 });
 
-$('#folderSearch').on('input', function() {
-  console.log('Searching for:', $(this).val());
+// Folder Search
+const folderSearchState = {
+  lastQuery: '',
+  matches: [],
+  index: -1
+};
+
+// Helper: collect matching node ids (case-insensitive)
+function jstreeCollectMatches(tree, query) {
+  const q = String(query).trim().toLowerCase();
+  if (!q) return [];
+  // flat:true = get every node in a flat array
+  const nodes = tree.get_json('#', { flat: true });
+  return nodes
+    .filter(n => (n.text || '').toLowerCase().includes(q))
+    .map(n => n.id);
+}
+
+// Helper: open all ancestors (handles lazy loads) then run callback
+function jstreeOpenAncestors(tree, nodeId, done) {
+  const parent = tree.get_parent(nodeId);
+  if (!parent || parent === '#') return done && done();
+  jstreeOpenAncestors(tree, parent, function () {
+    tree.open_node(parent, function () {
+      done && done();
+    });
+  });
+}
+
+// Main: handle Enter in the search box
+\$('#folderSearch').on('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+
+  e.preventDefault();
+  const query = \$(this).val().trim();
+  const tree = \$('#folderTree').jstree(true);
+
+  if (!query) {
+    // Optional: clear selection / search highlight
+    tree.clear_search && tree.clear_search();
+    tree.deselect_all();
+    folderSearchState.lastQuery = '';
+    folderSearchState.matches = [];
+    folderSearchState.index = -1;
+    return;
+  }
+
+  // If query changed, rebuild matches and reset index
+  if (folderSearchState.lastQuery.toLowerCase() !== query.toLowerCase()) {
+    folderSearchState.lastQuery = query;
+    folderSearchState.matches = jstreeCollectMatches(tree, query);
+    folderSearchState.index = -1;
+  }
+
+  if (folderSearchState.matches.length === 0) {
+    showBanner(`No folders match "\${query}".`, 'error');
+    return;
+  }
+
+  // Advance to next match (wrap around)
+  folderSearchState.index =
+    (folderSearchState.index + 1) % folderSearchState.matches.length;
+
+  const targetId = folderSearchState.matches[folderSearchState.index];
+
+  // (Optional) if you use jsTree's search plugin and want highlight:
+  if (tree.search) {
+    tree.search(query); // highlights all matches
+  }
+
+  // Open path, select node, and scroll into view
+  jstreeOpenAncestors(tree, targetId, function () {
+    tree.deselect_all();
+    tree.select_node(targetId);
+
+    // Ensure it's scrolled into view (centered if possible)
+    const \$el = tree.get_node(targetId, true);
+    if (\$el && \$el.length) {
+      // anchor is usually the visible clickable element
+      const anchor = \$el.children('.jstree-anchor').get(0) || \$el.get(0);
+      if (anchor && anchor.scrollIntoView) {
+        anchor.scrollIntoView({ block: 'center', inline: 'nearest' });
+      }
+    }
+  });
 });
 
 // Context Menu
 $(document).ready(function() {
-    const \$menu = $('.user-dropdown-menu');
-    const \$container = $('.user-menu-container');
+    const \$menu = \$('.user-dropdown-menu');
+    const \$container = \$('.user-menu-container');
 
     // Toggle dropdown when clicking profile image
     $('.user-profile').on('click', function(e) {
@@ -389,7 +482,7 @@ $(document).ready(function() {
 
     // Hide dropdown when clicking anywhere else
     $(document).on('click', function(e) {
-        if (!$(e.target).closest('.user-menu-container').length) {
+        if (!\$(e.target).closest('.user-menu-container').length) {
             \$menu.hide();
         }
     });
@@ -400,15 +493,15 @@ $(document).ready(function() {
     });
 
     // Example actions
-    $('#menu-profile').on('click', function() {
+    \$('#menu-profile').on('click', function() {
         alert('Go to Profile');
     });
 
-    $('#menu-settings').on('click', function() {
+    \$('#menu-settings').on('click', function() {
         alert('Open Settings');
     });
 
-    $('#menu-logout').on('click', function() {
+    \$('#menu-logout').on('click', function() {
         alert('Log out');
     });
 });

@@ -86,7 +86,7 @@ FolderAsset::register($this);
             Folders
             <img src="/icons/square-plus.svg" id="btn-new-folder" style="float:right;height:20px;"/>
         </h4>
-        <div style="padding-left:10px">
+        <div class="folder-tree-container">
             <div id="folderTree"></div>
         </div>
     </aside>
@@ -389,6 +389,14 @@ const folderSearchState = {
   index: -1
 };
 
+$('#folderSearch').on('click', function() {
+    $(this).val('');
+    folderSearchState.lastQuery = '';
+    folderSearchState.matches = [];
+    folderSearchState.index = -1;
+});
+
+
 // Helper: collect matching node ids (case-insensitive)
 function jstreeCollectMatches(tree, query) {
   const q = String(query).trim().toLowerCase();
@@ -505,6 +513,7 @@ $(document).ready(function() {
         alert('Log out');
     });
 });
+
 
 JS;
 $this->registerJs($js);

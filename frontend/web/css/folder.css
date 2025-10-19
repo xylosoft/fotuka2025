@@ -57,13 +57,26 @@ header > div:last-child {
 }
 
 .sidebar {
-    flex: 0 0 350px;
-    width: 250px;
-    background: #F3F4F6;
-    border-right: 1px solid #6B7280;
+    display: flex;
+    flex: 0 0 300px;
+    flex-direction: column;
+    overflow: hidden;
     padding: 20px;
-    overflow-y: auto;
+    width: 250px;
 }
+
+.folder-tree-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.folder-search,
+.sidebar h4 {
+    margin: 0 0 12px 0;
+}
+
 
 .main {
     flex: 1 1 auto;
@@ -194,7 +207,6 @@ header > div:last-child {
 }
 
 /* Search box */
-
 .folder-search {
     position: relative;
     display: flex;

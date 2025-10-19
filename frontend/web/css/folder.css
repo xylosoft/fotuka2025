@@ -57,7 +57,7 @@ header > div:last-child {
 }
 
 .sidebar {
-    flex: 0 0 300px;
+    flex: 0 0 350px;
     width: 250px;
     background: #F3F4F6;
     border-right: 1px solid #6B7280;

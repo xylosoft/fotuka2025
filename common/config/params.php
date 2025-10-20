@@ -6,6 +6,9 @@ return [
     'senderName' => 'Example.com mailer',
     'user.passwordResetTokenExpire' => 3600,
     'user.passwordMinLength' => 8,
-    'CLOUDFRONT_URL' => 'd1x4tn8afe9x1r.cloudfront.net',
-    'CLOUDFRONT_PREFIX' => '/dev/public',
+    'CLOUDFRONT_DOIMAIN' => 'd1x4tn8afe9x1r.cloudfront.net',
+    'AWS_ACCESS_KEY_ID' => getenv('AWS_ACCESS_KEY_ID'),
+    'AWS_SECRET_ACCESS_KEY' => getenv('AWS_SECRET_ACCESS_KEY'),
+    'AWS_REGION' => 'us-east-1',
+    'AWS_BUCKET' => 'fotuka',
 ];

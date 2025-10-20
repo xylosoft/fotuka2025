@@ -152,12 +152,7 @@ $(function() {
                                 tree.deselect_all();
                                 tree.select_node(parentId);
                             } else {
-                                var roots = tree.get_node('#').children;
-                                if (roots.length) {
-                                    tree.open_node(roots[0]);
-                                    tree.deselect_all();
-                                    tree.select_node(roots[0]);
-                                }
+                                selectHome();
                             }
                             tree.delete_node(node); 
                             showBanner('Folder deleted successfully', 'success');
@@ -240,28 +235,32 @@ $(function() {
                 data.instance.refresh();
             }
         });
-    }).on('dblclick.jstree', function (e) {
-      const node = \$(e.target).closest('li');
-      var folderId = node.attr('id');
-      if (!Number.isInteger(parseInt(folderId))) {
-        if (folderId){
-          window.location.href = '/folders';
-          return;
-        } 
+    }).on('select_node.jstree', function (e, data) {
+      // 0 = left click, 2 = right click
+      if (data.event && data.event.button === 0) {
+        var folderId = data.node.id;
+        if (!Number.isInteger(parseInt(folderId))) {
+            window.location.href = '/folders';
+            return;
+        }
+        window.location.href = '/folder/' + folderId;
       }
-      window.location.href = '/folder/' + folderId;
     }).one('ready.jstree', function (e, data) {
       const tree = data.instance;
       tree.deselect_all();
       const selected = selectedFolderId || 'home';
-    
+
       // Try immediate selection; if not present yet, retry once after a short delay
       function trySelect(id) {
         const node = tree.get_node(id);
         if (node) {
-          tree.open_node(node.parents);
-          tree.select_node(id);
-          tree.open_node(id);
+            if (node.id === '#') {
+                selectHome();
+            }else{
+              tree.open_node(node.parents);
+              tree.select_node(id);
+              tree.open_node(id);
+            }
         } else {
           setTimeout(() => {
             const retryNode = tree.get_node(id);
@@ -275,18 +274,18 @@ $(function() {
     
       trySelect(selected);
     });
-
-    /*
-    .on('select_node.jstree', function (e, data) {
-      // 0 = left click, 2 = right click
-      if (data.event && data.event.button === 0) {
-        const folderId = data.node.id;
-        window.location.href = '/folder/' + folderId;
-      }    
-    });
-     */
     
-    // Minimal add: init jQuery UI dialog
+    function selectHome(){
+        var tree = $('#folderTree').jstree(true);
+        var roots = tree.get_node('#').children;
+        if (roots.length) {
+            tree.open_node(roots[0]);
+            tree.deselect_all();
+            tree.select_node(roots[0]);
+        }
+        
+    }
+    
     \$('#new-folder-dialog').dialog({
         autoOpen: false,
         modal: true,
@@ -331,12 +330,7 @@ $(function() {
                                 var tree = $('#folderTree').jstree(true);
                                 
                                 if (jsParent === '#') {
-                                    var roots = tree.get_node('#').children;
-                                    if (roots.length) {
-                                        tree.open_node(roots[0]);
-                                        tree.deselect_all();
-                                        tree.select_node(roots[0]);
-                                    }
+                                    selectHome();
                                 }else{
                                     tree.open_node(jsParent);
                                     tree.deselect_all();

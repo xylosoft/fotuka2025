@@ -6,6 +6,7 @@ use yii\web\Controller;
 use yii\web\Response;
 use yii\filters\VerbFilter;
 use common\models\Folder;
+use common\models\Asset;
 
 class FolderController extends Controller{
 
@@ -163,31 +164,73 @@ class FolderController extends Controller{
     }
 
     /**
-     * Deletes a folder
-     * @return array|bool[]
-     * @throws \yii\db\Exception\
+     * Deletes a folder and all its subfolders/assets recursively
+     * @return array
+     * @throws \yii\db\Exception
      */
     public function actionDelete(){
+        error_log("Deleting Folder");
         Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         $id = Yii::$app->request->post('id');
-        $folder = Folder::findOne($id);
 
+        error_log("Folder to delete: $id");
+        $folder = Folder::findOne($id);
         if (!$folder) {
+            error_log("Folder not found...");
             return ['ok' => false, 'message' => 'Folder not found.'];
         }
 
-        // logged in user
-        $user = \Yii::$app->user->identity;
+        $user = Yii::$app->user->identity;
 
-        $folder->status = Folder::STATUS_DELETED;
-        $folder->deleted = date('Y-m-d H:i:s');
-        $folder->deleted_by_user_id = $user->id;
-
-
-        if ($folder->save(false)) {
+        // recursively mark deleted
+        try {
+            $this->markFolderAndChildrenDeleted($folder, $user->id);
             return ['ok' => true];
+        } catch (\Throwable $e) {
+            error_log("Exception");
+            error_log('Failed recursive delete: ' . $e->getMessage());
+            return ['ok' => false, 'message' => 'Failed to delete folder tree.'];
         }
+    }
 
-        return ['ok' => false, 'message' => 'Failed to delete folder.'];
+
+    /**
+     * Recursively mark folders (and their assets) as deleted.
+     *
+     * @param int $folderId
+     * @param int $userId
+     * @return void
+     * @throws \yii\db\Exception
+     */
+    private function markFolderAndChildrenDeleted($folder, $userId)
+    {
+        $now = date('Y-m-d H:i:s');
+        
+        $folder->status = Folder::STATUS_DELETED;
+        $folder->deleted = $now;
+        $folder->deleted_by_user_id = $userId;
+        $folder->save(false);
+
+        // Mark all assets under this folder as deleted
+        Asset::updateAll(
+            [
+                'status' => Asset::STATUS_DELETED,
+                'deleted' => $now,
+                'deleted_by_user_id' => $userId,
+            ],
+            ['folder_id' => $folder->id]
+        );
+
+        // Find and recursively mark all subfolders
+        $children = Folder::find()
+            ->select('id')
+            ->where(['parent_id' => $folder->id])
+            ->andWhere(['!=', 'status', Folder::STATUS_DELETED])
+            ->all();
+
+        foreach ($children as $child) {
+            error_log("Also deleting: folder:" . $child->id);
+            $this->markFolderAndChildrenDeleted($child, $userId);
+        }
     }
 }

@@ -17,6 +17,8 @@ use Yii;
  * @property int $asset_count
  * @property string|null $status
  * @property int $thumbnail_id
+ * @property string $deleted
+ * @property int $deleted_by_user_id
  */
 class Folder extends \yii\db\ActiveRecord
 {
@@ -45,9 +47,9 @@ class Folder extends \yii\db\ActiveRecord
             [['status'], 'default', 'value' => null],
             [['thumbnail_id'], 'default', 'value' => 0],
             [['customer_id', 'user_id', 'name'], 'required'],
-            [['customer_id', 'user_id', 'folder_size', 'asset_count', 'thumbnail_id'], 'integer'],
+            [['customer_id', 'user_id', 'folder_size', 'asset_count', 'thumbnail_id', 'deleted_by_user_id'], 'integer'],
             [['parent_id'], 'integer', 'skipOnEmpty' => true],
-            [['created'], 'safe'],
+            [['created', 'deleted'], 'safe'],
             [['status'], 'string'],
             [['name'], 'string', 'max' => 50],
             ['status', 'in', 'range' => array_keys(self::optsStatus())],
@@ -77,6 +79,8 @@ class Folder extends \yii\db\ActiveRecord
             'asset_count' => 'Asset Count',
             'status' => 'Status',
             'thumbnail_id' => 'Thumbnail ID',
+            'deleted' => 'Deleted',
+            'deleted_by_user_id' => 'Deleted By'
         ];
     }
 

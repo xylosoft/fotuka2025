@@ -383,11 +383,6 @@ $js = <<<JS
   \$(document).on('click', function() {
     \$('.folder-actions').removeClass('active');
   });
-
-  // Example action handlers (customize as needed)
-  \$('.folder-dropdown-menu .folder-delete').on('click', function() {
-    alert('Delete folder clicked');
-  });
   
  // Handle "Rename" menu click
   \$('.folder-rename').on('click', function() {
@@ -462,6 +457,73 @@ $js = <<<JS
     \$input.hide();
     \$span.show();
   });
+  
+    \$('.folder-delete').on('click', function() {
+      const folderId = selectedFolderId; // already defined globally
+      const tree = \$('#folderTree').jstree(true);
+      const node = tree ? tree.get_node(folderId) : null;
+    
+      if (!folderId || !node) {
+        showBanner('No folder selected or node not found.', 'error');
+        return;
+      }
+    
+      // Confirm delete
+      if (!confirm('Are you sure you want to delete this folder?')) {
+        return;
+      }
+    
+      // AJAX request to delete folder
+      \$.ajax({
+        url: '/folder/delete',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          id: folderId,
+          _csrf: yii.getCsrfToken()
+        },
+        success: function(res) {
+          if (res && res.ok) {
+            const parentId = node.parent;
+    
+            // Remove node from tree
+            tree.delete_node(node);
+    
+            // Select parent or fallback to first root
+            if (parentId && parentId !== '#') {
+              tree.deselect_all();
+              tree.select_node(parentId);
+            } else {
+              const roots = tree.get_node('#').children;
+              if (roots.length) {
+                tree.deselect_all();
+                tree.select_node(roots[0]);
+                tree.open_node(roots[0]);
+              }
+            }
+    
+            // Update UI
+            showBanner('Folder deleted successfully', 'success');
+    
+            // Optionally redirect to parent folder
+            if (parentId && parentId !== '#') {
+              window.location.href = '/folder/' + parentId;
+            } else {
+              window.location.href = '/folder';
+            }
+    
+          } else {
+            showBanner(res.message || 'Failed to delete folder', 'error');
+          }
+        },
+        error: function() {
+          showBanner('Error deleting folder', 'error');
+        }
+      });
+    
+      // Close dropdown
+      \$('.folder-actions').removeClass('active');
+    });  
   
 });
         

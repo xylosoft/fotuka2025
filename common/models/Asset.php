@@ -17,6 +17,8 @@ use Yii;
  * @property string|null $status
  * @property string|null $title
  * @property string|null $description
+ * @property string $deleted
+ * @property int $deleted_by_user_id
  */
 class Asset extends \yii\db\ActiveRecord
 {
@@ -44,9 +46,9 @@ class Asset extends \yii\db\ActiveRecord
         return [
             [['title', 'description'], 'default', 'value' => null],
             [['status'], 'default', 'value' => 'active'],
-            [['created', 'updated_at'], 'safe'],
+            [['created', 'updated_at', 'deleted'], 'safe'],
             [['customer_id', 'user_id', 'folder_id', 'file_id'], 'required'],
-            [['customer_id', 'user_id', 'folder_id', 'file_id'], 'integer'],
+            [['customer_id', 'user_id', 'folder_id', 'file_id', 'deleted_by_user_id'], 'integer'],
             [['status'], 'string'],
             [['title'], 'string', 'max' => 100],
             [['description'], 'string', 'max' => 255],
@@ -70,6 +72,8 @@ class Asset extends \yii\db\ActiveRecord
             'status' => 'Status',
             'title' => 'Title',
             'description' => 'Description',
+            'deleted' => 'Deleted',
+            'deleted_by_user_id' => 'Deleted By'
         ];
     }
 

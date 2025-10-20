@@ -1,7 +1,6 @@
 <?php
 /** @var yii\web\View $this */
 $this->title = 'Fotuka';
-
 \yii\web\JqueryAsset::register($this);
 ?>
 <div class="right-panel" id="rightPanel">
@@ -36,12 +35,14 @@ $this->title = 'Fotuka';
         <div class="folder-section" id="subfolders"></div>
         <div id="folderControls" class="folder-controls"></div>
 
-        <div class="section-header">
-            <span class="section-title">Assets</span>
-            <span class="section-count" id="assetCount"></span>
-        </div>
-        <div id="assetControls" class="asset-controls"></div>
-        <div class="asset-grid" id="assetGrid"></div>
+        <? if ($id){ ?>
+            <div class="section-header">
+                <span class="section-title">Assets</span>
+                <span class="section-count" id="assetCount"></span>
+            </div>
+            <div id="assetControls" class="asset-controls"></div>
+            <div class="asset-grid" id="assetGrid"></div>
+        <? } ?>
     </div>
 </div>
 <?php
@@ -260,25 +261,73 @@ $js = <<<JS
               updateFolderButtons();
             }
 
-            // Drag & Drop
+            // --- Drag & Drop Upload (with progress) ------------------
             const dropZone = \$('#dropZone');
+            const progressBar = \$('<div id="uploadProgress"><div></div></div>').appendTo(dropZone);
+            
             dropZone.on('dragover', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 dropZone.addClass('dragover');
             });
+            
             dropZone.on('dragleave drop', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 dropZone.removeClass('dragover');
             });
+            
             dropZone.on('drop', function (e) {
                 const files = e.originalEvent.dataTransfer.files;
-                if (files.length) {
-                    showBanner(`Uploading \${files.length} file(s)...`, 'info');
-                    // TODO: upload logic
-                }
+                if (!files.length) return;
+            
+                showBanner(`Uploading \${files.length} file(s)...`, 'info');
+            
+                const formData = new FormData();
+                \$.each(files, function (i, file) {
+                    formData.append('files[]', file);
+                });
+            
+                // include folder_id (from your current context)
+                formData.append('folder_id', currentFolderId || 1);
+                formData.append('_csrf', yii.getCsrfToken());
+            
+                \$.ajax({
+                    url: '/asset/upload/{$id}',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    xhr: function () {
+                        const xhr = new window.XMLHttpRequest();
+                        xhr.upload.addEventListener('progress', function (evt) {
+                            if (evt.lengthComputable) {
+                                const percent = Math.round((evt.loaded / evt.total) * 100);
+                                \$('#uploadProgress div').css('width', percent + '%');
+                            }
+                        }, false);
+                        return xhr;
+                    },
+                    beforeSend: function () {
+                        \$('#uploadProgress div').css('width', '0%').show();
+                    },
+                    success: function (res) {
+                        if (res.ok) {
+                            showBanner(`Uploaded \${res.uploaded} file(s) successfully`, 'success');
+                            \$('#uploadProgress div').css('width', '100%');
+                            setTimeout(() => \$('#uploadProgress div').fadeOut(), 1000);
+                            // Refresh assets after upload
+                            loadAssets(currentFolderId, true);
+                        } else {
+                            showBanner(res.error || 'Upload failed', 'error');
+                        }
+                    },
+                    error: function () {
+                        showBanner('Error uploading files', 'error');
+                    }
+                });
             });
+
 
             // Example load
             loadFolder($id);
@@ -287,6 +336,9 @@ $js = <<<JS
         });
          
         function loadAssets(folderId, showAll = false, offset = 0) {
+            if (!folderId){
+                return;
+            }
             if (assetPagination.allLoaded) return;
         
             const limit = showAll ? 0 : assetPagination.limit;

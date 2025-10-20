@@ -9,16 +9,23 @@ $this->title = 'Fotuka';
         <div class="folder-title">
             <i class="fa fa-folder-open" style="color: #E2CB91;"></i>
             <span id="currentFolderName"></span>
+            <input type="text" id="renameInput" class="rename-input" style="display:none;">
         </div>
         <div class="folder-actions">
-            <i class="fa fa-ellipsis-v" id="folderMenuBtn"></i>
-            <div id="folderMenu" class="folder-menu">
-                <div class="menu-item">Rename</div>
-                <div class="menu-item">Upload</div>
-                <div class="menu-item">Delete</div>
+            <i class="fa fa-ellipsis-v folder-menu-btn"></i>
+            <div class="folder-dropdown-menu">
+                <div class="menu-item folder-rename">
+                    <span class="menu-icon">✏️</span> Rename
+                </div>
+                <div class="menu-item folder-upload">
+                    <span class="menu-icon">📤</span> Upload
+                </div>
+                <div class="menu-separator"></div>
+                <div class="menu-item folder-delete">
+                    <span class="menu-icon">🗑️</span> Delete
+                </div>
             </div>
-        </div>
-    </div>
+        </div>    </div>
 
     <!-- Drop zone -->
     <div id="dropZone" class="drop-zone">
@@ -361,6 +368,102 @@ $js = <<<JS
             });
         }
 
+\$(document).ready(function() {
+  // Toggle folder action menu
+  \$('.folder-menu-btn').on('click', function(e) {
+    e.stopPropagation(); // prevent bubbling to document
+    const \$parent = \$(this).closest('.folder-actions');
+    // Close any other open menus
+    \$('.folder-actions').not(\$parent).removeClass('active');
+    // Toggle this one
+    \$parent.toggleClass('active');
+  });
+
+  // Close when clicking outside
+  \$(document).on('click', function() {
+    \$('.folder-actions').removeClass('active');
+  });
+
+  // Example action handlers (customize as needed)
+  \$('.folder-dropdown-menu .folder-delete').on('click', function() {
+    alert('Delete folder clicked');
+  });
+  
+ // Handle "Rename" menu click
+  \$('.folder-rename').on('click', function() {
+    const \$nameSpan = \$('#currentFolderName');
+    const \$input = \$('#renameInput');
+    const currentName = \$nameSpan.text().trim();
+
+    // show text field for editing
+    \$nameSpan.hide();
+    \$input.val(currentName).show().focus();
+
+    // close folder menu if open
+    \$('.folder-actions').removeClass('active');
+  });
+
+  // Handle Enter press inside rename field
+  \$('#renameInput').on('keypress', function(e) {
+    if (e.which !== 13) return; // only Enter key
+    e.preventDefault();
+
+    const \$input = \$(this);
+    const newName = \$input.val().trim();
+    const folderId = selectedFolderId; // already defined elsewhere
+    const oldName = \$('#currentFolderName').text().trim();
+
+    if (!newName || newName === oldName) {
+      \$input.hide();
+      \$('#currentFolderName').show();
+      return;
+    }
+
+    // Disable field while saving
+    \$input.prop('disabled', true);
+
+    // --- unified AJAX pattern (same as jsTree rename) ---
+    \$.ajax({
+      url: '/folder/rename',
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        id: folderId,
+        name: newName,
+        _csrf: yii.getCsrfToken()
+      },
+      success: function(res) {
+        if (!res.ok) {
+          showBanner(res.message || 'Rename failed', 'error');
+          // revert UI to old name
+          \$input.val(oldName);
+          \$('#currentFolderName').text(oldName).show();
+        } else {
+          // success: update displayed name
+          showBanner('Folder renamed successfully', 'success');
+          \$('#currentFolderName').text(newName).show();
+          const tree = $('#folderTree').jstree(true);
+          tree.set_text(folderId, newName);
+        }
+        \$input.hide().prop('disabled', false);
+      },
+      error: function() {
+        showBanner('Error communicating with server', 'error');
+        \$input.hide().prop('disabled', false);
+        \$('#currentFolderName').text(oldName).show();
+      }
+    });
+  });
+
+  // Handle blur (cancel rename)
+  \$('#renameInput').on('blur', function() {
+    const \$input = \$(this);
+    const \$span = \$('#currentFolderName');
+    \$input.hide();
+    \$span.show();
+  });
+  
+});
         
 JS;
 $this->registerJs($js);

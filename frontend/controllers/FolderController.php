@@ -26,9 +26,12 @@ class FolderController extends Controller{
      * Displays the folder tree with assets on the right panel
      * @return void
      */
-    public function actionFolders(){
+    public function actionFolders($id = null){
         $this->layout = "folder";
-        return $this->render('folder');
+        $this->view->params['id'] = $id;
+        return $this->render('folder', [
+            'id' => $id,
+        ]);
     }
 
 

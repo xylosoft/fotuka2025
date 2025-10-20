@@ -1,7 +1,8 @@
 <?php
 /** @var \yii\web\View $this */
 /** @var string $content */
-
+$id = $this->params['id'];
+$selectedId = $id ?? '#';
 use frontend\assets\FolderAsset;
 use yii\bootstrap5\Html;
 
@@ -104,6 +105,8 @@ FolderAsset::register($this);
 
 <?php
 $js = <<<JS
+const selectedFolderId = '{$selectedId}';
+
 $(function() {
     // Your existing jsTree init (unchanged)
     var \$treeEl = \$('#folderTree');
@@ -111,7 +114,7 @@ $(function() {
         'core' : {
             'multiple': false,
             'data' : {
-                'url' : '/json/folders',
+                'url' : '/json/folders/{$id}',
                 'dataType' : 'json'
             },
             check_callback: true,
@@ -237,13 +240,52 @@ $(function() {
                 data.instance.refresh();
             }
         });
+    }).on('dblclick.jstree', function (e) {
+      const node = \$(e.target).closest('li');
+      var folderId = node.attr('id');
+      if (!Number.isInteger(parseInt(folderId))) {
+        if (folderId){
+          window.location.href = '/folders';
+          return;
+        } 
+      }
+      window.location.href = '/folder/' + folderId;
+    }).one('ready.jstree', function (e, data) {
+      const tree = data.instance;
+      tree.deselect_all();
+      const selected = selectedFolderId || 'home';
+    
+      // Try immediate selection; if not present yet, retry once after a short delay
+      function trySelect(id) {
+        const node = tree.get_node(id);
+        if (node) {
+          tree.open_node(node.parents);
+          tree.select_node(id);
+          tree.open_node(id);
+        } else {
+          setTimeout(() => {
+            const retryNode = tree.get_node(id);
+            if (retryNode) {
+              tree.open_node(retryNode.parents);
+              tree.select_node(id);
+            }
+          }, 400);
+        }
+      }
+    
+      trySelect(selected);
     });
 
-    // Keep your existing click handler (unchanged)
-    \$treeEl.on('select_node.jstree', function(e, data) {
-        // selected node logic (if any)
+    /*
+    .on('select_node.jstree', function (e, data) {
+      // 0 = left click, 2 = right click
+      if (data.event && data.event.button === 0) {
+        const folderId = data.node.id;
+        window.location.href = '/folder/' + folderId;
+      }    
     });
-
+     */
+    
     // Minimal add: init jQuery UI dialog
     \$('#new-folder-dialog').dialog({
         autoOpen: false,

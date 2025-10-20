@@ -391,28 +391,6 @@ header > div:last-child {
     gap: 16px;
     margin-bottom: 20px;
 }
-.folder-card {
-    width: 120px;
-    text-align: center;
-    cursor: pointer;
-}
-.folder-card img {
-    width: 100%;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 10px;
-    background: #e5e7eb;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-}
-.folder-card span {
-    display: block;
-    margin-top: 6px;
-    font-size: 14px;
-    color: #374151;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
 
 /* Asset Grid */
 .asset-grid {
@@ -443,32 +421,14 @@ header > div:last-child {
     background: #eff6ff;
 }
 
-/* fixed thumbnail box so layout is consistent */
-.folder-card .thumb {
-    width: 120px;
-    height: 100px;
-    border-radius: 10px;
-    background: #e5e7eb;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
-}
-
-.folder-card .thumb img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    background-color: #E2CB91;
-}
-
-.folder-card .thumb--placeholder .emoji {
-    font-size: 36px; /* placeholder icon size */
-    opacity: .7;
-}
-
 .emoji {
     width: 64px;
     height: 64px;
     filter: invert(77%) sepia(39%) saturate(400%) hue-rotate(8deg) brightness(110%) contrast(100%);
+}
+
+a {
+    text-decoration: none
 }
 
 .section-header {
@@ -497,12 +457,6 @@ header > div:last-child {
     padding: 2px 8px;
     font-size: 0.85rem;
     font-weight: 500;
-}
-
-.subfolder-card {
-    opacity: 0;
-    transform: translateY(10px);
-    animation: fadeInUp 0.3s ease forwards;
 }
 
 @keyframes fadeInUp {
@@ -600,4 +554,88 @@ header > div:last-child {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+}
+
+#rightPanel::after {
+    pointer-events: none;
+    z-index: 0;
+}
+
+#rightPanel .asset-card {
+    position: relative;
+    z-index: 1;
+}
+
+
+/* === FOLDER GRID & CARD STYLING (Final Version) === */
+
+/* Folder grid layout */
+.folder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));  /* ~5 columns */
+    gap: 0px 00px;                   /* row and column gaps */
+    justify-items: center;
+    align-items: start;
+    padding: 0px 00px;
+    background: transparent;
+}
+
+/* Individual folder card */
+.folder-card {
+    width: 180px;
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    cursor: pointer;
+    text-align: center;
+    border-radius: 12px;
+    background: transparent !important;
+    transition: none !important;
+    box-shadow: none !important;
+}
+
+.folder-card:hover {
+    transform: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+.folder-card .emoji {
+    font-size: 70px;             /* main icon size */
+    line-height: 1;
+    margin-top: 10px;
+}
+
+/* Pagination buttons area */
+#folderControls {
+    display: flex;
+    justify-content: left;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+/* Button styling (to match the cleaner look) */
+#folderControls button {
+    padding: 8px 20px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: #111827;
+    font-size: 14px;
+    transition: all 0.15s ease;
+}
+
+#folderControls button:hover {
+    background: #e5e7eb;
+}
+.folder-card,
+.folder-card * {
+    user-select: none !important;      /* disable text selection */
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+
+    outline: none !important;          /* remove focus outline */
+    background: transparent !important;
 }

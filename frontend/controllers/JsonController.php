@@ -7,13 +7,17 @@ use yii\web\Response;
 use common\models\Folder;
 use common\models\Asset;
 
-class JsonController extends Controller
-{
-    public function actionFolders()
-    {
+class JsonController extends Controller{
+
+    /**\
+     * @param $id
+     * @return array[]
+     */
+    public function actionFolders($id = null){
+        $id = (!$id?null:$id);
         \Yii::$app->response->format = Response::FORMAT_JSON;
         // Recursive function to build folder hierarchy
-        $buildTree = function ($parentId = null) use (&$buildTree) {
+        $buildTree = function ($parentId = null, $id = null) use (&$buildTree) {
             $user = \Yii::$app->user->identity;
             $folders = Folder::find()
                 ->where(['parent_id' => $parentId, 'status' => Folder::STATUS_ACTIVE, 'customer_id' => $user->customer_id])
@@ -25,8 +29,9 @@ class JsonController extends Controller
                 $children[] = [
                     'id' => (string)$folder->id,
                     'text' => $folder->name,
-                    'children' => $buildTree($folder->id),
-                    'icon' => 'fa fa-folder'
+                    'selected' => ($id == $folder->id?"true":"false"),
+                    'icon' => 'fa fa-folder',
+                    'children' => $buildTree($folder->id)
                 ];
             }
             return $children;
@@ -39,27 +44,37 @@ class JsonController extends Controller
                 'text' => 'Home',
                 'state' => [
                     'opened' => ("#"),
-                    'selected' => true,
+                    'selected' => (!$id?"true":"false"),
                 ],
-                'children' => $buildTree(null),
+                'children' => $buildTree(null, $id),
                 'icon' => 'fa fa-home'
             ]
         ];
     }
 
-    public function actionFolder($id)
-    {
+    public function actionFolder($id){
+        $id = ($id==0?null:$id);
         \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 
         $offset = (int)\Yii::$app->request->get('offset', 0);
         $limit  = (int)\Yii::$app->request->get('limit', 20);
 
-        $root = Folder::findOne($id);
+        $root = null;
+        if ($id){
+            $root = Folder::findOne($id);
+        }
+
         $query = Folder::find()
             ->select(['id', 'name', 'thumbnail_id'])
-            ->where(['parent_id' => $id, 'status' => 'active'])
+            ->where(['status' => 'active'])
             ->orderBy(['name' => SORT_ASC]);
 
+        if ($id === null) {
+            $query->andWhere(['is', 'parent_id', null]);
+        } else {
+            $query->andWhere(['parent_id' => $id]);
+        }
+        //error_log($query->createCommand()->getRawSql());
         $total = (clone $query)->count();
 
         if ($limit > 0) {
@@ -78,7 +93,7 @@ class JsonController extends Controller
 
         return [
             'ok' => true,
-            'folder_name' => $root->name,
+            'folder_name' => $root?$root->name:"Home",
             'subfolders' => $subfolders,
             'count' => count($subfolders),
             'total' => $total,

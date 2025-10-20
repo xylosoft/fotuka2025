@@ -53,28 +53,29 @@ $js = <<<JS
             let folderPagination = {
               folderId: null,
               offset: 0,
-              limit: 20,
+              limit: 14,
               allLoaded: false
             };            
             
-            let assetPagination = {
-              folderId: null,
-              offset: 0,
-              limit: 25,
-              allLoaded: false
-            };
-            
             function loadFolder(folderId) {
               // reset state
-              folderPagination = { folderId, offset: 0, limit: 20, allLoaded: false };
+              folderPagination = { folderId, offset: 0, limit: 14, allLoaded: false };
               \$('#subfolders').empty();
               \$('#subfolderCount').text('');
-            
+
+                // also reset asset pagination
+                assetPagination.folderId = folderId;
+                assetPagination.offset = 0;
+                assetPagination.allLoaded = false;
+                
               // fetch first page (and folder name)
               fetchFolders(folderId, /*append*/ false, /*loadAll*/ false);
             }
 
             function fetchFolders(folderId, append = false, loadAll = false) {
+              if (folderId == null){
+                  folderId = 0;
+              }  
               const params = {
                 offset: append ? folderPagination.offset : 0,
                 limit: loadAll ? 0 : folderPagination.limit
@@ -233,18 +234,17 @@ $js = <<<JS
                 const shortName = safeName.length > 18 ? safeName.slice(0, 18) + '…' : safeName;
             
                 const thumbHtml = f.thumbnail
-                  ? `<div class="thumb">
+                  ? `<div class="thumb thumb--large">
                        <img src="\${f.thumbnail}" alt="\${safeName}"
                             onerror="this.onerror=null;this.src='/icons/folder-placeholder.svg';">
                      </div>`
-                  : `<div class="thumb thumb--placeholder" title="\${safeName}">
-                       <span class="emoji">📁</span>
-                     </div>`;
-            
+                  : `<div class='demoji' title="\${safeName}">
+                       <a href="/folder/\${f.id}"> <span class="emoji" style="font-size: 70px;">📁</span></a>
+                     </div>`;            
                 const card = $(`
                   <div class="folder-card" title="\${safeName}">
                     \${thumbHtml}
-                    <span>\${shortName}</span>
+                    <span>\${safeName}</span>
                   </div>
                 `);
             
@@ -274,44 +274,49 @@ $js = <<<JS
             });
 
             // Example load
-            loadFolder(1);
-            loadAssets(1);
+            loadFolder($id);
+            loadAssets($id);
+            initInfiniteAssetScroll();
         });
          
         function loadAssets(folderId, showAll = false, offset = 0) {
-            const limit = showAll ? 0 : 25;
+            if (assetPagination.allLoaded) return;
         
-            \$.getJSON('/json/assets/' + folderId, { limit: limit, offset: offset }, function(response) {
+            const limit = showAll ? 0 : assetPagination.limit;
+        
+            jQuery.getJSON('/json/assets/' + folderId, { limit, offset }, function(response) {
                 if (response && response.assets) {
-                    // Append or replace based on showAll
                     renderAssets(response.assets, offset > 0);
         
-                    // Update counter
-                    \$('#assetCount').text(\$('.asset-card').length);
+                    // Update state
+                    assetPagination.offset += response.assets.length;
         
-                    // Disable Load More if no more assets
-                    if (response.assets.length < 25 || showAll) {
-                        allAssetsLoaded = true;
-                        \$('#loadMoreAssets').prop('disabled', true);
+                    // Detect end of list
+                    if (response.assets.length < assetPagination.limit || response.assets.length === 0 || showAll) {
+                      assetPagination.allLoaded = true;
                     }
                 } else {
+                    assetPagination.allLoaded = true;
                     showBanner('No assets found in this folder.', 'info');
                 }
-            }).fail(function() {
-                showBanner('Error loading assets.', 'error');
             });
         }
 
         
+        let assetPagination = {
+          folderId: null,
+          offset: 0,
+          limit: 25,
+          allLoaded: false
+        };
+                
         function renderAssets(assets, append = false) {
             const \$grid = \$('#assetGrid');
         
-            // 🧹 Clear previous items only if not appending
             if (!append) {
                 \$grid.empty();
             }
         
-            // 🟢 Render each asset card
             assets.forEach(asset => {
                 const card = `
                     <div class="asset-card" data-title="\${asset.title || ''}">
@@ -322,53 +327,40 @@ $js = <<<JS
                 \$grid.append(card);
             });
         
-            // 🟢 Update asset count
             \$('#assetCount').text(\$('.asset-card').length);
         
-            // 🟢 Add Load More / Show All buttons (only once)
-            if (!\$('.asset-controls').length) {
-                const controls = `
-                    <div class="asset-controls">
-                        <button id="loadMoreAssets">Load More</button>
-                        <button id="showAllAssets">Show All</button>
-                    </div>
-                `;
-                \$grid.after(controls);
+            // Smooth scroll only if appending
+            if (append) {
+                const \$panel = \$('#rightPanel');
+                const target = \$grid[0].scrollHeight - \$panel.height();
+                \$panel.stop(true).animate({ scrollTop: target }, 600, 'swing');
             }
         }
+
+        function initInfiniteAssetScroll() {
+            const \$panel = \$('#rightPanel');
+            let scrollLock = false; // prevent spamming
         
-        function updateAssetButtons() {
-          const \$controls = \$('#assetControls');
-          \$controls.empty();
+            \$panel.on('scroll', function() {
+                if (assetPagination.allLoaded || scrollLock) return;
         
-          if (!assetPagination.allLoaded && assetPagination.folderId) {
-            \$controls.append('<button id="loadMoreAssetsBtn">Load More</button>');
-            \$controls.append('<button id="showAllAssetsBtn">Show All</button>');
-          }
-          
-        // 🟢 Load More button
-        \$(document).on('click', '#loadMoreAssets', function() {
-            if (!allAssetsLoaded) {
-                assetOffset += assetLimit;
-                loadAssets(currentFolderId, false, assetOffset);
-            }
-        });
+                const scrollTop = \$panel.scrollTop();
+                const scrollHeight = \$panel.prop('scrollHeight');
+                const panelHeight = \$panel.height();
         
-        // 🟢 Show All button
-        \$(document).on('click', '#showAllAssets', function() {
-            loadAssets(currentFolderId, true);
-        });        }
+                // Trigger when near bottom (within 200px)
+                if (scrollTop + panelHeight >= scrollHeight - 200) {
+                    scrollLock = true;
+                    console.log('[FOTUKA] Near bottom → load more assets');
         
-        function scrollToAssetsEnd() {
-          const \$panel = \$('#rightPanel');
-          const \$assetGrid = \$('#assetGrid');
+                    // ✅ Don't increment here; let loadAssets handle it
+                    loadAssets(assetPagination.folderId, false, assetPagination.offset);
         
-          setTimeout(() => {
-            const target =
-              \$assetGrid[0].scrollHeight - \$panel.height(); // scroll to bottom
-            \$panel.animate({ scrollTop: target }, 800, 'swing'); // slow smooth scroll
-          }, 150);
+                    setTimeout(() => { scrollLock = false; }, 1000);
+                }
+            });
         }
+
         
 JS;
 $this->registerJs($js);

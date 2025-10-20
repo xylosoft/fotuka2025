@@ -389,7 +389,8 @@ header > div:last-child {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 0px;
+    margin-top:30px;
 }
 
 /* Asset Grid */

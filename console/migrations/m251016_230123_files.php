@@ -15,7 +15,7 @@ class m251016_230123_files extends Migration
                 `height` int UNSIGNED NULL,
                 `thumbnail` enum('pending','done','unsupported') DEFAULT 'pending',
                 `preview` enum('pending','done','unsupported') DEFAULT 'pending',
-                `filename` varchar(255) DEFAULT NULL,
+                `filename` varchar(255) NOT NULL,
                 `extension` varchar(10) DEFAULT NULL,
                 `orientation` enum('horizontal','vertical') DEFAULT NULL,
                 `filesize` int UNSIGNED NOT NULL,

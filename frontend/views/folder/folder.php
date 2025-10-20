@@ -289,7 +289,7 @@ $js = <<<JS
                 });
             
                 // include folder_id (from your current context)
-                formData.append('folder_id', currentFolderId || 1);
+                formData.append('id', {$id});
                 formData.append('_csrf', yii.getCsrfToken());
             
                 \$.ajax({
@@ -317,7 +317,7 @@ $js = <<<JS
                             \$('#uploadProgress div').css('width', '100%');
                             setTimeout(() => \$('#uploadProgress div').fadeOut(), 1000);
                             // Refresh assets after upload
-                            loadAssets(currentFolderId, true);
+                            loadAssets({$id}, true);
                         } else {
                             showBanner(res.error || 'Upload failed', 'error');
                         }

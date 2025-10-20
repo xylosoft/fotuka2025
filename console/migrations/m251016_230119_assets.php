@@ -18,6 +18,7 @@ class m251016_230119_assets extends Migration
                 `title` varchar(100) DEFAULT NULL,
                 `description` varchar(255) DEFAULT NULL,
                 `thumbnail_url` varchar(500) null,
+                `version` int not null default 1,
                 `deleted` timestamp NULL,
                 `deleted_by_user_id` INT UNSIGNED NULL, 
                 PRIMARY KEY (`id`),

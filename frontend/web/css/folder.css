@@ -703,3 +703,24 @@ a {
     border-color: #3b82f6;
     box-shadow: 0 0 0 1px #3b82f6;
 }
+
+/* UPLOAD / PROGRESS BAR */
+#uploadProgress {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: calc(100% - 20px);
+    height: 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    display: none;
+}
+
+#uploadProgress div {
+    height: 100%;
+    width: 0%;
+    background: #3B82F6;
+    transition: width 0.3s ease;
+    display: block;
+}

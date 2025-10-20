@@ -30,6 +30,7 @@ return [
                 '/folder/rename' => 'folder/rename',
                 '/folders' => 'folder/folders',
                 '/folder/<id:\d+>' => 'folder/folders',
+                '/asset/upload/<id:\d+>' => 'asset/upload',
             ],
         ],
     ],

@@ -9,6 +9,7 @@ use yii\web\Response;
 use yii\helpers\FileHelper;
 use common\models\Asset;
 use common\models\File;
+use common\models\Folder;
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
 
@@ -31,7 +32,9 @@ class AssetController extends Controller
         error_log("UPLOAD - Domain: $CloudfrontDomain");
 
         $files = UploadedFile::getInstancesByName('files');
+        $paths = Yii::$app->request->post('paths', []);
         error_log(count($files) . " files are being Uploaded...");
+        error_log("Paths: " . print_r($paths,1));
 
         if (empty($files)) {
             return ['ok' => false, 'error' => 'No files received'];
@@ -59,11 +62,30 @@ class AssetController extends Controller
         error_log("Created folder: " . $uploadPath);
 
         $uploaded = 0;
-        foreach ($files as $uploadedFile) {
+        foreach ($files as $index => $uploadedFile) {
+            // Ignore .DS_Store files
+            if ($uploadedFile->name == ".DS_Store"){
+                error_log("Skipping...");
+                continue;
+            }
+            $relativePath = $paths[$index] ?? $uploadedFile->name;
+            // Normalize and sanitize the relative path
+            $relativePath = str_replace('\\', '/', $relativePath);
+            $relativePath = ltrim($relativePath, '/');
+            if (strpos($relativePath, '..') !== false) {
+                continue; // skip dangerous paths
+            }
+
+            $folderPath = trim(dirname($relativePath), '/');
+            error_log("Folder Path: $folderPath");
+            $uploadFolderId = $this->ensureFolderPath($customerId, $userId, $folderId, $folderPath);
+
             error_log("Original Filename: {$uploadedFile->baseName}");
             error_log("Original Extension: {$uploadedFile->extension}");
             error_log("Original Filename: {$uploadedFile->name}");
-            //$safeName = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->name);
+            error_log("Relative Path: {$relativePath}");
+            error_log("New Folder ID: {$uploadFolderId}");
+
             $targetFile = $uploadPath . '/' . $uploadedFile->name;
             error_log("Target File: {$targetFile}");
 
@@ -95,7 +117,7 @@ class AssetController extends Controller
                 // Then we need to create the asset
                 error_log("Creating Asset");
                 $asset = new Asset();
-                $asset->folder_id = $folderId;
+                $asset->folder_id = $uploadFolderId;
                 $asset->customer_id = $customerId;
                 $asset->user_id = $userId;
                 $asset->file_id = $file->id; // adjust if you have file references
@@ -143,8 +165,6 @@ class AssetController extends Controller
 
                     // Queue file for thumbnail & preview generation.
 
-                    return ['ok' => true, 'url' => $url];
-
                 } catch (AwsException $e) {
                     // If anything fails, remove the file & asset entries.
 
@@ -155,5 +175,43 @@ class AssetController extends Controller
         }
 
         return ['ok' => true, 'uploaded' => $uploaded];
+    }
+
+    private function ensureFolderPath($customerId, $userId, $folderId, $path){
+        try {
+            error_log("Insside ensureFolderPath");
+            if ($path == ".") {
+                error_log("returning $folderId");
+                return $folderId;
+            }
+
+            $parts = explode('/', $path);
+            error_log("Parts" . print_r($parts, 1));
+            $parentId = $folderId;
+
+            foreach ($parts as $part) {
+                error_log("Processing folder: $part - Parent: $parentId - Name: $part");
+                $folder = Folder::findOne(['parent_id' => $parentId, 'name' => $part]);
+                if (!$folder) {
+                    error_log("Creating folder: $part as child of $parentId");
+                    $folder = new Folder([
+                        'customer_id' => $customerId,
+                        'parent_id' => $parentId,
+                        'user_id' => $userId,
+                        'name' => $part,
+                        'status' => Folder::STATUS_ACTIVE
+                    ]);
+                    $folder->save();
+                } else {
+                    error_log("Folder already exists");
+                }
+                $parentId = $folder->id;
+            }
+
+            error_log("Returning: $parentId");
+            return $parentId;
+        }catch(\Exception $e){
+            error_log($e->getMessage());
+        }
     }
 }

@@ -2,7 +2,14 @@
 /** @var yii\web\View $this */
 $this->title = 'Fotuka';
 \yii\web\JqueryAsset::register($this);
+if (!$id){
+    $id = 'null';
+}
 ?>
+
+<input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
+<button id="pickFolderBtn" type="button">Upload Folder</button>
+
 <div class="right-panel" id="rightPanel">
     <div class="folder-header">
         <div class="folder-title">
@@ -260,81 +267,207 @@ $js = <<<JS
               });
               updateFolderButtons();
             }
-
-            // --- Drag & Drop Upload (with progress) ------------------
+            
+            // --- Drag & Drop Upload (with progress) ---
             const dropZone = \$('#dropZone');
             const progressBar = \$('<div id="uploadProgress"><div></div></div>').appendTo(dropZone);
             
             dropZone.on('dragover', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                dropZone.addClass('dragover');
+              e.preventDefault();
+              e.stopPropagation();
+              dropZone.addClass('dragover');
             });
             
             dropZone.on('dragleave drop', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                dropZone.removeClass('dragover');
+              e.preventDefault();
+              e.stopPropagation();
+              dropZone.removeClass('dragover');
             });
             
-            dropZone.on('drop', function (e) {
-                const files = e.originalEvent.dataTransfer.files;
+            // REPLACE your current 'drop' handler with this one:
+            dropZone.on('drop', async function (e) {
+              const dt = e.originalEvent.dataTransfer;
+              const items = dt && dt.items ? dt.items : [];
+              if (!items.length) {
+                // Fallback: if items is empty but files[] exists (some browsers), keep your old behavior
+                const files = dt.files;
                 if (!files.length) return;
+                return uploadFlatFiles(files, /*paths=*/null);
+              }
             
-                showBanner(`Uploading \${files.length} file(s)...`, 'info');
+              // Collect files + relative paths by traversing dropped entries
+              try {
+                const collected = await readDroppedItems(items); // -> [{file, path}, ...]
+                if (!collected.length) return;
             
+                // Build FormData with aligned arrays: files[] and paths[]
                 const formData = new FormData();
-                \$.each(files, function (i, file) {
-                    formData.append('files[]', file);
+                collected.forEach(({file, path}) => {
+                  formData.append('files[]', file);
+                  formData.append('paths[]', path); // "Album/2025/Trip/IMG_0001.jpg"
                 });
             
-                // include folder_id (from your current context)
+                // include folder_id + csrf (you already do this)
                 formData.append('id', {$id});
                 formData.append('_csrf', yii.getCsrfToken());
             
+                // Progress UI
+                \$('#uploadProgress div').css('width', '0%').show();
+            
                 \$.ajax({
-                    url: '/asset/upload/{$id}',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    xhr: function () {
-                        const xhr = new window.XMLHttpRequest();
-                        xhr.upload.addEventListener('progress', function (evt) {
-                            if (evt.lengthComputable) {
-                                const percent = Math.round((evt.loaded / evt.total) * 100);
-                                \$('#uploadProgress div').css('width', percent + '%');
-                            }
-                        }, false);
-                        return xhr;
-                    },
-                    beforeSend: function () {
-                        \$('#uploadProgress div').css('width', '0%').show();
-                    },
-                    success: function (res) {
-                        if (res.ok) {
-                            showBanner(`Uploaded \${res.uploaded} file(s) successfully`, 'success');
-                            \$('#uploadProgress div').css('width', '100%');
-                            setTimeout(() => \$('#uploadProgress div').fadeOut(), 1000);
-                            // Refresh assets after upload
-                            loadAssets({$id}, true);
-                        } else {
-                            showBanner(res.error || 'Upload failed', 'error');
-                        }
-                    },
-                    error: function () {
-                        showBanner('Error uploading files', 'error');
+                  url: '/asset/upload/{$id}',
+                  type: 'POST',
+                  data: formData,
+                  processData: false,
+                  contentType: false,
+                  xhr: function () {
+                    const xhr = new window.XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function (evt) {
+                      if (evt.lengthComputable) {
+                        const percent = Math.round((evt.loaded / evt.total) * 100);
+                        \$('#uploadProgress div').css('width', percent + '%');
+                      }
+                    }, false);
+                    return xhr;
+                  },
+                  success: function (res) {
+                    if (res.ok) {
+                      showBanner(`Uploaded \${res.uploaded} file(s) successfully`, 'success');
+                      \$('#uploadProgress div').css('width', '100%');
+                      setTimeout(() => \$('#uploadProgress div').fadeOut(), 1000);
+                      // Refresh assets after upload
+                      loadAssets({$id}, true);
+                    } else {
+                      showBanner(res.error || 'Upload failed', 'error');
                     }
+                  },
+                  error: function () {
+                    showBanner('Error uploading files', 'error');
+                  }
                 });
+            
+              } catch (err) {
+                console.error('Folder read failed:', err);
+                showBanner('Could not read dropped folder(s).', 'error');
+              }
             });
+            
+            /** Fallback for flat file drops (older browsers / no folder structure) */
+            function uploadFlatFiles(fileList, paths) {
+              const formData = new FormData();
+              for (let i = 0; i < fileList.length; i++) {
+                formData.append('files[]', fileList[i]);
+                // if no paths, send just the filename
+                formData.append('paths[]', fileList[i].name);
+              }
+              formData.append('id', {id});
+              formData.append('_csrf', yii.getCsrfToken());
+            
+              \$('#uploadProgress div').css('width', '0%').show();
+            
+              \$.ajax({
+                url: '/asset/upload/{$id}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhr: function () {
+                  const xhr = new window.XMLHttpRequest();
+                  xhr.upload.addEventListener('progress', function (evt) {
+                    if (evt.lengthComputable) {
+                      const percent = Math.round((evt.loaded / evt.total) * 100);
+                      \$('#uploadProgress div').css('width', percent + '%');
+                    }
+                  }, false);
+                  return xhr;
+                },
+                success: function (res) {
+                  if (res.ok) {
+                    showBanner(`Uploaded \${res.uploaded} file(s) successfully`, 'success');
+                    \$('#uploadProgress div').css('width', '100%');
+                    setTimeout(() => \$('#uploadProgress div').fadeOut(), 1000);
+                    loadAssets({$id}, true);
+                  } else {
+                    showBanner(res.error || 'Upload failed', 'error');
+                  }
+                },
+                error: function () {
+                  showBanner('Error uploading files', 'error');
+                }
+              });
+            }
+            
+            /** Traverse folders using HTML5 FileSystem API (Chrome/Edge/Safari desktop) */
+            function readDroppedItems(items) {
+              const readers = [];
+              for (let i = 0; i < items.length; i++) {
+                const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+                if (!entry) continue;
+                readers.push(readEntryRecursive(entry, ''));
+              }
+              return Promise.all(readers).then(nested => nested.flat());
+            }
+            
+            function readEntryRecursive(entry, pathPrefix) {
+              return new Promise((resolve, reject) => {
+                if (entry.isFile) {
+                  entry.file(file => {
+                    resolve([{ file, path: joinPath(pathPrefix, file.name) }]);
+                  }, reject);
+                } else if (entry.isDirectory) {
+                  const dirReader = entry.createReader();
+                  dirReader.readEntries(async entries => {
+                    try {
+                      const results = [];
+                      for (const ent of entries) {
+                        const child = await readEntryRecursive(ent, joinPath(pathPrefix, entry.name));
+                        results.push(...child);
+                      }
+                      resolve(results);
+                    } catch (e) {
+                      reject(e);
+                    }
+                  }, reject);
+                } else {
+                  resolve([]); // unknown entry
+                }
+              });
+            }
+            
+            function joinPath(a, b) {
+              if (!a) return b;
+              if (!b) return a;
+              return (
+                a.replace(/\\\\/g, '/').replace(/^\\/+/g, '').replace(/\\/+$/g, '') +
+                '/' +
+                b.replace(/\\\\/g, '/').replace(/^\\/+/g, '').replace(/\\/+$/g, '')
+              );
+            }            
 
-
-            // Example load
             loadFolder($id);
             loadAssets($id);
             initInfiniteAssetScroll();
         });
          
+        \$('#pickFolderBtn').on('click', function() {
+          \$('#folderInput').click();
+        });
+        
+        \$('#folderInput').on('change', function(e) {
+          const files = e.target.files || [];
+          if (!files.length) return;
+          // When using <input webkitdirectory>, each File has .webkitRelativePath
+          const formData = new FormData();
+          for (let i = 0; i < files.length; i++) {
+            formData.append('files[]', files[i]);
+            formData.append('paths[]', files[i].webkitRelativePath || files[i].name);
+          }
+          formData.append('id', {$id});
+          formData.append('_csrf', yii.getCsrfToken());
+          // Reuse the same ajax call as in uploadFlatFiles()
+          uploadFlatFiles(files, null); // or inline ajax as above
+        });
+
         function loadAssets(folderId, showAll = false, offset = 0) {
             if (!folderId){
                 return;

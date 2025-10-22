@@ -462,7 +462,25 @@ header > div:last-child {
 .drop-zone {
     border: 2px dashed transparent;
     transition: border-color 0.3s ease, background-color 0.3s ease;
+    min-height: calc(100vh - 220px); /* subtract header + sidebar padding */
+    box-sizing: border-box;
 }
+
+/*
+.drop-zone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 100%;
+    width: 100%;
+    z-index: 1;
+    border: 2px dashed transparent;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}*/
+
+
 .drop-zone.dragover {
     border-color: #3b82f6;
     background: #eff6ff;

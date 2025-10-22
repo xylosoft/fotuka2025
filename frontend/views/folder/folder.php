@@ -8,7 +8,9 @@ if (!$id){
 ?>
 
 <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
+<!-- Temporarily commenting as it needs to be determined where this will go. 
 <button id="pickFolderBtn" type="button">Upload Folder</button>
+-->
 
 <div class="right-panel" id="rightPanel">
     <div class="folder-header">

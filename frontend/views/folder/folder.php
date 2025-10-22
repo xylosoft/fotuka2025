@@ -118,9 +118,9 @@ $js = <<<JS
             
                   // Update counts / state
                   if (typeof res.total === 'number') {
-                    \$('#subfolderCount').text(res.total + ' total');
+                    \$('#subfolderCount').text(res.total);
                   } else {
-                    \$('#subfolderCount').text(\$('#subfolders .folder-card').length + ' total');
+                    \$('#subfolderCount').text(\$('#subfolders .folder-card').length);
                   }
             
                   if (append) {
@@ -272,84 +272,48 @@ $js = <<<JS
             const dropZone = \$('#dropZone');
             const progressBar = \$('<div id="uploadProgress"><div></div></div>').appendTo(dropZone);
             
-            dropZone.on('dragover', function (e) {
+            dropZone.off('dragover').on('dragover', function (e) {
               e.preventDefault();
               e.stopPropagation();
               dropZone.addClass('dragover');
             });
             
-            dropZone.on('dragleave drop', function (e) {
+            dropZone.off('dragleave drop').on('dragleave drop', function (e) {
               e.preventDefault();
               e.stopPropagation();
               dropZone.removeClass('dragover');
             });
             
-            // REPLACE your current 'drop' handler with this one:
-            dropZone.on('drop', async function (e) {
-              const dt = e.originalEvent.dataTransfer;
+            dropZone.off('drop').on('drop', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              dropZone.removeClass('dragover');
+            
+              const dt = e.originalEvent && e.originalEvent.dataTransfer ? e.originalEvent.dataTransfer : null;
               const items = dt && dt.items ? dt.items : [];
+            
               if (!items.length) {
-                // Fallback: if items is empty but files[] exists (some browsers), keep your old behavior
-                const files = dt.files;
-                if (!files.length) return;
-                return uploadFlatFiles(files, /*paths=*/null);
+                const files = dt && dt.files ? dt.files : [];
+                if (files.length) {
+                  handleUpload(files, {$id});
+                }
+                return;
               }
             
-              // Collect files + relative paths by traversing dropped entries
-              try {
-                const collected = await readDroppedItems(items); // -> [{file, path}, ...]
-                if (!collected.length) return;
-            
-                // Build FormData with aligned arrays: files[] and paths[]
-                const formData = new FormData();
-                collected.forEach(({file, path}) => {
-                  formData.append('files[]', file);
-                  formData.append('paths[]', path); // "Album/2025/Trip/IMG_0001.jpg"
+              // Classic promise syntax instead of await (no syntax errors)
+              readDroppedItems(items)
+                .then(function (collected) {
+                  if (!collected.length) return;
+                  const files = collected.map(function (c) {
+                    c.file.relativePath = c.path;
+                    return c.file;
+                  });
+                  return handleUpload(files, {$id});
+                })
+                .catch(function (err) {
+                  console.error('Drop read failed:', err);
+                  showBanner('Could not read dropped folder(s).', 'error');
                 });
-            
-                // include folder_id + csrf (you already do this)
-                formData.append('id', {$id});
-                formData.append('_csrf', yii.getCsrfToken());
-            
-                // Progress UI
-                \$('#uploadProgress div').css('width', '0%').show();
-            
-                \$.ajax({
-                  url: '/asset/upload/{$id}',
-                  type: 'POST',
-                  data: formData,
-                  processData: false,
-                  contentType: false,
-                  xhr: function () {
-                    const xhr = new window.XMLHttpRequest();
-                    xhr.upload.addEventListener('progress', function (evt) {
-                      if (evt.lengthComputable) {
-                        const percent = Math.round((evt.loaded / evt.total) * 100);
-                        \$('#uploadProgress div').css('width', percent + '%');
-                      }
-                    }, false);
-                    return xhr;
-                  },
-                  success: function (res) {
-                    if (res.ok) {
-                      showBanner(`Uploaded \${res.uploaded} file(s) successfully`, 'success');
-                      \$('#uploadProgress div').css('width', '100%');
-                      setTimeout(() => \$('#uploadProgress div').fadeOut(), 1000);
-                      // Refresh assets after upload
-                      loadAssets({$id}, true);
-                    } else {
-                      showBanner(res.error || 'Upload failed', 'error');
-                    }
-                  },
-                  error: function () {
-                    showBanner('Error uploading files', 'error');
-                  }
-                });
-            
-              } catch (err) {
-                console.error('Folder read failed:', err);
-                showBanner('Could not read dropped folder(s).', 'error');
-              }
             });
             
             /** Fallback for flat file drops (older browsers / no folder structure) */
@@ -448,7 +412,8 @@ $js = <<<JS
             loadAssets($id);
             initInfiniteAssetScroll();
         });
-         
+        
+/*
         \$('#pickFolderBtn').on('click', function() {
           \$('#folderInput').click();
         });
@@ -466,6 +431,23 @@ $js = <<<JS
           formData.append('_csrf', yii.getCsrfToken());
           // Reuse the same ajax call as in uploadFlatFiles()
           uploadFlatFiles(files, null); // or inline ajax as above
+        });
+ */
+
+        // Open folder picker
+        \$('#pickFolderBtn').off('click').on('click', function() {
+          \$('#folderInput').click();
+        });
+        
+        // Immediately upload on selection (folders/files)
+        \$('#folderInput').off('change').on('change', function(e) {
+          const files = e.target.files;
+          if (!files || !files.length) return;
+          (async () => {
+            await handleUpload(files, {$id});
+          })();
+          // reset so selecting the same folder again retriggers change
+          \$(this).val('');
         });
 
         function loadAssets(folderId, showAll = false, offset = 0) {
@@ -711,6 +693,72 @@ $js = <<<JS
     });  
   
 });
+
+/**
+ * Unified handler for uploading files/folders
+ * @param {FileList|File[]} files
+ * @param {number} folderId
+ */
+async function handleUpload(files, folderId) {
+  if (!files || !files.length) return;
+
+  // Build (file, relativePath) pairs
+  const collected = [];
+  for (const file of files) {
+    const path = file.webkitRelativePath || file.relativePath || file.name;
+    collected.push({ file, path });
+  }
+
+  const formData = new FormData();
+  collected.forEach(({ file, path }) => {
+    formData.append('files[]', file);
+    formData.append('paths[]', path);
+  });
+
+  formData.append('id', folderId);
+  formData.append('_csrf', yii.getCsrfToken());
+
+  // progress bar (create once if missing)
+  if (!\$('#uploadProgress').length) {
+    const \$progress = \$('<div id="uploadProgress"><div></div></div>');
+    \$('#dropZone').append(\$progress);
+  }
+  \$('#uploadProgress div').css('width', '0%').show();
+
+  return \$.ajax({
+    url: `/asset/upload/\${folderId}`,
+    type: 'POST',
+    data: formData,
+    processData: false,
+    contentType: false,
+    xhr: function () {
+      const xhr = new window.XMLHttpRequest();
+      xhr.upload.addEventListener('progress', function (evt) {
+        if (evt.lengthComputable) {
+          const percent = Math.round((evt.loaded / evt.total) * 100);
+          \$('#uploadProgress div').css('width', percent + '%');
+        }
+      });
+      return xhr;
+    },
+    success: function (res) {
+      if (res && res.ok) {
+        showBanner(`Uploaded \${res.uploaded} file(s) successfully`, 'success');
+        \$('#uploadProgress div').css('width', '100%');
+        setTimeout(() => \$('#uploadProgress div').fadeOut(), 1000);
+        // Refresh assets + tree
+        loadAssets(folderId, true);
+        const tree = \$('#folderTree').jstree(true);
+        tree.refresh();
+      } else {
+        showBanner((res && res.error) || 'Upload failed', 'error');
+      }
+    },
+    error: function () {
+      showBanner('Error uploading files', 'error');
+    }
+  });
+}        
         
 JS;
 $this->registerJs($js);

@@ -318,51 +318,6 @@ $js = <<<JS
                 });
             });
             
-            /** Fallback for flat file drops (older browsers / no folder structure) */
-            function uploadFlatFiles(fileList, paths) {
-              const formData = new FormData();
-              for (let i = 0; i < fileList.length; i++) {
-                formData.append('files[]', fileList[i]);
-                // if no paths, send just the filename
-                formData.append('paths[]', fileList[i].name);
-              }
-              formData.append('id', {id});
-              formData.append('_csrf', yii.getCsrfToken());
-            
-              \$('#uploadProgress div').css('width', '0%').show();
-            
-              \$.ajax({
-                url: '/asset/upload/{$id}',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                xhr: function () {
-                  const xhr = new window.XMLHttpRequest();
-                  xhr.upload.addEventListener('progress', function (evt) {
-                    if (evt.lengthComputable) {
-                      const percent = Math.round((evt.loaded / evt.total) * 100);
-                      \$('#uploadProgress div').css('width', percent + '%');
-                    }
-                  }, false);
-                  return xhr;
-                },
-                success: function (res) {
-                  if (res.ok) {
-                    showBanner(`Uploaded \${res.uploaded} file(s) successfully`, 'success');
-                    \$('#uploadProgress div').css('width', '100%');
-                    setTimeout(() => \$('#uploadProgress div').fadeOut(), 1000);
-                    loadAssets({$id}, true);
-                  } else {
-                    showBanner(res.error || 'Upload failed', 'error');
-                  }
-                },
-                error: function () {
-                  showBanner('Error uploading files', 'error');
-                }
-              });
-            }
-            
             /** Traverse folders using HTML5 FileSystem API (Chrome/Edge/Safari desktop) */
             function readDroppedItems(items) {
               const readers = [];
@@ -414,27 +369,6 @@ $js = <<<JS
             loadAssets($id);
             initInfiniteAssetScroll();
         });
-        
-/*
-        \$('#pickFolderBtn').on('click', function() {
-          \$('#folderInput').click();
-        });
-        
-        \$('#folderInput').on('change', function(e) {
-          const files = e.target.files || [];
-          if (!files.length) return;
-          // When using <input webkitdirectory>, each File has .webkitRelativePath
-          const formData = new FormData();
-          for (let i = 0; i < files.length; i++) {
-            formData.append('files[]', files[i]);
-            formData.append('paths[]', files[i].webkitRelativePath || files[i].name);
-          }
-          formData.append('id', {$id});
-          formData.append('_csrf', yii.getCsrfToken());
-          // Reuse the same ajax call as in uploadFlatFiles()
-          uploadFlatFiles(files, null); // or inline ajax as above
-        });
- */
 
         // Open folder picker
         \$('#pickFolderBtn').off('click').on('click', function() {
@@ -456,6 +390,7 @@ $js = <<<JS
             if (!folderId){
                 return;
             }
+
             if (assetPagination.allLoaded) return;
         
             const limit = showAll ? 0 : assetPagination.limit;
@@ -782,6 +717,7 @@ async function handleUpload(files, folderId) {
         \$('#uploadProgress div').css('width', '100%');
         setTimeout(() => \$('#uploadProgress div').fadeOut(), 1000);
         // Refresh assets + tree
+        assetPagination.allLoaded = false;
         loadAssets(folderId, true);
         const tree = \$('#folderTree').jstree(true);
         tree.refresh();

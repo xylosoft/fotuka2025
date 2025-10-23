@@ -693,7 +693,18 @@ $js = <<<JS
       // Close dropdown
       \$('.folder-actions').removeClass('active');
     });  
-  
+    
+    let currentUploadXhr = null;
+
+    $(document).on('drop', function (e) {
+      if (!$(e.target).closest('#dropZone').length) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false; // ignore drops outside
+      }
+    });
+    
+    
 });
 
 /**
@@ -727,7 +738,7 @@ async function handleUpload(files, folderId) {
   }
   \$('#uploadProgress div').css('width', '0%').show();
 
-  return \$.ajax({
+  currentUploadXhr = \$.ajax({
     url: `/asset/upload/\${folderId}`,
     type: 'POST',
     data: formData,
@@ -743,6 +754,9 @@ async function handleUpload(files, folderId) {
       });
       return xhr;
     },
+    complete: function () {
+      currentUploadXhr = null; // clear reference when done
+    },    
     success: function (res) {
       if (res && res.ok) {
         showBanner(`Uploaded \${res.uploaded} file(s) successfully`, 'success');
@@ -756,8 +770,12 @@ async function handleUpload(files, folderId) {
         showBanner((res && res.error) || 'Upload failed', 'error');
       }
     },
-    error: function () {
-      showBanner('Error uploading files', 'error');
+    error: function (xhr, status) {
+      if (status === 'abort') {
+        showBanner('Upload canceled by user', 'info');
+      } else {
+        showBanner('Error uploading files', 'error');
+      }
     }
   });
 }        

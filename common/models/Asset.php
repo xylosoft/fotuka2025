@@ -14,9 +14,11 @@ use Yii;
  * @property int $user_id
  * @property int $folder_id
  * @property int $file_id
- * @property string|null $status
+ * @property string $status
  * @property string|null $title
  * @property string|null $description
+ * @property string $thumbnail_state
+ * @property string preview_state
  * @property string $deleted
  * @property int $deleted_by_user_id
  */
@@ -29,6 +31,14 @@ class Asset extends \yii\db\ActiveRecord
     const STATUS_ACTIVE = 'active';
     const STATUS_INACTIVE = 'inactive';
     const STATUS_DELETED = 'deleted';
+
+    const THUMBNAIL_PENDING = 'pending';
+    const THUMBNAIL_READY = 'ready';
+    const THUMBNAIL_UNSUPPORTED = 'unsupported';
+
+    const PREVIEW_PENDING = 'pending';
+    const PREVIEW_READY = 'ready';
+    const PREVIEW_UNSUPPORTED = 'unsupported';
 
     /**
      * {@inheritdoc}
@@ -46,8 +56,9 @@ class Asset extends \yii\db\ActiveRecord
         return [
             [['title', 'description'], 'default', 'value' => null],
             [['status'], 'default', 'value' => 'active'],
+            [['thumbnail_state', 'preview_state'], 'default', 'value' => 'pending'],
             [['created', 'updated_at', 'deleted'], 'safe'],
-            [['customer_id', 'user_id', 'folder_id', 'file_id'], 'required'],
+            [['customer_id', 'user_id', 'folder_id', 'file_id', 'status', 'thumbnail_state', 'preview_state'], 'required'],
             [['customer_id', 'user_id', 'folder_id', 'file_id', 'deleted_by_user_id'], 'integer'],
             [['status'], 'string'],
             [['title'], 'string', 'max' => 100],
@@ -73,7 +84,10 @@ class Asset extends \yii\db\ActiveRecord
             'title' => 'Title',
             'description' => 'Description',
             'deleted' => 'Deleted',
-            'deleted_by_user_id' => 'Deleted By'
+            'deleted_by_user_id' => 'Deleted By',
+            'thumbnail_state' => '',
+            'thumbnail_state' => 'Thumbnail State',
+            'preview_state' => 'Preview State',
         ];
     }
 

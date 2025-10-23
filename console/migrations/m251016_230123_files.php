@@ -13,8 +13,6 @@ class m251016_230123_files extends Migration
                 `type` enum('image','video','audio','document','spreadsheet', 'presentation', 'archive', 'code', 'font', '3d', 'other') DEFAULT NULL,
                 `width` int UNSIGNED NULL,
                 `height` int UNSIGNED NULL,
-                `thumbnail` enum('pending','done','unsupported') DEFAULT 'pending',
-                `preview` enum('pending','done','unsupported') DEFAULT 'pending',
                 `filename` varchar(255) NOT NULL,
                 `extension` varchar(10) DEFAULT NULL,
                 `orientation` enum('horizontal','vertical') DEFAULT NULL,

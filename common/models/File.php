@@ -13,8 +13,6 @@ use Yii;
  * @property string|null $type
  * @property int|null $width
  * @property int|null $height
- * @property string|null $thumbnail
- * @property string|null $preview
  * @property string|null $filename
  * @property string|null $extension
  * @property string|null $orientation
@@ -38,12 +36,6 @@ class File extends \yii\db\ActiveRecord
     const TYPE_FONT = 'font';
     const TYPE_3D = '3d';
     const TYPE_OTHER = 'other';
-    const THUMBNAIL_PENDING = 'pending';
-    const THUMBNAIL_DONE = 'done';
-    const THUMBNAIL_UNSUPPORTED = 'unsupported';
-    const PREVIEW_PENDING = 'pending';
-    const PREVIEW_DONE = 'done';
-    const PREVIEW_UNSUPPORTED = 'unsupported';
     const ORIENTATION_HORIZONTAL = 'horizontal';
     const ORIENTATION_VERTICAL = 'vertical';
 
@@ -62,15 +54,12 @@ class File extends \yii\db\ActiveRecord
     {
         return [
             [['type', 'width', 'height', 'filename', 'extension', 'orientation', 'pages'], 'default', 'value' => null],
-            [['preview'], 'default', 'value' => 'pending'],
             [['customer_id', 'user_id', 'filesize', 'filename'], 'required'],
             [['customer_id', 'user_id', 'width', 'height', 'filesize', 'pages'], 'integer'],
-            [['type', 'thumbnail', 'preview', 'orientation'], 'string'],
+            [['type', 'orientation'], 'string'],
             [['filename'], 'string', 'max' => 255],
             [['extension'], 'string', 'max' => 10],
             ['type', 'in', 'range' => array_keys(self::fileType())],
-            ['thumbnail', 'in', 'range' => array_keys(self::optsThumbnail())],
-            ['preview', 'in', 'range' => array_keys(self::optsPreview())],
             ['orientation', 'in', 'range' => array_keys(self::optsOrientation())],
         ];
     }
@@ -87,8 +76,6 @@ class File extends \yii\db\ActiveRecord
             'type' => 'Type',
             'width' => 'Width',
             'height' => 'Height',
-            'thumbnail' => 'Thumbnail',
-            'preview' => 'Preview',
             'filename' => 'Filename',
             'extension' => 'Extension',
             'orientation' => 'Orientation',
@@ -116,32 +103,6 @@ class File extends \yii\db\ActiveRecord
             self::TYPE_FONT => 'font',
             self::TYPE_3D => '3d',
             self::TYPE_OTHER => 'other',
-        ];
-    }
-
-    /**
-     * column thumbnail ENUM value labels
-     * @return string[]
-     */
-    public static function optsThumbnail()
-    {
-        return [
-            self::THUMBNAIL_PENDING => 'pending',
-            self::THUMBNAIL_DONE => 'done',
-            self::THUMBNAIL_UNSUPPORTED => 'unsupported',
-        ];
-    }
-
-    /**
-     * column preview ENUM value labels
-     * @return string[]
-     */
-    public static function optsPreview()
-    {
-        return [
-            self::PREVIEW_PENDING => 'pending',
-            self::PREVIEW_DONE => 'done',
-            self::PREVIEW_UNSUPPORTED => 'unsupported',
         ];
     }
 

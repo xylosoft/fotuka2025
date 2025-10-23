@@ -100,14 +100,14 @@ class AssetController extends Controller
                 $file->type = File::TYPE_OTHER;
                 $file->width = null;
                 $file->height = null;
-                $file->thumbnail = 'pending';
-                $file->preview = 'pending';
                 $file->filename = $uploadedFile->name;
                 $file->extension = $uploadedFile->extension;
                 $file->orientation = null;
                 $file->filesize = $uploadedFile->size;
                 $file->pages = 0;
+                $res = null;
                 $res = $file->save();
+
                 error_log("File entry was created: " . ($res ? "Successfully" : "FAILED"));
                 if (!$res) {
                     error_log(print_r($file->getErrors(), true));
@@ -122,6 +122,8 @@ class AssetController extends Controller
                 $asset->user_id = $userId;
                 $asset->file_id = $file->id; // adjust if you have file references
                 $asset->title = $uploadedFile->name;
+                $asset->thumbnail_state = 'pending';
+                $asset->preview_state = 'pending';
                 $asset->thumbnail_url = null;
                 $res = $asset->save();
                 error_log("Asset entry was created: " . ($res?"Successfully":"FAILED"));
@@ -137,9 +139,7 @@ class AssetController extends Controller
 
                     // Determine proper file type.
                     $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    error_log("_1");
                     $mimeType = finfo_file($finfo, $targetFile);
-                    error_log("_2");
                     finfo_close($finfo);
                     error_log("Mime Type: " . $mimeType);
 

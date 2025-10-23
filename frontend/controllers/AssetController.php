@@ -122,8 +122,8 @@ class AssetController extends Controller
                 $asset->user_id = $userId;
                 $asset->file_id = $file->id; // adjust if you have file references
                 $asset->title = $uploadedFile->name;
-                $asset->thumbnail_state = 'pending';
-                $asset->preview_state = 'pending';
+                $asset->thumbnail_state = Asset::THUMBNAIL_PENDING;
+                $asset->preview_state = Asset::PREVIEW_PENDING;
                 $asset->thumbnail_url = null;
                 $res = $asset->save();
                 error_log("Asset entry was created: " . ($res?"Successfully":"FAILED"));

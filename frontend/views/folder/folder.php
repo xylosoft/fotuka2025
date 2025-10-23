@@ -494,12 +494,31 @@ $js = <<<JS
             }
         
             assets.forEach(asset => {
+                /*
                 const card = `
                     <div class="asset-card" data-title="\${asset.title || ''}">
                         <img src="\${asset.thumbnail_url || '/images/placeholder.png'}" alt="">
                         <span class="asset-title">\${asset.title || 'Untitled'}</span>
                     </div>
                 `;
+                */
+                var card = '';
+                if (asset.thumbnail_state == 'pending'){
+                    card = `<div class="asset-card" id='asset_\${asset.id}'>
+                            <div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">
+                              <div style="font-size:25px;margin-bottom:12px;">Processing</div>
+                              <div class="spinner" style="width:40px;height:40px;border:4px solid #ccc;border-top:4px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;"></div>
+                            </div>
+                            <span class="asset-title">\${asset.title}</span>
+                        </div>`;
+                }else{
+                    card = `<div class="asset-card" id='asset_\${asset.id}'>
+                            <div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">
+                            <img class='asset' src='` + asset.thumbnail_url + `' width='250' height='220'>
+                            </div>
+                            <span class="asset-title">\${asset.title}</span>
+                        </div>`;
+                }
                 \$grid.append(card);
             });
         

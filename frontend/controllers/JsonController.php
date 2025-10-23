@@ -110,7 +110,7 @@ class JsonController extends Controller{
         $limit  = (int)\Yii::$app->request->get('limit', 25); // default 25
 
         $query = Asset::find()
-            ->select(['id', 'title', 'thumbnail_url'])
+            ->select(['id', 'title', 'thumbnail_url', 'thumbnail_state'])
             ->where(['folder_id' => $id, 'status' => 'active'])
             ->orderBy(['created' => SORT_DESC]);
 
@@ -126,7 +126,8 @@ class JsonController extends Controller{
             return [
                 'id' => $a['id'],
                 'title' => $a['title'] ?: 'Untitled',
-                'thumbnail_url' => $a['thumbnail_url'] ?: '/images/no-thumbnail.png',
+                'thumbnail_url' => $a['thumbnail_url'],
+                'thumbnail_state' => $a['thumbnail_state'],
             ];
         }, $rows);
 

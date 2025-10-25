@@ -128,12 +128,15 @@ $(function() {
         contextmenu: {
         items: function(node) {
           var tree = $('#folderTree').jstree(true);
-          return {
-            renameItem: {
+          var isNumericId = !isNaN(parseInt(node.id)) && isFinite(node.id);
+          var menu = {};
+
+          if (isNumericId) {
+            menu.renameItem = {
               label: '<span style="font-size:16px;padding-right:10px;">✏️</span> Rename',
               action: function() { tree.edit(node); } // opens inline rename input
-            },
-            deleteItem: {
+            };
+            menu.deleteItem = {
                 label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Delete',
                 action: function() {
                   if (confirm('Are you sure you want to delete this folder?')) {
@@ -166,8 +169,8 @@ $(function() {
                     });
                 }
               }
-            },
-            collapseAll: {
+            };
+            menu.collapseAll = {
                 label: '<span style="font-size:16px;padding-right:10px;">📂️</span> Collapse All',
                 separator_before: false,
                 action: function() {
@@ -178,6 +181,7 @@ $(function() {
                     tree.select_node(selectedNode);
                 }               
             }
+            return menu;
           };
         }
       },

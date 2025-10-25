@@ -44,7 +44,7 @@ if (!$id){
         <div class="folder-section" id="subfolders"></div>
         <div id="folderControls" class="folder-controls"></div>
 
-        <? if ($id){ ?>
+        <? if ($id && $id != 'null'){ ?>
             <div class="section-header">
                 <span class="section-title">Assets</span>
                 <span class="section-count" id="assetCount"></span>

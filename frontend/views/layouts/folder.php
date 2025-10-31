@@ -108,7 +108,6 @@ $js = <<<JS
 const selectedFolderId = '{$selectedId}';
 
 $(function() {
-    // Your existing jsTree init (unchanged)
     var \$treeEl = \$('#folderTree');
     \$treeEl.jstree({
         'core' : {
@@ -126,64 +125,64 @@ $(function() {
         },
         'plugins' : ['types', 'wholerow','dnd', 'contextmenu'],
         contextmenu: {
-        items: function(node) {
-          var tree = $('#folderTree').jstree(true);
-          var isNumericId = !isNaN(parseInt(node.id)) && isFinite(node.id);
-          var menu = {};
-
-          if (isNumericId) {
-            menu.renameItem = {
-              label: '<span style="font-size:16px;padding-right:10px;">✏️</span> Rename',
-              action: function() { tree.edit(node); } // opens inline rename input
-            };
-            menu.deleteItem = {
-                label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Delete',
-                action: function() {
-                  if (confirm('Are you sure you want to delete this folder?')) {
-                    $.ajax({
-                      url: '/folder/delete',
-                      type: 'POST',
-                      dataType: 'json',
-                      data: {
-                        id: node.id,
-                        _csrf: yii.getCsrfToken()
-                      },
-                      success: function(res) {
-                        if (res && res.ok) {
-                            var parentId = node.parent;
-                            if (parentId && parentId !== '#') {
-                                tree.deselect_all();
-                                tree.select_node(parentId);
-                            } else {
-                                selectHome();
+            items: function(node) {
+                var tree = $('#folderTree').jstree(true);
+                var isNumericId = !isNaN(parseInt(node.id)) && isFinite(node.id);
+                var menu = {};
+    
+                if (isNumericId) {
+                    menu.renameItem = {
+                        label: '<span style="font-size:16px;padding-right:10px;">✏️</span> Rename',
+                        action: function() { tree.edit(node); } // opens inline rename input
+                    };
+                    menu.deleteItem = {
+                        label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Delete',
+                        action: function() {
+                            if (confirm('Are you sure you want to delete this folder?')) {
+                                $.ajax({
+                                    url: '/folder/delete',
+                                    type: 'POST',
+                                    dataType: 'json',
+                                    data: {
+                                        id: node.id,
+                                        _csrf: yii.getCsrfToken()
+                                    },
+                                    success: function(res) {
+                                        if (res && res.ok) {
+                                            var parentId = node.parent;
+                                            if (parentId && parentId !== '#') {
+                                                tree.deselect_all();
+                                                tree.select_node(parentId);
+                                            } else {
+                                                selectHome();
+                                            }
+                                            tree.delete_node(node); 
+                                            showBanner('Folder deleted successfully', 'success');
+                                        } else {
+                                            showBanner(res.message || 'Failed to delete folder', 'error');
+                                        }
+                                    },
+                                    error: function() {
+                                        showBanner('Error deleting folder', 'error');
+                                    }
+                                });
                             }
-                            tree.delete_node(node); 
-                            showBanner('Folder deleted successfully', 'success');
-                        } else {
-                            showBanner(res.message || 'Failed to delete folder', 'error');
                         }
-                      },
-                      error: function() {
-                          showBanner('Error deleting folder', 'error');
-                      }
-                    });
+                    };
+                };
+                menu.collapseAll = {
+                    label: '<span style="font-size:16px;padding-right:10px;">📂️</span> Collapse All',
+                    separator_before: false,
+                    action: function() {
+                        var selectedNode = tree.get_selected(true)[0];
+                        tree.close_all(selectedNode);
+                        tree.open_node(selectedNode);
+                        tree.deselect_all();
+                        tree.select_node(selectedNode);
+                    }               
                 }
-              }
-            };
-            menu.collapseAll = {
-                label: '<span style="font-size:16px;padding-right:10px;">📂️</span> Collapse All',
-                separator_before: false,
-                action: function() {
-                    var selectedNode = tree.get_selected(true)[0];
-                    tree.close_all(selectedNode);
-                    tree.open_node(selectedNode);
-                    tree.deselect_all();
-                    tree.select_node(selectedNode);
-                }               
+                return menu;
             }
-            return menu;
-          };
-        }
       },
     }).on('open_node.jstree', function (e, data) {
         if (Number.isInteger(data.node.id)) {
@@ -213,18 +212,13 @@ $(function() {
                 const tree = data.instance;
         
                 if (!res || !res.ok) {
-                    // Show server message if available
                     const msg = res && res.message
                         ? res.message
                         : 'Failed to move folder due to an unknown error.';
                     showBanner(msg, 'error');
-        
-                    // Rollback or refresh to revert to original state
                     tree.refresh();
                     return;
                 }
-        
-                // Everything OK
                 showBanner('Folder moved successfully!', 'success');
                 tree.refresh();
             },
@@ -235,48 +229,46 @@ $(function() {
                     errorThrown ||
                     'Server error while moving folder.';
                 showBanner(msg, 'error');
-        
                 data.instance.refresh();
             }
         });
     }).on('select_node.jstree', function (e, data) {
-      // 0 = left click, 2 = right click
-      if (data.event && data.event.button === 0) {
-        var folderId = data.node.id;
-        if (!Number.isInteger(parseInt(folderId))) {
-            window.location.href = '/folders';
-            return;
+        // 0 = left click, 2 = right click
+        if (data.event && data.event.button === 0) {
+            var folderId = data.node.id;
+            if (!Number.isInteger(parseInt(folderId))) {
+                window.location.href = '/folders';
+                return;
+            }
+            window.location.href = '/folder/' + folderId;
         }
-        window.location.href = '/folder/' + folderId;
-      }
     }).one('ready.jstree', function (e, data) {
-      const tree = data.instance;
-      tree.deselect_all();
-      const selected = selectedFolderId || 'home';
+        const tree = data.instance;
+        tree.deselect_all();
+        const selected = selectedFolderId || 'home';
 
-      // Try immediate selection; if not present yet, retry once after a short delay
-      function trySelect(id) {
-        const node = tree.get_node(id);
-        if (node) {
-            if (node.id === '#') {
-                selectHome();
-            }else{
-              tree.open_node(node.parents);
-              tree.select_node(id);
-              tree.open_node(id);
+        // Try immediate selection; if not present yet, retry once after a short delay
+        function trySelect(id) {
+            const node = tree.get_node(id);
+            if (node) {
+                if (node.id === '#') {
+                    selectHome();
+                }else{
+                    tree.open_node(node.parents);
+                    tree.select_node(id);
+                    tree.open_node(id);
+                }
+            } else {
+                setTimeout(() => {
+                    const retryNode = tree.get_node(id);
+                    if (retryNode) {
+                        tree.open_node(retryNode.parents);
+                        tree.select_node(id);
+                    }
+                }, 400);
             }
-        } else {
-          setTimeout(() => {
-            const retryNode = tree.get_node(id);
-            if (retryNode) {
-              tree.open_node(retryNode.parents);
-              tree.select_node(id);
-            }
-          }, 400);
         }
-      }
-    
-      trySelect(selected);
+        trySelect(selected);
     });
     
     function selectHome(){
@@ -287,7 +279,6 @@ $(function() {
             tree.deselect_all();
             tree.select_node(roots[0]);
         }
-        
     }
     
     \$('#new-folder-dialog').dialog({
@@ -321,7 +312,6 @@ $(function() {
                             // Insert node client-side under selected parent
                             var jsParent = parentId && parentId !== '' ? parentId : '#';
                             jsParent = jsParent ? String(jsParent) : '#';
-                            var folderId = res.node.id;
                             
                             if (!Number.isInteger(parseInt(jsParent))) {
                                 jsParent = '#';
@@ -350,7 +340,6 @@ $(function() {
                         showBanner(message, 'error');
                     }
                 });
-
                 \$(this).dialog('close');
             },
             "Cancel": function() { \$(this).dialog('close'); }
@@ -423,9 +412,9 @@ $('#folderTree').on('rename_node.jstree', function(e, data) {
 
 // Folder Search
 const folderSearchState = {
-  lastQuery: '',
-  matches: [],
-  index: -1
+    lastQuery: '',
+    matches: [],
+    index: -1
 };
 
 $('#folderSearch').on('click', function() {
@@ -438,82 +427,81 @@ $('#folderSearch').on('click', function() {
 
 // Helper: collect matching node ids (case-insensitive)
 function jstreeCollectMatches(tree, query) {
-  const q = String(query).trim().toLowerCase();
-  if (!q) return [];
-  // flat:true = get every node in a flat array
-  const nodes = tree.get_json('#', { flat: true });
-  return nodes
-    .filter(n => (n.text || '').toLowerCase().includes(q))
-    .map(n => n.id);
+    const q = String(query).trim().toLowerCase();
+    if (!q) return [];
+    const nodes = tree.get_json('#', { flat: true });
+    return nodes
+        .filter(n => (n.text || '').toLowerCase().includes(q))
+        .map(n => n.id);
 }
 
 // Helper: open all ancestors (handles lazy loads) then run callback
 function jstreeOpenAncestors(tree, nodeId, done) {
-  const parent = tree.get_parent(nodeId);
-  if (!parent || parent === '#') return done && done();
-  jstreeOpenAncestors(tree, parent, function () {
-    tree.open_node(parent, function () {
-      done && done();
+    const parent = tree.get_parent(nodeId);
+    if (!parent || parent === '#') return done && done();
+    jstreeOpenAncestors(tree, parent, function () {
+        tree.open_node(parent, function () {
+            done && done();
+        });
     });
-  });
 }
 
 // Main: handle Enter in the search box
 \$('#folderSearch').on('keydown', function (e) {
-  if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter') return;
 
-  e.preventDefault();
-  const query = \$(this).val().trim();
-  const tree = \$('#folderTree').jstree(true);
+    e.preventDefault();
+    const query = \$(this).val().trim();
+    const tree = \$('#folderTree').jstree(true);
 
-  if (!query) {
-    // Optional: clear selection / search highlight
-    tree.clear_search && tree.clear_search();
-    tree.deselect_all();
-    folderSearchState.lastQuery = '';
-    folderSearchState.matches = [];
-    folderSearchState.index = -1;
-    return;
-  }
-
-  // If query changed, rebuild matches and reset index
-  if (folderSearchState.lastQuery.toLowerCase() !== query.toLowerCase()) {
-    folderSearchState.lastQuery = query;
-    folderSearchState.matches = jstreeCollectMatches(tree, query);
-    folderSearchState.index = -1;
-  }
-
-  if (folderSearchState.matches.length === 0) {
-    showBanner(`No folders match "\${query}".`, 'error');
-    return;
-  }
-
-  // Advance to next match (wrap around)
-  folderSearchState.index =
-    (folderSearchState.index + 1) % folderSearchState.matches.length;
-
-  const targetId = folderSearchState.matches[folderSearchState.index];
-
-  // (Optional) if you use jsTree's search plugin and want highlight:
-  if (tree.search) {
-    tree.search(query); // highlights all matches
-  }
-
-  // Open path, select node, and scroll into view
-  jstreeOpenAncestors(tree, targetId, function () {
-    tree.deselect_all();
-    tree.select_node(targetId);
-
-    // Ensure it's scrolled into view (centered if possible)
-    const \$el = tree.get_node(targetId, true);
-    if (\$el && \$el.length) {
-      // anchor is usually the visible clickable element
-      const anchor = \$el.children('.jstree-anchor').get(0) || \$el.get(0);
-      if (anchor && anchor.scrollIntoView) {
-        anchor.scrollIntoView({ block: 'center', inline: 'nearest' });
-      }
+    if (!query) {
+        // Optional: clear selection / search highlight
+        tree.clear_search && tree.clear_search();
+        tree.deselect_all();
+        folderSearchState.lastQuery = '';
+        folderSearchState.matches = [];
+        folderSearchState.index = -1;
+        return;
     }
-  });
+
+    // If query changed, rebuild matches and reset index
+    if (folderSearchState.lastQuery.toLowerCase() !== query.toLowerCase()) {
+        folderSearchState.lastQuery = query;
+        folderSearchState.matches = jstreeCollectMatches(tree, query);
+        folderSearchState.index = -1;
+    }
+
+    if (folderSearchState.matches.length === 0) {
+        showBanner(`No folders match "\${query}".`, 'error');
+        return;
+    }
+
+    // Advance to next match (wrap around)
+    folderSearchState.index =
+        (folderSearchState.index + 1) % folderSearchState.matches.length;
+
+    const targetId = folderSearchState.matches[folderSearchState.index];
+
+    // (Optional) if you use jsTree's search plugin and want highlight:
+    if (tree.search) {
+        tree.search(query); // highlights all matches
+    }
+
+    // Open path, select node, and scroll into view
+    jstreeOpenAncestors(tree, targetId, function () {
+        tree.deselect_all();
+        tree.select_node(targetId);
+
+        // Ensure it's scrolled into view (centered if possible)
+        const \$el = tree.get_node(targetId, true);
+        if (\$el && \$el.length) {
+            // anchor is usually the visible clickable element
+            const anchor = \$el.children('.jstree-anchor').get(0) || \$el.get(0);
+            if (anchor && anchor.scrollIntoView) {
+                anchor.scrollIntoView({ block: 'center', inline: 'nearest' });
+            }
+        }
+    });
 });
 
 // Context Menu
@@ -552,9 +540,8 @@ $(document).ready(function() {
         alert('Log out');
     });
 });
-
-
 JS;
+
 $this->registerJs($js);
 ?>
 

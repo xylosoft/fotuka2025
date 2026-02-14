@@ -11,6 +11,7 @@ use common\models\Asset;
 use common\models\File;
 use common\models\Folder;
 use Aws\S3\S3Client;
+use Aws\Sqs\SqsClient;
 use Aws\Exception\AwsException;
 
 class AssetController extends Controller
@@ -105,6 +106,7 @@ class AssetController extends Controller
                 $file->orientation = null;
                 $file->filesize = $uploadedFile->size;
                 $file->pages = 0;
+                $file->tmp_location = $targetFile;
                 $res = null;
                 $res = $file->save();
 
@@ -154,10 +156,44 @@ class AssetController extends Controller
                         'CacheControl' => 'max-age=31536000',
                         'ContentType' => $mimeType,
                     ]);
-                    error_log("S3 upload result: " . ($result?"OK":"FAILED"));
+                    error_log("S3 upload result: " . ($result ? "OK" : "FAILED"));
 
-                    // Optionally delete local file
-                    @unlink($targetFile);
+
+                    // Add SQS Message to queue asset for processing
+                    $queueUrl = 'https://sqs.' . Yii::$app->params['AWS_REGION'] . '.amazonaws.com/191728941649/' . $env . '_processing';
+                    error_log("Queue URL: " . $queueUrl);
+
+                    $event = [
+                        'type' => 'Processing',
+                        'version' => 1,
+                        'MessageGroupId' => 'users',
+                        'timestamp' => gmdate('c'),
+                        'data' => [
+                            'userId' => $userId,
+                            'assetId' => $asset->id,
+                        ],
+                    ];
+
+                    $sqs = new SqsClient([
+                        'region' => Yii::$app->params['AWS_REGION'],
+                        'version' => 'latest',
+                        'credentials' => [
+                            'key'    => Yii::$app->params['AWS_ACCESS_KEY_ID'],
+                            'secret' => Yii::$app->params['AWS_SECRET_ACCESS_KEY'],
+                        ],
+                    ]);
+
+                    $result = $sqs->sendMessage([
+                        'QueueUrl' => $queueUrl,
+                        'MessageBody' => json_encode($event, JSON_UNESCAPED_SLASHES),
+                        // Optional metadata:
+                        'MessageAttributes' => [
+                            'eventType' => [
+                                'DataType' => 'String',
+                                'StringValue' => $event['type'],
+                            ],
+                        ],
+                    ]);
 
                     // CloudFront public URL (if needed)
                     $url = "https://" . $CloudfrontDomain . '/' . $key;

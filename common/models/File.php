@@ -53,11 +53,11 @@ class File extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['type', 'width', 'height', 'filename', 'extension', 'orientation', 'pages'], 'default', 'value' => null],
+            [['type', 'width', 'height', 'filename', 'extension', 'orientation', 'pages', 'tmp_location'], 'default', 'value' => null],
             [['customer_id', 'user_id', 'filesize', 'filename'], 'required'],
             [['customer_id', 'user_id', 'width', 'height', 'filesize', 'pages'], 'integer'],
-            [['type', 'orientation'], 'string'],
-            [['filename'], 'string', 'max' => 255],
+            [['type', 'orientation', 'tmp_location'], 'string'],
+            [['filename', 'tmp_location'], 'string', 'max' => 255],
             [['extension'], 'string', 'max' => 10],
             ['type', 'in', 'range' => array_keys(self::fileType())],
             ['orientation', 'in', 'range' => array_keys(self::optsOrientation())],
@@ -81,6 +81,7 @@ class File extends \yii\db\ActiveRecord
             'orientation' => 'Orientation',
             'filesize' => 'Filesize',
             'pages' => 'Pages',
+            'tmp_location' => 'Temporary Location',
         ];
     }
 

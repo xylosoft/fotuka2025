@@ -151,4 +151,11 @@ class Asset extends \yii\db\ActiveRecord
     {
         $this->status = self::STATUS_DELETED;
     }
+
+    // Relationships
+    public function getFile()
+    {
+        error_log("FILE FETCHER");
+        return $this->hasOne(File::class, ['id' => 'file_id']);
+    }
 }

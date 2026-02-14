@@ -31,6 +31,9 @@ return [
                 ],
             ],
         ],
+        'mutex' => [
+            'class' => \yii\mutex\FileMutex::class,
+        ],
     ],
     'params' => $params,
 ];

@@ -433,6 +433,13 @@ function renderAssets(assets, append = false) {
                     </div>
                     <span class="asset-title">\${asset.title}</span>
                 </div>`;
+            card = `<div class="asset-card" id='asset_\${asset.id}'>
+                    <div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">
+                    <img class='asset' src='/images/sample1.jpg' width='250' height='220'>
+                    </div>
+                    <span class="asset-title">\${asset.title}</span>
+                </div>`;
+            
         }else{
             card = `<div class="asset-card" id='asset_\${asset.id}'>
                     <div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">
@@ -468,7 +475,6 @@ function initInfiniteAssetScroll() {
         // Trigger when near bottom (within 200px)
         if (scrollTop + panelHeight >= scrollHeight - 200) {
             scrollLock = true;
-            console.log('[FOTUKA] Near bottom → load more assets');
 
             // ✅ Don't increment here; let loadAssets handle it
             loadAssets(assetPagination.folderId, false, assetPagination.offset);

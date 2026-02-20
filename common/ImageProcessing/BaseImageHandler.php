@@ -387,7 +387,6 @@ class BaseImageHandler{
     }
 
     public function saveThumbnail($asset){
-        echo "BASE - Uploading Thumbnail\n";
         $env = YII_ENV_DEV ? 'dev' : 'prod';
         try {
 
@@ -399,10 +398,9 @@ class BaseImageHandler{
                     'secret' => Yii::$app->params['AWS_SECRET_ACCESS_KEY'],
                 ],
             ]);
-            echo "BASE - Client has been instantiated.\n";
 
             $key = "{$env}/thumbnail/{$asset->customer_id}/{$asset->id}";
-            echo "KEY: $key\n";
+            //echo "KEY: $key\n";
 
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mimeType = finfo_file($finfo, $this->attributes[self::FILE_NAME]);
@@ -423,18 +421,23 @@ class BaseImageHandler{
             // Delete temporaty files
             @unlink($asset->file->tmp_location);
             @unlink($this->destinationFile);
-            echo "Files have been deleted.\n";
 
             // Update asset status
             $asset->thumbnail_state = Asset::THUMBNAIL_READY;
+            $asset->thumbnail_url = Yii::$app->params['CLOUDFRONT_URL'] . '/' . $env . '/thumbnail/' . $asset->customer_id . "/" . $asset->id;
+            $asset->save();
+
             $asset->save();
             $asset->file->tmp_location = null;
             $asset->file->save();
-            echo "Asset Status has been updated.\n";
         }catch (\Throwable $e) {
             echo "Error Uploading to S3: " . $e->getMessage() . "\n";
             echo $e->getTraceAsString() . "\n";
         }
+    }
+
+    public function cleanup($asset){
+        @unlink($asset->file->tmp_location);
     }
 
 }
@@ -448,4 +451,3 @@ class BaseImageHandler{
     jhead
     ncconvert
 */
-

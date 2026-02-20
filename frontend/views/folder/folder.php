@@ -15,8 +15,7 @@ if (!$id){
 <div class="right-panel" id="rightPanel">
     <div class="folder-header">
         <div class="folder-title">
-            <i class="fa fa-folder-open" style="color: #E2CB91;"></i>
-            <span id="currentFolderName"></span>
+            <span id="currentFolderName"><?=$folder?$folder->name:"Home"?></span>
             <input type="text" id="renameInput" class="rename-input" style="display:none;">
         </div>
         <div class="folder-actions">
@@ -36,7 +35,7 @@ if (!$id){
         </div>    </div>
 
     <!-- Drop zone -->
-    <div id="dropZone" class="drop-zone">
+
         <div class="section-header">
             <span class="section-title">Sub-folders</span>
             <span class="section-count" id="subfolderCount"></span>
@@ -45,14 +44,15 @@ if (!$id){
         <div id="folderControls" class="folder-controls"></div>
 
         <? if ($id && $id != 'null'){ ?>
+        <div id="dropZone" class="drop-zone">
             <div class="section-header">
                 <span class="section-title">Assets</span>
                 <span class="section-count" id="assetCount"></span>
             </div>
             <div id="assetControls" class="asset-controls"></div>
             <div class="asset-grid" id="assetGrid"></div>
+        </div>
         <? } ?>
-    </div>
 </div>
 <?php
 $js = <<<JS
@@ -108,11 +108,6 @@ $js = <<<JS
                 if (!res || res.ok === false) {
                     showBanner('Error loading subfolders', 'error');
                     return;
-                }
-            
-                // Update folder name if provided
-                if (res.folder_name) {
-                    \$('#currentFolderName').text(res.folder_name);
                 }
             
                 // Render
@@ -251,7 +246,7 @@ $js = <<<JS
     
             const thumbHtml = f.thumbnail
                 ? `<div class="thumb thumb--large"><img src="\${f.thumbnail}" alt="\${safeName}" onerror="this.onerror=null;this.src='/icons/folder-placeholder.svg';"></div>`
-                : `<div class='demoji' title="\${safeName}"><a href="/folder/\${f.id}"> <span class="emoji" style="font-size: 70px;">📁</span></a></div>`;            
+                : `<div class='demoji' title="\${safeName}"><a href="/folder/\${f.id}"> <img src='/images/folder100.png'></a></div>`;            
         
             const card = $(`<div class="folder-card" title="\${safeName}">\${thumbHtml}<span>\${safeName}</span></div>`);
             container.append(card);
@@ -430,12 +425,6 @@ function renderAssets(assets, append = false) {
                     <div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">
                       <div style="font-size:25px;margin-bottom:12px;">Processing</div>
                       <div class="spinner" style="width:40px;height:40px;border:4px solid #ccc;border-top:4px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;"></div>
-                    </div>
-                    <span class="asset-title">\${asset.title}</span>
-                </div>`;
-            card = `<div class="asset-card" id='asset_\${asset.id}'>
-                    <div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">
-                    <img class='asset' src='/images/sample1.jpg' width='250' height='220'>
                     </div>
                     <span class="asset-title">\${asset.title}</span>
                 </div>`;

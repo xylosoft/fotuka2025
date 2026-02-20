@@ -29,8 +29,6 @@ class AssetController extends Controller
         error_log("UPLOAD - User ID: $userId");
         $env = YII_ENV_DEV ? 'dev' : 'prod';
         error_log("UPLOAD - Env: $env");
-        $CloudfrontDomain = Yii::$app->params['CLOUDFRONT_DOIMAIN'];
-        error_log("UPLOAD - Domain: $CloudfrontDomain");
 
         $files = UploadedFile::getInstancesByName('files');
         $paths = Yii::$app->request->post('paths', []);
@@ -40,8 +38,6 @@ class AssetController extends Controller
         if (empty($files)) {
             return ['ok' => false, 'error' => 'No files received'];
         }
-
-        error_log("Params: " . print_r(Yii::$app->params,1));
 
         // AWS config
         $s3 = new S3Client([
@@ -63,6 +59,7 @@ class AssetController extends Controller
         error_log("Created folder: " . $uploadPath);
 
         $uploaded = 0;
+        error_log("AssetController UPLOAD: There are: " . count($files) . " uploaded.");
         foreach ($files as $index => $uploadedFile) {
             // Ignore .DS_Store files
             if ($uploadedFile->name == ".DS_Store"){
@@ -159,7 +156,7 @@ class AssetController extends Controller
                     error_log("S3 upload result: " . ($result ? "OK" : "FAILED"));
 
 
-                    // Add SQS Message to queue asset for processing
+                    // Queue file for thumbnail & preview generation.
                     $queueUrl = 'https://sqs.' . Yii::$app->params['AWS_REGION'] . '.amazonaws.com/191728941649/' . $env . '_processing';
                     error_log("Queue URL: " . $queueUrl);
 
@@ -195,15 +192,11 @@ class AssetController extends Controller
                         ],
                     ]);
 
-                    // CloudFront public URL (if needed)
-                    $url = "https://" . $CloudfrontDomain . '/' . $key;
-                    error_log("Cloudfront URL: $url");
-
-                    // Queue file for thumbnail & preview generation.
-
                 } catch (AwsException $e) {
                     // If anything fails, remove the file & asset entries.
-
+                    error_log('S3 Upload error: ' . $e->getMessage());
+                    return ['ok' => false, 'message' => 'S3 Upload failed.'];
+                }catch (\Throwable $e){
                     error_log('S3 Upload error: ' . $e->getMessage());
                     return ['ok' => false, 'message' => 'S3 Upload failed.'];
                 }

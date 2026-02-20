@@ -30,8 +30,13 @@ class FolderController extends Controller{
     public function actionFolders($id = null){
         $this->layout = "folder";
         $this->view->params['id'] = $id;
+        $folder = null;
+        if ($id){
+            $folder = Folder::findOne($id);
+        }
+
         return $this->render('folder', [
-            'id' => $id,
+            'id' => $id,'folder' => $folder
         ]);
     }
 

@@ -6,5 +6,5 @@ return [
     'senderName' => 'Example.com mailer',
     'user.passwordResetTokenExpire' => 3600,
     'user.passwordMinLength' => 8,
-    'CLOUDFRONT_DOIMAIN' => 'd1x4tn8afe9x1r.cloudfront.net',
+    'CLOUDFRONT_URL' => 'https://d1x4tn8afe9x1r.cloudfront.net',
 ];

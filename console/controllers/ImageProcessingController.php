@@ -10,18 +10,14 @@ use Aws\Sqs\SqsClient;
 
 class ImageProcessingController extends Controller {
 
-    private $lockName = 'image-processing-lock';
     private $processTime = null;
+
 
     public function actionIndex(){
         error_reporting(E_ALL);
         ini_set('display_errors', 1);
         ini_set('display_startup_errors', 1);
 
-        if (!\Yii::$app->mutex->acquire($this->lockName, 0)) {
-            $this->stdout("Image Processing job already running. Exiting.\n");
-            return;
-        }
         echo "Running Image Processing Cronjob\n";
 
         $this->processTime = filemtime(__FILE__);
@@ -40,11 +36,19 @@ class ImageProcessingController extends Controller {
         $env = YII_ENV_DEV ? 'dev' : 'prod';
         $queueUrl = 'https://sqs.' . Yii::$app->params['AWS_REGION'] . '.amazonaws.com/191728941649/' . $env . '_processing';
         $iteration = 0;
+        $running = true;
+        pcntl_async_signals(true);
+
+        pcntl_signal(SIGTERM, function() use (&$running) {
+            echo "SIGTERM received. Stopping Process\n";
+            $running = false;
+        });
 
         // Run forever...
-        while (1){
+        while ($running){
             $this->checkTimestamp();
             $iteration++;
+
 
             if ($iteration % 10 === 0) {
                 echo"SQS worker heartbeat iteration=" . $iteration . " mem=" . memory_get_usage(true) . "\n";
@@ -54,9 +58,9 @@ class ImageProcessingController extends Controller {
                 echo "Getting messages from queue...\n";
                 $result = $sqs->receiveMessage([
                     'QueueUrl' => $queueUrl,
-                    'MaxNumberOfMessages' => 10,   // up to 10 per call
-                    'WaitTimeSeconds' => 20,       // long polling (recommended)
-                    'VisibilityTimeout' => 60,     // seconds to process
+                    'MaxNumberOfMessages' => 1,
+                    'WaitTimeSeconds' => 20,
+                    'VisibilityTimeout' => 60,
                 ]);
 
                 if (empty($result['Messages'])) {
@@ -76,6 +80,7 @@ class ImageProcessingController extends Controller {
                         $asset->save();
                     }else{
                         $imageHandler->createThumbnail(250, 250)->saveThumbnail($asset);
+                        $imageHandler->cleanup($asset);
 
                         // 🔹 Delete AFTER successful processing
                         $sqs->deleteMessage([
@@ -94,32 +99,25 @@ class ImageProcessingController extends Controller {
                 // AWS SDK errors (throttling, timeouts, auth, etc.)
                 echo  "AwsException - " . $e->getAwsErrorMessage() . "\n", $e->getMessage() . "\n";
                 echo "Ending Image Processing job 1\n";
-                \Yii::$app->mutex->release($this->lockName);
                 exit;
             }
             catch(\Throwable $e){
                 echo  "AwsException2 - " . $e->getAwsErrorMessage() . "\n", $e->getMessage() . "\n";
                 echo "Ending Image Processing job 2\n";
-                \Yii::$app->mutex->release($this->lockName);
                 exit;
             }
 
             // If file has changed, exit so new process can be restarted by crontab.
             $this->checkTimestamp();
-
-            // Retry processing in x more seconds.
-            sleep(10);
         }
-        \Yii::$app->mutex->release($this->lockName);
+
         echo "Done\n";
     }
 
     private function checkTimestamp(){
         clearstatcache(true, __FILE__);
-        echo "Current file timestamp: " . filemtime(__FILE__) . "\n";
         if (filemtime(__FILE__) !== $this->processTime){
             echo "Exiting Process as it has been modified.\n";
-            Yii::$app->mutex->release($this->lockName);
             exit;
         }
 

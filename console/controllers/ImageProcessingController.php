@@ -79,6 +79,7 @@ class ImageProcessingController extends Controller {
                         $asset->preview_state = Asset::THUMBNAIL_UNSUPPORTED;
                         $asset->save();
                     }else{
+                        $imageHandler->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
                         $imageHandler->createThumbnail(250, 250)->saveThumbnail($asset);
                         $imageHandler->cleanup($asset);
 
@@ -97,12 +98,12 @@ class ImageProcessingController extends Controller {
                 $result = null;
             } catch (\Aws\Exception\AwsException $e) {
                 // AWS SDK errors (throttling, timeouts, auth, etc.)
-                echo  "AwsException - " . $e->getAwsErrorMessage() . "\n", $e->getMessage() . "\n";
+                echo  "AwsException - " . $e->getAwsErrorMessage() . "\n" .  $e->getMessage() . "\n";
                 echo "Ending Image Processing job 1\n";
                 exit;
             }
             catch(\Throwable $e){
-                echo  "AwsException2 - " . $e->getAwsErrorMessage() . "\n", $e->getMessage() . "\n";
+                echo  "Exception2 - " .  $e->getMessage() . "\n" . $e->getTraceAsString() . "\n";
                 echo "Ending Image Processing job 2\n";
                 exit;
             }

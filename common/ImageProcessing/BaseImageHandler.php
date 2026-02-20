@@ -32,6 +32,7 @@ class BaseImageHandler{
     public const FORMAT_BMP = "BMP";
     public const FORMAT_EPS = "EPS";
     public const FORMAT_SVG = "SVG";
+    public const FORMAT_PDF = "PDF";
 
     // FILE ATTRIBUTES
     public const FILE_SIZE = 0;
@@ -65,7 +66,7 @@ class BaseImageHandler{
     protected $dpi = null;
     protected $rotation = null;
 
-    protected $quality = null;
+    protected $quality = 75;
     protected $mirroring = null;
     protected $mirroringDirection = null;
     protected $crop = null;
@@ -83,7 +84,8 @@ class BaseImageHandler{
 
     // Metadata
     private $metadata = array();
-    private $fileIngfo = array();
+    private $fileInfo = array();
+    private $mimeTypes = array();
 
 
     /**
@@ -94,6 +96,20 @@ class BaseImageHandler{
     public function __construct($filename, $assetId){
         $this->attributes[self::FILE_NAME] = $filename;
         $this->attributes[self::ASSET_ID] = $assetId;
+        $this->mimeTypes = [self::FORMAT_JPEG => "image/jpeg",
+                            self::FORMAT_JPG => "image/jpeg",
+                            self::FORMAT_PNG => "image/png",
+                            self::FORMAT_GIF => "image/gif",
+                            self::FORMAT_WEBP => "image/webp",
+                            self::FORMAT_AI => "application/postscript",
+                            self::FORMAT_TIFF => "image/tiff",
+                            self::FORMAT_TIF => "image/tiff",
+                            self::FORMAT_PSD => "image/vnd.adobe.photoshop",
+                            self::FORMAT_TGA => "image/x-tga",
+                            self::FORMAT_BMP => "image/bmp",
+                            self::FORMAT_EPS => "application/postscript",
+                            self::FORMAT_SVG => "image/svg+xml",
+                            self::FORMAT_PDF => "application/pdf"];
 
         if (!file_exists($filename)){
             throw new \Exception("Upload Failed. Please try again.");
@@ -107,11 +123,11 @@ class BaseImageHandler{
      * Executes all conversion commands to create desired destination file.
      * @return void
      */
-    public function convert(){
-        $command = Yii::$app->params['IMAGEMAGICK_PATH'] . 'magick';
+    public function  convert(){
+        $command = "PATH=/opt/local/bin:/usr/bin:/bin " . Yii::$app->params['IMAGEMAGICK_PATH'] . 'magick';
 
         // Source File
-        $command .= " {$this->attributes[self::FILE_NAME]}";
+        $command .= " \"{$this->attributes[self::FILE_NAME]}\"";
 
         // Resize / Thumbnail options
         if ($this->width && $this->height){
@@ -128,20 +144,18 @@ class BaseImageHandler{
             $command .= " -quality {$this->quality}";
         }
 
-        //-quality 75
-
         // Destination File
         if (!$this->destinationFile){
             $this->destinationFile = tempnam('/tmp', $this->attributes[self::ASSET_ID]);
         }
-        $command .= " $this->destinationFile";
+        $command .= " {$this->destinationFormat}:{$this->destinationFile}";
 
         echo "COMMAND: $command\n";
 
         $start = microtime(true);
         $output = null;
         $result_code = null;
-        echo "FINAL COMMAND: $command\n";
+        echo "FINAL COMMAND (Base): $command\n";
         exec($command, $output, $result_code);
         echo "Result Code: $result_code\n";
         echo print_r($output,1) . "\n";
@@ -190,10 +204,11 @@ class BaseImageHandler{
         $output = null;
         $result_code = null;
 
-        $command = Yii::$app->params['IMAGEMAGICK_PATH'] . "identify {$this->attributes[self::FILE_NAME]}";
+        $command = "PATH=/opt/local/bin:/usr/bin:/bin " . Yii::$app->params['IMAGEMAGICK_PATH'] . "identify \"{$this->attributes[self::FILE_NAME]}\"";
         echo "BaseImageController: Command: $command\n";
         exec($command, $output, $result_code);
         echo "Output: " . print_r($output) . "\n";
+
 
         // Count number of frames for GIF Files
         if ($this->attributes[self::FILE_FORMAT] == self::FORMAT_GIF){
@@ -266,6 +281,7 @@ class BaseImageHandler{
 
     public function setDestinationFormat($fileFormat){
         $this->destinationFormat = $fileFormat;
+        echo"******* SETTING DESTINATION FORMAT TO: " . $this->destinationFormat . "\n";
 
         // Check to see if it's a supported destination format.
         //echo "File Format: " . $fileFormat . "\n";
@@ -273,12 +289,6 @@ class BaseImageHandler{
         if (!$this->supportsDestinationFormat()){
             throw new \Exception("File Format conversion not supported.");
         }
-
-        $parts = pathinfo($this->attributes[self::FILE_NAME]);
-        $filename = $parts['filename'];
-
-        // @todo This needs to go to temp folder
-        $this->destinationFile =  $parts['dirname'] . '/processed_' . $filename . '.' . strtolower($fileFormat);
         return $this;
     }
 
@@ -340,7 +350,6 @@ class BaseImageHandler{
         echo "HandlerName: $handlerName\n";
         try{
             $handler = new $handlerName($filename, $asset->id);
-            echo "Handler instantiated properly.\n";
             return $handler;
         }catch (\Throwable $e){
             echo $e->getMessage()."\n";
@@ -388,6 +397,8 @@ class BaseImageHandler{
 
     public function saveThumbnail($asset){
         $env = YII_ENV_DEV ? 'dev' : 'prod';
+        $this->destinationFormat = SELF::FORMAT_JPG;
+
         try {
 
             $s3 = new S3Client([
@@ -402,9 +413,15 @@ class BaseImageHandler{
             $key = "{$env}/thumbnail/{$asset->customer_id}/{$asset->id}";
             //echo "KEY: $key\n";
 
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mimeType = finfo_file($finfo, $this->attributes[self::FILE_NAME]);
-            finfo_close($finfo);
+            // Thumbnails will always be
+            //$finfo = finfo_open(FILEINFO_MIME_TYPE);
+            //$mimeType = finfo_file($finfo, $this->attributes[self::FILE_NAME]);
+            //finfo_close($finfo);
+
+
+            // Set Mimetype as defined by the destination format.
+            echo"******* DESTINATION FORMAT IS: " . $this->destinationFormat . "\n";
+            $mimeType = $this->mimeTypes[$this->destinationFormat];
 
             echo "Mime Type: " . $mimeType . "\n";
 

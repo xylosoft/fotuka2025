@@ -1,12 +1,13 @@
 <?php
 /** @var \yii\web\View $this */
 /** @var string $content */
-$id = $this->params['id'];
-$selectedId = $id ?? '#';
 use frontend\assets\FolderAsset;
 use yii\bootstrap5\Html;
 
 FolderAsset::register($this);
+
+$id = $this->params['id'];
+$selectedId = $id ?? '#';
 ?>
 <?php $this->beginPage() ?>
 <!DOCTYPE html>
@@ -134,6 +135,10 @@ $(function() {
                     menu.renameItem = {
                         label: '<span style="font-size:16px;padding-right:10px;">✏️</span> Rename',
                         action: function() { tree.edit(node); } // opens inline rename input
+                    };
+                    menu.moveItem = {
+                        label: '<span style="font-size:16px;padding-right:10px;">↷️</span> Move',
+                        action: function() { javascript:void(0); }
                     };
                     menu.deleteItem = {
                         label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Delete',

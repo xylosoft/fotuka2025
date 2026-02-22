@@ -43,7 +43,6 @@ if (!$id){
         <div class="folder-section" id="subfolders"></div>
         <div id="folderControls" class="folder-controls"></div>
 
-        <? if ($id && $id != 'null'){ ?>
         <div id="dropZone" class="drop-zone">
             <div class="section-header">
                 <span class="section-title">Assets</span>
@@ -52,9 +51,9 @@ if (!$id){
             <div id="assetControls" class="asset-controls"></div>
             <div class="asset-grid" id="assetGrid"></div>
         </div>
-        <? } ?>
 </div>
 <script>
+let currentUploadXhr = null;
 let folderPagination = {
     folderId: null,
     offset: 0,
@@ -69,11 +68,14 @@ let assetPagination = {
     allLoaded: false
 };
 
+// CHECKED
 function loadFolder(folderId) {
-    // reset state
     folderPagination = { folderId, offset: 0, limit: 14, allLoaded: false };
     $('#subfolders').empty();
     $('#subfolderCount').text('');
+    if (!folderId || isNaN(folderId)){
+        folderId = null;
+    }
 
     // also reset asset pagination
     assetPagination.folderId = folderId;
@@ -81,11 +83,32 @@ function loadFolder(folderId) {
     assetPagination.allLoaded = false;
 
     // fetch first page (and folder name)
-    fetchFolders(folderId, /*append*/ false, /*loadAll*/ false);
+    fetchFolders(folderId?folderId:null, /*append*/ false, /*loadAll*/ false);
+    var tree = window.jQuery('#folderTree').jstree(true);
+    tree.deselect_all();
+    tree.open_node(folderId?folderId:0);
+    console.log("Selecting folder: " + folderId);
+    tree.select_node(folderId?folderId:0);
+    window.selectedFolderId = folderId?folderId:null;
+
+    if (!folderId){
+        window.selectHome();
+        $('#currentFolderName').text("Home");
+        $('#dropZone').hide();
+    }else{
+        var selected = tree.get_selected(true);
+        $('#currentFolderName').text(selected[0].text);
+        $('#dropZone').show();
+        //loadAssets(folderId);
+    }
+
+    initInfiniteAssetScroll();
 }
 
+// CHECKED
 function fetchFolders(folderId, append = false, loadAll = false) {
-    if (folderId == null){
+    console.log('fetchFolder '+ folderId);
+    if (folderId == null || isNaN(folderId)){
         folderId = 0;
     }
 
@@ -150,7 +173,7 @@ function renderSubfolders(folders, append = false) {
 
         const thumbHtml = f.thumbnail
             ? '<div class="thumb thumb--large"><img src="' + f.thumbnail + '" alt="' + safeName + '" onerror="this.onerror=null;this.src=\'/icons/folder-placeholder.svg\';"></div>'
-            : '<div class="demoji" title="' + safeName + '"><a href="/folder/' + f.id + '"> <img src="/images/folder100.png"></a></div>';
+            : '<div class="demoji" title="' + safeName + '"><a href="javascript:loadFolder('+  f.id + ');"> <img src="/images/folder100.png"></a></div>';
 
         const card = $('<div class="folder-card" title="' + safeName + '">' + thumbHtml + '<span>' + safeName + '</span></div>');
         container.append(card);
@@ -220,6 +243,7 @@ function readEntryRecursive(entry, pathPrefix) {
         }
     });
 }
+
 function joinPath(a, b) {
     if (!a) return b;
     if (!b) return a;
@@ -234,6 +258,7 @@ function joinPath(a, b) {
             .replace(/\/+$/g, '')
     );
 }
+
 function loadAssets(folderId, showAll = false, offset = 0) {
     if (!folderId){
         return;
@@ -260,6 +285,7 @@ function loadAssets(folderId, showAll = false, offset = 0) {
         }
     });
 }
+
 function renderAssets(assets, append = false) {
     const $grid = $('#assetGrid');
 
@@ -360,6 +386,7 @@ function scrollToAssetsPeek(peekOffset) {
         });
     });
 }
+
 function initInfiniteAssetScroll() {
     const $panel = $('#rightPanel');
     let scrollLock = false; // prevent spamming
@@ -381,11 +408,7 @@ function initInfiniteAssetScroll() {
         }
     });
 }
-/**
- * Unified handler for uploading files/folders
- * @param {FileList|File[]} files
- * @param {number} folderId
- */
+
 async function handleUpload(files, folderId) {
     if (!files || !files.length) return;
 
@@ -454,44 +477,41 @@ async function handleUpload(files, folderId) {
         }
     });
 }
-</script>
-<?php
-$js = <<<JS
-\$(function () {
+
+document.addEventListener('DOMContentLoaded', function () {
+    const dropZone = $('#dropZone');
+    const progressBar = $('<div id="uploadProgress"><div></div></div>').appendTo(dropZone);
+    
     // Toggle folder menu
-    \$('#folderMenuBtn').on('click', function (e) {
+    $('#folderMenuBtn').on('click', function (e) {
         e.stopPropagation();
-        \$('#folderMenu').toggle();
+        $('#folderMenu').toggle();
     });
 
-    \$(document).on('click', function () {
-        \$('#folderMenu').hide();
+    $(document).on('click', function () {
+        $('#folderMenu').hide();
     });
-    
-    // --- Drag & Drop Upload (with progress) ---
-    const dropZone = \$('#dropZone');
-    const progressBar = \$('<div id="uploadProgress"><div></div></div>').appendTo(dropZone);
-    
+
     dropZone.off('dragover').on('dragover', function (e) {
         e.preventDefault();
         e.stopPropagation();
         dropZone.addClass('dragover');
     });
-    
+
     dropZone.off('dragleave drop').on('dragleave drop', function (e) {
         e.preventDefault();
         e.stopPropagation();
         dropZone.removeClass('dragover');
     });
-    
+
     dropZone.off('drop').on('drop', function (e) {
         e.preventDefault();
         e.stopPropagation();
         dropZone.removeClass('dragover');
-    
+
         const dt = e.originalEvent && e.originalEvent.dataTransfer ? e.originalEvent.dataTransfer : null;
         const items = dt && dt.items ? dt.items : [];
-    
+
         if (!items.length) {
             const files = dt && dt.files ? dt.files : [];
             if (files.length) {
@@ -499,7 +519,7 @@ $js = <<<JS
             }
             return;
         }
-    
+
         // Classic promise syntax instead of await (no syntax errors)
         readDroppedItems(items).then(function (collected) {
             if (!collected.length) return;
@@ -507,86 +527,77 @@ $js = <<<JS
                 c.file.relativePath = c.path;
                 return c.file;
             });
-            return handleUpload(files, {$id});
+            return handleUpload(files, window.selectedFolderId);
         }).catch(function (err) {
             console.error('Drop read failed:', err);
             showBanner('Could not read dropped folder(s).', 'error');
         });
     });
 
-    loadFolder($id);
-    loadAssets($id);
-    initInfiniteAssetScroll();
-});
+    $('#pickFolderBtn').off('click').on('click', function() {
+        $('#folderInput').click();
+    });
 
-// Open folder picker
-\$('#pickFolderBtn').off('click').on('click', function() {
-    \$('#folderInput').click();
-});
-        
-// Immediately upload on selection (folders/files)
-\$('#folderInput').off('change').on('change', function(e) {
-    const files = e.target.files;
-    if (!files || !files.length) return;
-    (async () => {
-        await handleUpload(files, {$id});
+    $('#folderInput').off('change').on('change', function(e) {
+        const files = e.target.files;
+        if (!files || !files.length) return;
+        (async () => {
+            await handleUpload(files, {$id});
     })();
-    // reset so selecting the same folder again retriggers change
-    \$(this).val('');
-});
+        // reset so selecting the same folder again retriggers change
+    $(this).val('');
+    });
 
-
-\$(document).ready(function() {
     // Toggle folder action menu
-    \$('.folder-menu-btn').on('click', function(e) {
+    $('.folder-menu-btn').on('click', function(e) {
         e.stopPropagation(); // prevent bubbling to document
-        const \$parent = \$(this).closest('.folder-actions');
+        const $parent = $(this).closest('.folder-actions');
         // Close any other open menus
-        \$('.folder-actions').not(\$parent).removeClass('active');
+        $('.folder-actions').not($parent).removeClass('active');
         // Toggle this one
-        \$parent.toggleClass('active');
+        $parent.toggleClass('active');
     });
 
     // Close when clicking outside
-    \$(document).on('click', function() {
-        \$('.folder-actions').removeClass('active');
+    $(document).on('click', function() {
+        $('.folder-actions').removeClass('active');
     });
-  
+
     // Handle "Rename" menu click
-    \$('.folder-rename').on('click', function() {
-        const \$nameSpan = \$('#currentFolderName');
-        const \$input = \$('#renameInput');
-        const currentName = \$nameSpan.text().trim();
+    $('.folder-rename').on('click', function() {
+        const $nameSpan = $('#currentFolderName');
+        const $input = $('#renameInput');
+        const currentName = $nameSpan.text().trim();
 
         // show text field for editing
-        \$nameSpan.hide();
-        \$input.val(currentName).show().focus();
+        $nameSpan.hide();
+        $input.val(currentName).show().focus();
 
         // close folder menu if open
-        \$('.folder-actions').removeClass('active');
+        $('.folder-actions').removeClass('active');
     });
 
     // Handle Enter press inside rename field
-    \$('#renameInput').on('keypress', function(e) {
+    $('#renameInput').on('keypress', function(e) {
         if (e.which !== 13) return; // only Enter key
         e.preventDefault();
 
-        const \$input = \$(this);
-        const newName = \$input.val().trim();
-        const folderId = selectedFolderId; // already defined elsewhere
-        const oldName = \$('#currentFolderName').text().trim();
+        const $input = $(this);
+        const newName = $input.val().trim();
+        const folderId = window.selectedFolderId; // already defined elsewhere
+        const oldName = $('#currentFolderName').text().trim();
 
         if (!newName || newName === oldName) {
-            \$input.hide();
-            \$('#currentFolderName').show();
+        $input.hide();
+            $('#currentFolderName').show();
             return;
         }
 
         // Disable field while saving
-        \$input.prop('disabled', true);
+        $input.prop('disabled', true);
 
         // --- unified AJAX pattern (same as jsTree rename) ---
-        \$.ajax({
+        $.ajax({
             url: '/folder/rename',
             type: 'POST',
             dataType: 'json',
@@ -599,50 +610,51 @@ $js = <<<JS
                 if (!res.ok) {
                     showBanner(res.message || 'Rename failed', 'error');
                     // revert UI to old name
-                    \$input.val(oldName);
-                    \$('#currentFolderName').text(oldName).show();
+                $input.val(oldName);
+                    $('#currentFolderName').text(oldName).show();
                 } else {
                     // success: update displayed name
                     showBanner('Folder renamed successfully', 'success');
-                    \$('#currentFolderName').text(newName).show();
+                    $('#currentFolderName').text(newName).show();
                     const tree = $('#folderTree').jstree(true);
                     tree.set_text(folderId, newName);
                 }
-                \$input.hide().prop('disabled', false);
+                $input.hide().prop('disabled', false);
             },
             error: function() {
                 showBanner('Error communicating with server', 'error');
-                \$input.hide().prop('disabled', false);
-                \$('#currentFolderName').text(oldName).show();
+                $input.hide().prop('disabled', false);
+                $('#currentFolderName').text(oldName).show();
             }
         });
     });
 
     // Handle blur (cancel rename)
-    \$('#renameInput').on('blur', function() {
-        const \$input = \$(this);
-        const \$span = \$('#currentFolderName');
-        \$input.hide();
-        \$span.show();
+    $('#renameInput').on('blur', function() {
+        const $input = $(this);
+        const $span = $('#currentFolderName');
+        $input.hide();
+        $span.show();
     });
-  
-    \$('.folder-delete').on('click', function() {
-        const folderId = selectedFolderId; // already defined globally
-        const tree = \$('#folderTree').jstree(true);
+
+    // CHECKED
+    $('.folder-delete').on('click', function() {
+        const folderId = window.selectedFolderId;
+        console.log("Deleting folder: " + folderId);
+        const tree = $('#folderTree').jstree(true);
         const node = tree ? tree.get_node(folderId) : null;
-    
+        const parentId = node.parent;
+
         if (!folderId || !node) {
             showBanner('No folder selected or node not found.', 'error');
             return;
         }
-    
-        // Confirm delete
+
         if (!confirm('Are you sure you want to delete this folder?')) {
             return;
         }
-    
-        // AJAX request to delete folder
-        \$.ajax({
+
+        $.ajax({
             url: '/folder/delete',
             type: 'POST',
             dataType: 'json',
@@ -652,47 +664,23 @@ $js = <<<JS
             },
             success: function(res) {
                 if (res && res.ok) {
-                    const parentId = node.parent;
-    
-                    // Remove node from tree
                     tree.delete_node(node);
-    
-                    // Select parent or fallback to first root
-                    if (parentId && parentId !== '#') {
-                        tree.deselect_all();
-                        tree.select_node(parentId);
-                    } else {
-                        const roots = tree.get_node('#').children;
-                        if (roots.length) {
-                            tree.deselect_all();
-                            tree.select_node(roots[0]);
-                            tree.open_node(roots[0]);
-                        }
-                    }
-    
-                    // Update UI
+                    tree.select_node(parentId);
+                    loadFolder(parentId);
+                    window.selectedFolderId = parentId;
                     showBanner('Folder deleted successfully', 'success');
-    
-                    // Optionally redirect to parent folder
-                    if (parentId && parentId !== '#') {
-                        window.location.href = '/folder/' + parentId;
-                    } else {
-                        window.location.href = '/folder';
-                    }
                 } else {
-                    showBanner(res.message || 'Failed to delete folder', 'error');
+                    showBanner(res.message || 'Failed to delete folder.', 'error');
                 }
             },
             error: function() {
-                showBanner('Error deleting folder', 'error');
+                showBanner('Error deleting folder.', 'error');
             }
         });
-    
+
         // Close dropdown
-        \$('.folder-actions').removeClass('active');
-    });  
-    
-    let currentUploadXhr = null;
+        $('.folder-actions').removeClass('active');
+    });
 
     $(document).on('drop', function (e) {
         if (!$(e.target).closest('#dropZone').length) {
@@ -701,10 +689,10 @@ $js = <<<JS
             return false; // ignore drops outside
         }
     });
-});
 
-        
-        
-JS;
-$this->registerJs($js);
-?>
+    $('#folderTree').on('ready.jstree', function () {
+        loadFolder(null);
+    })
+
+});
+</script>

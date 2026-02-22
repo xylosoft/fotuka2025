@@ -103,18 +103,107 @@ $selectedId = $id ?? '#';
     <input type="text" id="folder-name" style="width:100%; padding:6px;">
     <div id="folder-error" style="color:red; margin-top:6px; display:none;"></div>
 </div>
+<script>
+const selectedFolderId = '<?=$selectedId?>';
+const folderSearchState = {
+    lastQuery: '',
+    matches: [],
+    index: -1
+};
 
-<?php
-$js = <<<JS
-const selectedFolderId = '{$selectedId}';
+function showBanner(message, type = 'error') {
+    var $banner = $('#notification-banner');
+    var bgColor = '#F4B6B6'; // default red
 
-$(function() {
-    var \$treeEl = \$('#folderTree');
-    \$treeEl.jstree({
+    if (type === 'success') bgColor = '#AEE8B2'; // green
+
+    $banner.stop(true, true)
+        .css({
+            'background-color': bgColor,
+            'display': 'none'
+        })
+        .text(message)
+        .slideDown(200)
+        .delay(3000) // visible for 4 seconds
+        .fadeOut(600);
+}
+
+function jstreeCollectMatches(tree, query) {
+    const q = String(query).trim().toLowerCase();
+    if (!q) return [];
+    const nodes = tree.get_json('#', { flat: true });
+    return nodes.filter(n => (n.text || '').toLowerCase().includes(q)).map(n => n.id);
+}
+
+// Helper: open all ancestors (handles lazy loads) then run callback
+function jstreeOpenAncestors(tree, nodeId, done) {
+    const parent = tree.get_parent(nodeId);
+    if (!parent || parent === '#') return done && done();
+    jstreeOpenAncestors(tree, parent, function () {
+        tree.open_node(parent, function () {
+            done && done();
+        });
+    });
+}
+
+function selectHome(){
+    var tree = $('#folderTree').jstree(true);
+    var roots = tree.get_node('#').children;
+    if (roots.length) {
+        tree.open_node(roots[0]);
+        tree.deselect_all();
+        tree.select_node(roots[0]);
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    var $treeEl = $('#folderTree');
+    const $menu = $('.user-dropdown-menu');
+    const $container = $('.user-menu-container');
+
+    $('#folderSearch').on('click', function() {
+        $(this).val('');
+        folderSearchState.lastQuery = '';
+        folderSearchState.matches = [];
+        folderSearchState.index = -1;
+    });
+
+    // Toggle dropdown when clicking profile image
+    $('.user-profile').on('click', function(e) {
+        e.stopPropagation();
+        $menu.toggle();
+    });
+
+    // Hide dropdown when clicking anywhere else
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.user-menu-container').length) {
+        $menu.hide();
+        }
+    });
+
+    // Hide dropdown when mouse leaves the menu area
+    $container.on('mouseleave', function() {
+        $menu.hide();
+    });
+
+    $('#menu-profile').on('click', function() {
+        alert('Go to Profile');
+    });
+
+    $('#menu-settings').on('click', function() {
+        alert('Open Settings');
+    });
+
+    $('#menu-logout').on('click', function() {
+        alert('Log out');
+    });
+    
+    $treeEl.jstree({
         'core' : {
             'multiple': false,
             'data' : {
-                'url' : '/json/folders/{$id}',
+                'url' : '/json/folders/<?=$id?>',
                 'dataType' : 'json'
             },
             check_callback: true,
@@ -130,7 +219,7 @@ $(function() {
                 var tree = $('#folderTree').jstree(true);
                 var isNumericId = !isNaN(parseInt(node.id)) && isFinite(node.id);
                 var menu = {};
-    
+
                 if (isNumericId) {
                     menu.renameItem = {
                         label: '<span style="font-size:16px;padding-right:10px;">✏️</span> Rename',
@@ -158,10 +247,11 @@ $(function() {
                                             if (parentId && parentId !== '#') {
                                                 tree.deselect_all();
                                                 tree.select_node(parentId);
+                                                loadFolder(parentId);
                                             } else {
                                                 selectHome();
                                             }
-                                            tree.delete_node(node); 
+                                            tree.delete_node(node);
                                             showBanner('Folder deleted successfully', 'success');
                                         } else {
                                             showBanner(res.message || 'Failed to delete folder', 'error');
@@ -184,11 +274,11 @@ $(function() {
                         tree.open_node(selectedNode);
                         tree.deselect_all();
                         tree.select_node(selectedNode);
-                    }               
+                    }
                 }
                 return menu;
             }
-      },
+        },
     }).on('open_node.jstree', function (e, data) {
         if (Number.isInteger(data.node.id)) {
             data.instance.set_icon(data.node, 'fa fa-folder-open');
@@ -202,7 +292,7 @@ $(function() {
         if (!/^\d+$/.test(newParent)) {
             newParent = null;
         }
-        
+
         $.ajax({
             url: '/folder/move',
             type: 'POST',
@@ -215,7 +305,7 @@ $(function() {
             },
             success: function(res) {
                 const tree = data.instance;
-        
+
                 if (!res || !res.ok) {
                     const msg = res && res.message
                         ? res.message
@@ -241,11 +331,7 @@ $(function() {
         // 0 = left click, 2 = right click
         if (data.event && data.event.button === 0) {
             var folderId = data.node.id;
-            if (!Number.isInteger(parseInt(folderId))) {
-                window.location.href = '/folders';
-                return;
-            }
-            window.location.href = '/folder/' + folderId;
+            loadFolder(folderId);
         }
     }).one('ready.jstree', function (e, data) {
         const tree = data.instance;
@@ -266,44 +352,34 @@ $(function() {
             } else {
                 setTimeout(() => {
                     const retryNode = tree.get_node(id);
-                    if (retryNode) {
-                        tree.open_node(retryNode.parents);
-                        tree.select_node(id);
-                    }
-                }, 400);
+                if (retryNode) {
+                    tree.open_node(retryNode.parents);
+                    tree.select_node(id);
+                }
+            }, 400);
             }
         }
         trySelect(selected);
     });
-    
-    function selectHome(){
-        var tree = $('#folderTree').jstree(true);
-        var roots = tree.get_node('#').children;
-        if (roots.length) {
-            tree.open_node(roots[0]);
-            tree.deselect_all();
-            tree.select_node(roots[0]);
-        }
-    }
-    
-    \$('#new-folder-dialog').dialog({
+
+    $('#new-folder-dialog').dialog({
         autoOpen: false,
         modal: true,
         width: 380,
         buttons: {
             "Create": function() {
-                var name = \$('#folder-name').val().trim();
+                var name = $('#folder-name').val().trim();
                 if (!name) {
-                    \$('#folder-error').text('Please enter a folder name.').show();
+                $('#folder-error').text('Please enter a folder name.').show();
                     return;
                 }
 
                 var tree = $('#folderTree').jstree(true);
                 var selectedNode = tree.get_selected(true)[0]; // returns the full node object
                 var parentId = selectedNode ? selectedNode.id : null;
-                var csrf = (typeof yii !== 'undefined' && yii.getCsrfToken) ? yii.getCsrfToken() : \$('meta[name="csrf-token"]').attr('content');
+                var csrf = (typeof yii !== 'undefined' && yii.getCsrfToken) ? yii.getCsrfToken() : $('meta[name="csrf-token"]').attr('content');
 
-                \$.ajax({
+                $.ajax({
                     url: '/folder/add',
                     type: 'POST',
                     dataType: 'json',
@@ -317,23 +393,24 @@ $(function() {
                             // Insert node client-side under selected parent
                             var jsParent = parentId && parentId !== '' ? parentId : '#';
                             jsParent = jsParent ? String(jsParent) : '#';
-                            
+
                             if (!Number.isInteger(parseInt(jsParent))) {
                                 jsParent = '#';
                             }
-                            
+
                             var tree = $('#folderTree').jstree(true);
                             tree.refresh();
-                            
+
                             $('#folderTree').on('refresh.jstree', function() {
                                 var tree = $('#folderTree').jstree(true);
-                                
+
                                 if (jsParent === '#') {
-                                    selectHome();
+                                    loadFolder(null);
                                 }else{
                                     tree.open_node(jsParent);
                                     tree.deselect_all();
                                     tree.select_node(jsParent);
+                                    window.fetchFolders(jsParent, false, true);
                                 }
                             });
                             showBanner('Folder created successfully!', 'success');
@@ -345,210 +422,115 @@ $(function() {
                         showBanner(message, 'error');
                     }
                 });
-                \$(this).dialog('close');
+                $(this).dialog('close');
             },
-            "Cancel": function() { \$(this).dialog('close'); }
+            "Cancel": function() { $(this).dialog('close'); }
         },
         open: function() {
-            \$('#folder-name').val('').focus();
-            \$('#folder-error').hide();
-            
+        $('#folder-name').val('').focus();
+            $('#folder-error').hide();
+
             $('#folder-name').off('keypress').on('keypress', function(e) {
                 if (e.which === 13) { // Enter key
                     e.preventDefault();
                     $(".ui-dialog-buttonpane button:contains('Create')").trigger('click');
                 }
-            });            
+            });
         }
     });
 
     // Minimal add: open dialog on plus icon click
-    \$('#btn-new-folder').on('click', function() {
-        \$('#new-folder-dialog').dialog('open');
+    $('#btn-new-folder').on('click', function() {
+        $('#new-folder-dialog').dialog('open');
     });
-});
 
-function showBanner(message, type = 'error') {
-    var \$banner = $('#notification-banner');
-    var bgColor = '#F4B6B6'; // default red
+    $('#folderTree').on('rename_node.jstree', function(e, data) {
+        const tree = $('#folderTree').jstree(true);
+        const oldName = data.old;  // original folder name
+        const newName = data.text; // new attempted name
 
-    if (type === 'success') bgColor = '#AEE8B2'; // green
-
-    \$banner.stop(true, true)
-        .css({
-            'background-color': bgColor,
-            'display': 'none'
-        })
-        .text(message)
-        .slideDown(200)
-        .delay(3000) // visible for 4 seconds
-        .fadeOut(600);
-}
-
-// Folder Renaming
-$('#folderTree').on('rename_node.jstree', function(e, data) {
-    const tree = $('#folderTree').jstree(true);
-    const oldName = data.old;  // original folder name
-    const newName = data.text; // new attempted name
-
-    $.ajax({
-        url: '/folder/rename',
-        type: 'POST',
-        dataType: 'json',
-        data: {
-            id: data.node.id,
-            name: newName,
-            _csrf: yii.getCsrfToken()
-        },
-        success: function(res) {
-            if (!res.ok) {
-                showBanner(res.message, 'error');
+        $.ajax({
+            url: '/folder/rename',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                id: data.node.id,
+                name: newName,
+                _csrf: yii.getCsrfToken()
+            },
+            success: function(res) {
+                if (!res.ok) {
+                    showBanner(res.message, 'error');
+                    // revert to old name
+                    tree.set_text(data.node, oldName);
+                }
+            },
+            error: function() {
+                showBanner('Error communicating with server', 'error');
                 // revert to old name
                 tree.set_text(data.node, oldName);
             }
-        },
-        error: function() {
-            showBanner('Error communicating with server', 'error');
-            // revert to old name
-            tree.set_text(data.node, oldName);
-        }
-    });
-});
-
-// Folder Search
-const folderSearchState = {
-    lastQuery: '',
-    matches: [],
-    index: -1
-};
-
-$('#folderSearch').on('click', function() {
-    $(this).val('');
-    folderSearchState.lastQuery = '';
-    folderSearchState.matches = [];
-    folderSearchState.index = -1;
-});
-
-
-// Helper: collect matching node ids (case-insensitive)
-function jstreeCollectMatches(tree, query) {
-    const q = String(query).trim().toLowerCase();
-    if (!q) return [];
-    const nodes = tree.get_json('#', { flat: true });
-    return nodes
-        .filter(n => (n.text || '').toLowerCase().includes(q))
-        .map(n => n.id);
-}
-
-// Helper: open all ancestors (handles lazy loads) then run callback
-function jstreeOpenAncestors(tree, nodeId, done) {
-    const parent = tree.get_parent(nodeId);
-    if (!parent || parent === '#') return done && done();
-    jstreeOpenAncestors(tree, parent, function () {
-        tree.open_node(parent, function () {
-            done && done();
         });
     });
-}
 
-// Main: handle Enter in the search box
-\$('#folderSearch').on('keydown', function (e) {
-    if (e.key !== 'Enter') return;
-
-    e.preventDefault();
-    const query = \$(this).val().trim();
-    const tree = \$('#folderTree').jstree(true);
-
-    if (!query) {
-        // Optional: clear selection / search highlight
-        tree.clear_search && tree.clear_search();
-        tree.deselect_all();
-        folderSearchState.lastQuery = '';
-        folderSearchState.matches = [];
-        folderSearchState.index = -1;
-        return;
-    }
-
-    // If query changed, rebuild matches and reset index
-    if (folderSearchState.lastQuery.toLowerCase() !== query.toLowerCase()) {
-        folderSearchState.lastQuery = query;
-        folderSearchState.matches = jstreeCollectMatches(tree, query);
-        folderSearchState.index = -1;
-    }
-
-    if (folderSearchState.matches.length === 0) {
-        showBanner(`No folders match "\${query}".`, 'error');
-        return;
-    }
-
-    // Advance to next match (wrap around)
-    folderSearchState.index =
-        (folderSearchState.index + 1) % folderSearchState.matches.length;
-
-    const targetId = folderSearchState.matches[folderSearchState.index];
-
-    // (Optional) if you use jsTree's search plugin and want highlight:
-    if (tree.search) {
-        tree.search(query); // highlights all matches
-    }
-
-    // Open path, select node, and scroll into view
-    jstreeOpenAncestors(tree, targetId, function () {
-        tree.deselect_all();
-        tree.select_node(targetId);
-
-        // Ensure it's scrolled into view (centered if possible)
-        const \$el = tree.get_node(targetId, true);
-        if (\$el && \$el.length) {
-            // anchor is usually the visible clickable element
-            const anchor = \$el.children('.jstree-anchor').get(0) || \$el.get(0);
-            if (anchor && anchor.scrollIntoView) {
-                anchor.scrollIntoView({ block: 'center', inline: 'nearest' });
+    $('#folderSearch').on('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+    
+            e.preventDefault();
+            const query = $(this).val().trim();
+            const tree = $('#folderTree').jstree(true);
+    
+            if (!query) {
+                // Optional: clear selection / search highlight
+                tree.clear_search && tree.clear_search();
+                tree.deselect_all();
+                folderSearchState.lastQuery = '';
+                folderSearchState.matches = [];
+                folderSearchState.index = -1;
+                return;
             }
-        }
-    });
+    
+            // If query changed, rebuild matches and reset index
+            if (folderSearchState.lastQuery.toLowerCase() !== query.toLowerCase()) {
+                folderSearchState.lastQuery = query;
+                folderSearchState.matches = jstreeCollectMatches(tree, query);
+                folderSearchState.index = -1;
+            }
+    
+            if (folderSearchState.matches.length === 0) {
+                showBanner(`No folders match "${query}".`, 'error');
+                return;
+            }
+    
+            // Advance to next match (wrap around)
+            folderSearchState.index =
+                (folderSearchState.index + 1) % folderSearchState.matches.length;
+    
+            const targetId = folderSearchState.matches[folderSearchState.index];
+    
+            // (Optional) if you use jsTree's search plugin and want highlight:
+            if (tree.search) {
+                tree.search(query); // highlights all matches
+            }
+    
+            // Open path, select node, and scroll into view
+            jstreeOpenAncestors(tree, targetId, function () {
+                tree.deselect_all();
+                tree.select_node(targetId);
+    
+                // Ensure it's scrolled into view (centered if possible)
+                const $el = tree.get_node(targetId, true);
+                if ($el && $el.length) {
+                    // anchor is usually the visible clickable element
+                    const anchor = $el.children('.jstree-anchor').get(0) || $el.get(0);
+                    if (anchor && anchor.scrollIntoView) {
+                        anchor.scrollIntoView({ block: 'center', inline: 'nearest' });
+                    }
+                }
+            });
+        });    
 });
-
-// Context Menu
-$(document).ready(function() {
-    const \$menu = \$('.user-dropdown-menu');
-    const \$container = \$('.user-menu-container');
-
-    // Toggle dropdown when clicking profile image
-    $('.user-profile').on('click', function(e) {
-        e.stopPropagation();
-        \$menu.toggle();
-    });
-
-    // Hide dropdown when clicking anywhere else
-    $(document).on('click', function(e) {
-        if (!\$(e.target).closest('.user-menu-container').length) {
-            \$menu.hide();
-        }
-    });
-
-    // Hide dropdown when mouse leaves the menu area
-    \$container.on('mouseleave', function() {
-        \$menu.hide();
-    });
-
-    // Example actions
-    \$('#menu-profile').on('click', function() {
-        alert('Go to Profile');
-    });
-
-    \$('#menu-settings').on('click', function() {
-        alert('Open Settings');
-    });
-
-    \$('#menu-logout').on('click', function() {
-        alert('Log out');
-    });
-});
-JS;
-
-$this->registerJs($js);
-?>
+</script>
 
 <?php $this->endBody() ?>
 </body>

@@ -117,7 +117,7 @@ class FolderController extends Controller{
         if (!$folder) {
             return [
                 'ok' => false,
-                'message' => 'Folder not found.',
+                'message' => 'Folder not found1.',
             ];
         }
 
@@ -153,7 +153,7 @@ class FolderController extends Controller{
 
         $folder = Folder::findOne($id);
         if (!$folder) {
-            return ['ok' => false, 'message' => 'Folder not found'];
+            return ['ok' => false, 'message' => 'Folder not found2'];
         }
 
         $folder->name = $name;

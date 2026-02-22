@@ -33,6 +33,8 @@ class BaseImageHandler{
     public const FORMAT_EPS = "EPS";
     public const FORMAT_SVG = "SVG";
     public const FORMAT_PDF = "PDF";
+    public const FORMAT_CR2 = "CR2";
+    public const FORMAT_CR3 = "CR3";
 
     // FILE ATTRIBUTES
     public const FILE_SIZE = 0;
@@ -109,7 +111,9 @@ class BaseImageHandler{
                             self::FORMAT_BMP => "image/bmp",
                             self::FORMAT_EPS => "application/postscript",
                             self::FORMAT_SVG => "image/svg+xml",
-                            self::FORMAT_PDF => "application/pdf"];
+                            self::FORMAT_PDF => "application/pdf",
+                            self::FORMAT_CR2 => "image/x-canon-cr2",
+                            self::FORMAT_CR3 => "image/x-canon-cr3"];
 
         if (!file_exists($filename)){
             throw new \Exception("Upload Failed. Please try again.");

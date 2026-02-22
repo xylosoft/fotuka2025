@@ -2,77 +2,91 @@
 /** @var yii\web\View $this */
 $this->title = 'Fotuka';
 \yii\web\JqueryAsset::register($this);
-if (!$id){
-    $id = 'null';
+$id = $this->params['id'];
+$selectedId = $id ?? '#';
+
+$id = $_COOKIE[Yii::$app->params['FOLDER_COOKIE']];
+if ($id == "null"){
+    $id = null;
 }
 ?>
 
-<input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
-<!-- Temporarily commenting as it needs to be determined where this will go. 
-<button id="pickFolderBtn" type="button">Upload Folder</button>
--->
-
-<div class="right-panel" id="rightPanel">
-    <div class="folder-header">
-        <div class="folder-title">
-            <span id="currentFolderName"><?=$folder?$folder->name:"Home"?></span>
-            <input type="text" id="renameInput" class="rename-input" style="display:none;">
+<div class="app">
+    <aside class="sidebar">
+        <div class="folder-search">
+            <i class="fa fa-search"></i>
+            <input type="text" id="folderSearch" placeholder="Folder Search">
         </div>
-        <div class="folder-actions">
-            <i class="fa fa-ellipsis-v folder-menu-btn"></i>
-            <div class="folder-dropdown-menu">
-                <div class="menu-item folder-rename">
-                    <span class="menu-icon">✏️</span> Rename
+        <h4>
+            Folders
+            <img src="/icons/square-plus.svg" id="btn-new-folder" style="float:right;height:20px;"/>
+        </h4>
+        <div class="folder-tree-container">
+            <div id="folderTree"></div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
+        <!-- Temporarily commenting as it needs to be determined where this will go.
+        <button id="pickFolderBtn" type="button">Upload Folder</button>
+        -->
+
+        <div class="right-panel" id="rightPanel">
+            <div class="folder-header">
+                <div class="folder-title">
+                    <span id="currentFolderName"><?=$folder?$folder->name:"Home"?></span>
+                    <input type="text" id="renameInput" class="rename-input" style="display:none;">
                 </div>
-                <div class="menu-item folder-upload">
-                    <span class="menu-icon">📤</span> Upload
-                </div>
-                <div class="menu-separator"></div>
-                <div class="menu-item folder-delete">
-                    <span class="menu-icon">🗑️</span> Delete
+
+                <div class="folder-actions">
+                    <i class="fa fa-ellipsis-v folder-menu-btn"></i>
+                    <div class="folder-dropdown-menu">
+                        <div class="menu-item folder-rename">
+                            <span class="menu-icon">✏️</span> Rename
+                        </div>
+                        <div class="menu-item folder-upload">
+                            <span class="menu-icon">📤</span> Upload
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-item folder-delete">
+                            <span class="menu-icon">🗑️</span> Delete
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>    </div>
 
-    <!-- Drop zone -->
-
-        <div class="section-header">
-            <span class="section-title">Sub-folders</span>
-            <span class="section-count" id="subfolderCount"></span>
-        </div>
-        <div class="folder-section" id="subfolders"></div>
-        <div id="folderControls" class="folder-controls"></div>
-
-        <div id="dropZone" class="drop-zone">
-            <div class="section-header">
-                <span class="section-title">Assets</span>
-                <span class="section-count" id="assetCount"></span>
+            <div id="folderview">
+                <div class="folder-section" id="subfolders"></div>
             </div>
-            <div id="assetControls" class="asset-controls"></div>
-            <div class="asset-grid" id="assetGrid"></div>
+
+            <div id="dropZone" class="drop-zone">
+                <div id="assetControls" class="asset-controls"></div>
+                <div class="asset-grid" id="assetGrid"></div>
+            </div>
         </div>
+    </main>
 </div>
+
+
+
 <script>
 let currentUploadXhr = null;
-let folderPagination = {
-    folderId: null,
-    offset: 0,
-    limit: 14,
-    allLoaded: false
-};
-
 let assetPagination = {
     folderId: null,
     offset: 0,
     limit: 25,
     allLoaded: false
 };
+const selectedFolderId = '<?=$selectedId?>';
+const folderSearchState = {
+    lastQuery: '',
+    matches: [],
+    index: -1
+};
 
 // CHECKED
 function loadFolder(folderId) {
-    folderPagination = { folderId, offset: 0, limit: 14, allLoaded: false };
-    $('#subfolders').empty();
-    $('#subfolderCount').text('');
     if (!folderId || isNaN(folderId)){
         folderId = null;
     }
@@ -83,38 +97,41 @@ function loadFolder(folderId) {
     assetPagination.allLoaded = false;
 
     // fetch first page (and folder name)
-    fetchFolders(folderId?folderId:null, /*append*/ false, /*loadAll*/ false);
+
     var tree = window.jQuery('#folderTree').jstree(true);
     tree.deselect_all();
     tree.open_node(folderId?folderId:0);
-    console.log("Selecting folder: " + folderId);
     tree.select_node(folderId?folderId:0);
     window.selectedFolderId = folderId?folderId:null;
 
-    if (!folderId){
-        window.selectHome();
-        $('#currentFolderName').text("Home");
+    if (folderId == null){
         $('#dropZone').hide();
+        $('#folderview').hide();
+        //window.selectHome();
+        $('#currentFolderName').text("Home");
+        $('#subfolders').empty();
+        selectHome();
+        $('#folderview').show();
     }else{
+        $('#folderview').hide();
         var selected = tree.get_selected(true);
         $('#currentFolderName').text(selected[0].text);
+        loadAssets(assetPagination.folderId, false, 0);
         $('#dropZone').show();
-        //loadAssets(folderId);
     }
-
-    initInfiniteAssetScroll();
+    document.cookie = "<?=Yii::$app->params['FOLDER_COOKIE']?>=" + folderId + "; path=/; max-age=3600; SameSite=Lax";
+    const cookie = getCookie("<?=Yii::$app->params['FOLDER_COOKIE']?>");
 }
 
 // CHECKED
 function fetchFolders(folderId, append = false, loadAll = false) {
-    console.log('fetchFolder '+ folderId);
     if (folderId == null || isNaN(folderId)){
         folderId = 0;
     }
 
     const params = {
-        offset: append ? folderPagination.offset : 0,
-        limit: loadAll ? 0 : folderPagination.limit
+        offset: 0,
+        limit: 1000
     };
 
     $.ajax({
@@ -130,31 +147,8 @@ function fetchFolders(folderId, append = false, loadAll = false) {
 
             // Render
             const items = res.subfolders || [];
-            renderSubfolders(items, append);
-
-            // Update counts / state
-            if (typeof res.total === 'number') {
-            $('#subfolderCount').text(res.total);
-            } else {
-            $('#subfolderCount').text($('#subfolders .folder-card').length);
-            }
-
-            if (append) {
-                folderPagination.offset += items.length;
-            } else {
-                folderPagination.offset = items.length;
-            }
-
-            // Prefer server flag; otherwise derive it
-            folderPagination.allLoaded = (res.allLoaded === true) ||
-                (!loadAll && typeof res.total === 'number' && folderPagination.offset >= res.total) ||
-                (loadAll && true);
-
-            updateFolderButtons();
-
-            // Smooth scroll for appended / show-all loads (peek assets start)
-            if (append || loadAll) {
-                scrollToAssetsPeek(computeScrollOffset());
+            if (folderId == 0 && items.length > 0) {
+                renderSubfolders(items, append);
             }
         },
         error: function() {
@@ -165,7 +159,10 @@ function fetchFolders(folderId, append = false, loadAll = false) {
 
 function renderSubfolders(folders, append = false) {
     const container = $('#subfolders');
-    if (!append) container.empty(); // only clear if full reload
+    container.hide();
+    if (!append){
+        container.empty(); // only clear if full reload
+    }
 
     folders.forEach(f => {
         const safeName = f.name || 'Untitled';
@@ -178,34 +175,7 @@ function renderSubfolders(folders, append = false) {
         const card = $('<div class="folder-card" title="' + safeName + '">' + thumbHtml + '<span>' + safeName + '</span></div>');
         container.append(card);
     });
-    updateFolderButtons();
-}
-
-function updateFolderButtons() {
-    const $controls = $('#folderControls');
-    $controls.empty();
-
-    if (!folderPagination.allLoaded && folderPagination.folderId) {
-        $controls.append('<button id="loadMoreBtn">Load More</button>');
-        $controls.append('<button id="showAllBtn">Show All</button>');
-
-        // bind fresh (avoid duplicates)
-        $('#loadMoreBtn').off('click').on('click', function() {
-            fetchFolders(folderPagination.folderId, /*append*/ true, /*loadAll*/ false);
-        });
-
-        $('#showAllBtn').off('click').on('click', function() {
-            fetchFolders(folderPagination.folderId, /*append*/ false, /*loadAll*/ true);
-        });
-    }
-}
-function computeScrollOffset() {
-    const $folders = $('#folderGrid');
-    if ($folders.length && !isNaN($folders.outerHeight())) {
-        // subtract 100 to peek into assets
-        return Math.max(0, $folders.outerHeight() - 100);
-    }
-    return 850; // fallback
+    container.show();
 }
 
 function readDroppedItems(items) {
@@ -260,6 +230,7 @@ function joinPath(a, b) {
 }
 
 function loadAssets(folderId, showAll = false, offset = 0) {
+    //console.log("Loading assets for folder: " + folderId);
     if (!folderId){
         return;
     }
@@ -324,6 +295,7 @@ function renderAssets(assets, append = false) {
         $panel.stop(true).animate({ scrollTop: target }, 600, 'swing');
     }
 }
+
 function scrollToAssetsPeek(peekOffset) {
     const $panel       = $('#rightPanel');
     const $assetsStart = $('#assetGrid');
@@ -478,10 +450,404 @@ async function handleUpload(files, folderId) {
     });
 }
 
+function jstreeCollectMatches(tree, query) {
+    const q = String(query).trim().toLowerCase();
+    if (!q) return [];
+    const nodes = tree.get_json('#', { flat: true });
+    return nodes.filter(n => (n.text || '').toLowerCase().includes(q)).map(n => n.id);
+}
+
+function jstreeOpenAncestors(tree, nodeId, done) {
+    const parent = tree.get_parent(nodeId);
+    if (!parent || parent === '#') return done && done();
+    jstreeOpenAncestors(tree, parent, function () {
+        tree.open_node(parent, function () {
+            done && done();
+        });
+    });
+}
+
+
+function selectHome(){
+    var tree = $('#folderTree').jstree(true);
+    var roots = tree.get_node('#').children;
+    if (roots.length) {
+        tree.open_node(roots[0]);
+        tree.deselect_all();
+        tree.select_node(roots[0]);
+    }
+}
+
+// CHECKED
+function deleteFolder(nodeId){
+    var tree = $('#folderTree').jstree(true);
+    var node = tree.get_node(nodeId);
+    var parentId = node.parent;
+    tree.delete_node(node);
+    loadFolder(parentId);
+}
+
+function getCookie(name) {
+    const cookies = document.cookie.split('; ');
+    for (let c of cookies) {
+        const [key, value] = c.split('=');
+        if (key === name) return decodeURIComponent(value);
+    }
+    return null;
+}
+
+
 document.addEventListener('DOMContentLoaded', function () {
+    var $treeEl = $('#folderTree');
+    const $menu = $('.user-dropdown-menu');
+    const $container = $('.user-menu-container');
     const dropZone = $('#dropZone');
     const progressBar = $('<div id="uploadProgress"><div></div></div>').appendTo(dropZone);
-    
+
+    $('#folderSearch').on('click', function() {
+        $(this).val('');
+        folderSearchState.lastQuery = '';
+        folderSearchState.matches = [];
+        folderSearchState.index = -1;
+    });
+
+    // Toggle dropdown when clicking profile image
+    $('.user-profile').on('click', function(e) {
+        e.stopPropagation();
+        $menu.toggle();
+    });
+
+    // Hide dropdown when clicking anywhere else
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.user-menu-container').length) {
+            $menu.hide();
+        }
+    });
+
+    // Hide dropdown when mouse leaves the menu area
+    $container.on('mouseleave', function() {
+        $menu.hide();
+    });
+
+    $('#menu-profile').on('click', function() {
+        alert('Go to Profile');
+    });
+
+    $('#menu-settings').on('click', function() {
+        alert('Open Settings');
+    });
+
+    $('#menu-logout').on('click', function() {
+        alert('Log out');
+    });
+
+    $treeEl.jstree({
+        'core' : {
+            'multiple': false,
+            'data' : {
+                'url' : '/json/folders/<?=$id?>',
+                'dataType' : 'json'
+            },
+            check_callback: true,
+            'themes': { 'variant': 'large' }
+        },
+        types: {
+            default: { icon: 'fa fa-folder' },
+            opened: { icon: 'fa fa-folder-open' }
+        },
+        'plugins' : ['types', 'wholerow','dnd', 'contextmenu'],
+        contextmenu: {
+            items: function(node) {
+                var tree = $('#folderTree').jstree(true);
+                var isNumericId = !isNaN(parseInt(node.id)) && isFinite(node.id);
+                var menu = {};
+
+                if (isNumericId) {
+                    menu.renameItem = {
+                        label: '<span style="font-size:16px;padding-right:10px;">✏️</span> Rename',
+                        action: function() { tree.edit(node); } // opens inline rename input
+                    };
+                    menu.moveItem = {
+                        label: '<span style="font-size:16px;padding-right:10px;">↷️</span> Move',
+                        action: function() { javascript:void(0); }
+                    };
+                    menu.deleteItem = {
+                        label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Delete',
+                        action: function() {
+                            if (confirm('Are you sure you want to delete this folder?')) {
+                                $.ajax({
+                                    url: '/folder/delete',
+                                    type: 'POST',
+                                    dataType: 'json',
+                                    data: {
+                                        id: node.id,
+                                        _csrf: yii.getCsrfToken()
+                                    },
+                                    success: function(res) {
+                                        if (res && res.ok) {
+                                            deleteFolder(node.id);
+                                            showBanner('Folder deleted successfully', 'success');
+                                        } else {
+                                            showBanner(res.message || 'Failed to delete folder', 'error');
+                                        }
+                                    },
+                                    error: function() {
+                                        showBanner('Error deleting folder', 'error');
+                                    }
+                                });
+                            }
+                        }
+                    };
+                };
+                menu.collapseAll = {
+                    label: '<span style="font-size:16px;padding-right:10px;">📂️</span> Collapse All',
+                    separator_before: false,
+                    action: function() {
+                        var selectedNode = tree.get_selected(true)[0];
+                        tree.close_all(selectedNode);
+                        tree.open_node(selectedNode);
+                        tree.deselect_all();
+                        tree.select_node(selectedNode);
+                    }
+                }
+                return menu;
+            }
+        },
+    }).on('open_node.jstree', function (e, data) {
+        if (Number.isInteger(data.node.id)) {
+            data.instance.set_icon(data.node, 'fa fa-folder-open');
+        }
+    }).on('close_node.jstree', function (e, data) {
+        if (Number.isInteger(data.node.id)) {
+            data.instance.set_icon(data.node, 'fa fa-folder');
+        }
+    }).on('move_node.jstree', function(e, data) {
+        var newParent = data.parent;
+        if (!/^\d+$/.test(newParent)) {
+            newParent = null;
+        }
+
+        $.ajax({
+            url: '/folder/move',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                id: data.node.id,
+                parent_id: newParent,
+                position: data.position,
+                _csrf: yii.getCsrfToken()
+            },
+            success: function(res) {
+                const tree = data.instance;
+
+                if (!res || !res.ok) {
+                    const msg = res && res.message
+                        ? res.message
+                        : 'Failed to move folder due to an unknown error.';
+                    showBanner(msg, 'error');
+                    tree.refresh();
+                    return;
+                }
+                showBanner('Folder moved successfully!', 'success');
+                tree.refresh();
+            },
+            error: function(xhr, status, errorThrown) {
+                const msg =
+                    (xhr.responseJSON && xhr.responseJSON.message) ||
+                    xhr.responseText ||
+                    errorThrown ||
+                    'Server error while moving folder.';
+                showBanner(msg, 'error');
+                data.instance.refresh();
+            }
+        });
+    }).on("changed.jstree", function (e, data) { // CHECKED
+        if (data.action === "select_node" || data.action === "deselect_node") {
+            var node = data.node;
+            var folderId = node.id;
+            if (!folderId || isNaN(folderId)){
+                folderId = null;
+            }
+
+            if (folderId != window.selectedFolderId){
+                window.selectedFolderId = folderId;
+                loadFolder(node.id)
+            }
+        }
+    });
+
+    $('#new-folder-dialog').dialog({
+        autoOpen: false,
+        modal: true,
+        width: 380,
+        buttons: {
+            "Create": function() {
+                var name = $('#folder-name').val().trim();
+                if (!name) {
+                    $('#folder-error').text('Please enter a folder name.').show();
+                    return;
+                }
+
+                var tree = $('#folderTree').jstree(true);
+                var selectedNode = tree.get_selected(true)[0]; // returns the full node object
+                var parentId = selectedNode ? selectedNode.id : null;
+                //console.log("Adding folder with id: " + parentId);
+                var csrf = (typeof yii !== 'undefined' && yii.getCsrfToken) ? yii.getCsrfToken() : $('meta[name="csrf-token"]').attr('content');
+
+                $.ajax({
+                    url: '/folder/add',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        name: name,
+                        parent_id: (!parentId || parentId === '#' || parentId.startsWith('j1_')) ? null : parentId,
+                        _csrf: csrf
+                    },
+                    success: function(res) {
+                        if (res && res.ok) {
+                            // Insert node client-side under selected parent
+                            var jsParent = parentId && parentId !== '' ? parentId : '#';
+                            jsParent = jsParent ? String(jsParent) : '#';
+
+                            if (!Number.isInteger(parseInt(jsParent))) {
+                                jsParent = '#';
+                            }
+
+                            var tree = $('#folderTree').jstree(true);
+                            tree.refresh();
+
+                            $('#folderTree').on('refresh.jstree', function() {
+                                var tree = $('#folderTree').jstree(true);
+
+                                if (jsParent === '#') {
+                                    //console.log("Loading Folder null");
+                                    selectHome();
+                                }else{
+                                    tree.open_node(jsParent);
+                                    tree.deselect_all();
+                                    tree.select_node(jsParent);
+                                    //console.log("Loading Folder " + jsParent);
+                                    window.fetchFolders(jsParent, false, true);
+                                }
+                            });
+                            showBanner('Folder created successfully!', 'success');
+                        }
+                    },
+                    error: function(xhr, status, errorThrown) {
+                        const firstField = Object.keys(xhr.responseJSON.errors)[0];
+                        let message = xhr.responseJSON.errors[firstField][0];
+                        showBanner(message, 'error');
+                    }
+                });
+
+                $(this).dialog('close');
+            },
+            "Cancel": function() { $(this).dialog('close'); }
+        },
+        open: function() {
+            $('#folder-name').val('').focus();
+            $('#folder-error').hide();
+
+            $('#folder-name').off('keypress').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    e.preventDefault();
+                    $(".ui-dialog-buttonpane button:contains('Create')").trigger('click');
+                }
+            });
+        }
+    });
+
+    // Minimal add: open dialog on plus icon click
+    $('#btn-new-folder').on('click', function() {
+        $('#new-folder-dialog').dialog('open');
+    });
+
+    $('#folderTree').on('rename_node.jstree', function(e, data) {
+        const tree = $('#folderTree').jstree(true);
+        const oldName = data.old;  // original folder name
+        const newName = data.text; // new attempted name
+
+        $.ajax({
+            url: '/folder/rename',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                id: data.node.id,
+                name: newName,
+                _csrf: yii.getCsrfToken()
+            },
+            success: function(res) {
+                if (!res.ok) {
+                    showBanner(res.message, 'error');
+                    // revert to old name
+                    tree.set_text(data.node, oldName);
+                }
+            },
+            error: function() {
+                showBanner('Error communicating with server', 'error');
+                // revert to old name
+                tree.set_text(data.node, oldName);
+            }
+        });
+    });
+
+    $('#folderSearch').on('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+
+        e.preventDefault();
+        const query = $(this).val().trim();
+        const tree = $('#folderTree').jstree(true);
+
+        if (!query) {
+            // Optional: clear selection / search highlight
+            tree.clear_search && tree.clear_search();
+            tree.deselect_all();
+            folderSearchState.lastQuery = '';
+            folderSearchState.matches = [];
+            folderSearchState.index = -1;
+            return;
+        }
+
+        // If query changed, rebuild matches and reset index
+        if (folderSearchState.lastQuery.toLowerCase() !== query.toLowerCase()) {
+            folderSearchState.lastQuery = query;
+            folderSearchState.matches = jstreeCollectMatches(tree, query);
+            folderSearchState.index = -1;
+        }
+
+        if (folderSearchState.matches.length === 0) {
+            showBanner(`No folders match "${query}".`, 'error');
+            return;
+        }
+
+        // Advance to next match (wrap around)
+        folderSearchState.index =
+            (folderSearchState.index + 1) % folderSearchState.matches.length;
+
+        const targetId = folderSearchState.matches[folderSearchState.index];
+
+        // (Optional) if you use jsTree's search plugin and want highlight:
+        if (tree.search) {
+            tree.search(query); // highlights all matches
+        }
+
+        // Open path, select node, and scroll into view
+        jstreeOpenAncestors(tree, targetId, function () {
+            tree.deselect_all();
+            tree.select_node(targetId);
+
+            // Ensure it's scrolled into view (centered if possible)
+            const $el = tree.get_node(targetId, true);
+            if ($el && $el.length) {
+                // anchor is usually the visible clickable element
+                const anchor = $el.children('.jstree-anchor').get(0) || $el.get(0);
+                if (anchor && anchor.scrollIntoView) {
+                    anchor.scrollIntoView({ block: 'center', inline: 'nearest' });
+                }
+            }
+        });
+    });
+
     // Toggle folder menu
     $('#folderMenuBtn').on('click', function (e) {
         e.stopPropagation();
@@ -640,10 +1006,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // CHECKED
     $('.folder-delete').on('click', function() {
         const folderId = window.selectedFolderId;
-        console.log("Deleting folder: " + folderId);
         const tree = $('#folderTree').jstree(true);
         const node = tree ? tree.get_node(folderId) : null;
-        const parentId = node.parent;
 
         if (!folderId || !node) {
             showBanner('No folder selected or node not found.', 'error');
@@ -664,10 +1028,6 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             success: function(res) {
                 if (res && res.ok) {
-                    tree.delete_node(node);
-                    tree.select_node(parentId);
-                    loadFolder(parentId);
-                    window.selectedFolderId = parentId;
                     showBanner('Folder deleted successfully', 'success');
                 } else {
                     showBanner(res.message || 'Failed to delete folder.', 'error');
@@ -691,8 +1051,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     $('#folderTree').on('ready.jstree', function () {
-        loadFolder(null);
+        loadFolder(<?=$id?>);
     })
-
+    
+    initInfiniteAssetScroll();
 });
 </script>

@@ -59,6 +59,8 @@ class AssetController extends Controller
         error_log("Created folder: " . $uploadPath);
 
         $uploaded = 0;
+        $assets = [];
+
         error_log("AssetController UPLOAD: There are: " . count($files) . " uploaded.");
         foreach ($files as $index => $uploadedFile) {
             // Ignore .DS_Store files
@@ -125,9 +127,17 @@ class AssetController extends Controller
                 $asset->preview_state = Asset::PREVIEW_PENDING;
                 $asset->thumbnail_url = null;
                 $res = $asset->save();
+
                 error_log("Asset entry was created: " . ($res?"Successfully":"FAILED"));
                 if (!$res) {
                     error_log(print_r($asset->getErrors(), true));
+                }else{
+                    $assets[] = [
+                        'id' => (int)$asset->id,
+                        'title' => (string)$asset->title,
+                        'thumbnail_url' => $asset->thumbnail_url,
+                        'thumbnail_state' => Asset::PREVIEW_PENDING,
+                    ];
                 }
 
 
@@ -195,15 +205,15 @@ class AssetController extends Controller
                 } catch (AwsException $e) {
                     // If anything fails, remove the file & asset entries.
                     error_log('S3 Upload error: ' . $e->getMessage());
-                    return ['ok' => false, 'message' => 'S3 Upload failed.'];
+                    return ['error' => false, 'message' => 'S3 Upload failed.', 'assets' => []];
                 }catch (\Throwable $e){
                     error_log('S3 Upload error: ' . $e->getMessage());
-                    return ['ok' => false, 'message' => 'S3 Upload failed.'];
+                    return ['error' => false, 'message' => 'S3 Upload failed.', 'assets' => []];
                 }
             }
         }
 
-        return ['ok' => true, 'uploaded' => $uploaded];
+        return ['ok' => true, 'uploaded' => $uploaded, 'assets' => $assets,];
     }
 
     private function ensureFolderPath($customerId, $userId, $folderId, $path){

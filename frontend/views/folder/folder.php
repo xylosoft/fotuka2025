@@ -5,7 +5,7 @@ $this->title = 'Fotuka';
 $id = $this->params['id'];
 $selectedId = $id ?? '#';
 
-$id = $_COOKIE[Yii::$app->params['FOLDER_COOKIE']];
+$id = $_COOKIE[Yii::$app->params['FOLDER_COOKIE']]??null;
 if ($id == "null"){
     $id = null;
 }
@@ -71,6 +71,8 @@ if ($id == "null"){
 
 
 <script>
+const UPLOAD_BATCH_SIZE = 1;        // 1 = one file per request (recommended)
+const UPLOAD_CONCURRENCY = 2;       // how many requests at once (2 is a good start)
 let currentUploadXhr = null;
 let assetPagination = {
     folderId: null,
@@ -84,6 +86,63 @@ const folderSearchState = {
     matches: [],
     index: -1
 };
+let pendingThumbPoller = null;
+
+
+function getPendingAssetIds() {
+    return $('.asset-card[data-thumb-state="pending"]')
+        .map(function () { return $(this).data('asset-id'); })
+        .get()
+        .filter(Boolean);
+}
+
+function startPendingThumbnailPolling() {
+    if (pendingThumbPoller) return;
+
+    console.log("Start Polling process...")
+
+    pendingThumbPoller = setInterval(function () {
+        pollPendingThumbnails();
+    }, 1000);
+
+    // also run immediately once
+    pollPendingThumbnails();
+}
+
+function stopPendingThumbnailPolling() {
+    if (pendingThumbPoller) {
+        console.log("Stopping Polling process...")
+        clearInterval(pendingThumbPoller);
+        pendingThumbPoller = null;
+    }
+}
+
+function pollPendingThumbnails() {
+    const ids = getPendingAssetIds();
+
+    if (!ids.length) return stopPendingThumbnailPolling();
+
+    const cleanIds = ids.map(id => String(id).trim()).filter(id => id.length > 0);
+    const url = '/json/pending/' + cleanIds.join(',');
+
+    $.getJSON(url, function (response) {
+        if (!response || !response.ok || !response.assets) return;
+
+        response.assets.forEach(function (a) {
+            if (!a.thumbnail_url) return;
+
+            const $card = $('#asset_' + a.id);
+            if (!$card.length) return;
+
+            const $content = $card.children('div').first();
+            $content.html(
+                '<img class="asset" src="' + a.thumbnail_url + '" width="250" height="220">'
+            );
+
+            $card.attr('data-thumb-state', 'ready');
+        });
+    });
+}
 
 // CHECKED
 function loadFolder(folderId) {
@@ -267,7 +326,7 @@ function renderAssets(assets, append = false) {
     assets.forEach(asset => {
         var card = '';
         if (asset.thumbnail_state == 'pending'){
-            card = '<div class="asset-card" id="asset_' +asset.id +'">' +
+            card = '<div class="asset-card" id="asset_' +asset.id +'" data-thumb-state="pending" data-asset-id="' + asset.id + '">' +
                    '<div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">' +
                    '<div style="font-size:25px;margin-bottom:12px;">Processing</div>' +
                    '<div class="spinner" style="width:40px;height:40px;border:4px solid #ccc;border-top:4px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;"></div>' +
@@ -384,21 +443,15 @@ function initInfiniteAssetScroll() {
 async function handleUpload(files, folderId) {
     if (!files || !files.length) return;
 
+    // Normalize folderId
+    if (!folderId || isNaN(folderId)) folderId = 0;
+
     // Build (file, relativePath) pairs
     const collected = [];
     for (const file of files) {
         const path = file.webkitRelativePath || file.relativePath || file.name;
         collected.push({ file, path });
     }
-
-    const formData = new FormData();
-    collected.forEach(({ file, path }) => {
-        formData.append('files[]', file);
-        formData.append('paths[]', path);
-    });
-
-    formData.append('id', folderId);
-    formData.append('_csrf', yii.getCsrfToken());
 
     // progress bar (create once if missing)
     if (!$('#uploadProgress').length) {
@@ -407,47 +460,113 @@ async function handleUpload(files, folderId) {
     }
     $('#uploadProgress div').css('width', '0%').show();
 
-    currentUploadXhr = $.ajax({
-        url: '/asset/upload/' + folderId,
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        xhr: function () {
-            const xhr = new window.XMLHttpRequest();
-            xhr.upload.addEventListener('progress', function (evt) {
-                if (evt.lengthComputable) {
-                    const percent = Math.round((evt.loaded / evt.total) * 100);
-                    $('#uploadProgress div').css('width', percent + '%');
+    let completed = 0;
+    const total = collected.length;
+
+    // Helper: upload one batch (1..N files)
+    const uploadBatch = (batch) => {
+        const formData = new FormData();
+        batch.forEach(({ file, path }) => {
+            formData.append('files[]', file);
+            formData.append('paths[]', path);
+        });
+
+        formData.append('id', folderId);
+        formData.append('_csrf', yii.getCsrfToken());
+
+        return new Promise((resolve, reject) => {
+            currentUploadXhr = $.ajax({
+                url: '/asset/upload/' + folderId,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhr: function () {
+                    const xhr = new window.XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function (evt) {
+                        // batch progress -> overall progress (approx based on file count)
+                        if (evt.lengthComputable) {
+                            const batchPct = evt.total ? (evt.loaded / evt.total) : 0;
+                            const overallPct = Math.round(((completed + (batchPct * batch.length)) / total) * 100);
+                            $('#uploadProgress div').css('width', overallPct + '%');
+                        }
+                    });
+                    return xhr;
+                },
+                complete: function () {
+                    currentUploadXhr = null;
+                },
+                success: function (res) {
+                    if (res && res.ok) {
+                        resolve(res.assets || []); // return uploaded assets for this batch
+                    } else {
+                        reject(new Error((res && res.error) || 'Upload failed'));
+                    }
+                },
+                error: function (xhr, status) {
+                    if (status === 'abort') {
+                        reject(new Error('abort'));
+                    } else {
+                        reject(new Error('Error uploading files'));
+                    }
                 }
             });
-            return xhr;
-        },
-        complete: function () {
-            currentUploadXhr = null; // clear reference when done
-        },
-        success: function (res) {
-            if (res && res.ok) {
-                showBanner(`Uploaded ${res.uploaded} file(s) successfully`, 'success');
-                $('#uploadProgress div').css('width', '100%');
-                setTimeout(() => $('#uploadProgress div').fadeOut(), 1000);
-                // Refresh assets + tree
-                assetPagination.allLoaded = false;
-                loadAssets(folderId, true);
-                const tree = $('#folderTree').jstree(true);
-                tree.refresh();
-            } else {
-                showBanner((res && res.error) || 'Upload failed', 'error');
-            }
-        },
-        error: function (xhr, status) {
-            if (status === 'abort') {
-                showBanner('Upload canceled by user', 'info');
-            } else {
-                showBanner('Error uploading files', 'error');
+        UPLOAD_BATCH_SIZE});
+    };
+
+    // Create batches
+    const batches = [];
+    for (let i = 0; i < collected.length; i += UPLOAD_BATCH_SIZE) {
+        batches.push(collected.slice(i, i + UPLOAD_BATCH_SIZE));
+    }
+
+    // Run batches with limited concurrency
+    const worker = async () => {
+        while (batches.length) {
+            const batch = batches.shift();
+            if (!batch) return;
+
+            try {
+                const uploadedAssets = await uploadBatch(batch);
+                // ✅ Render immediately (append to existing list/grid)
+                if (uploadedAssets && uploadedAssets.length && typeof renderAssets === 'function') {
+                    renderAssets(uploadedAssets, true);
+                    startPendingThumbnailPolling();
+                }
+                const overallPct = Math.round((completed / total) * 100);
+                $('#uploadProgress div').css('width', overallPct + '%');
+            } catch (err) {
+                if (err && err.message === 'abort') {
+                    showBanner('Upload canceled by user', 'info');
+                } else {
+                    showBanner(err && err.message ? err.message : 'Upload failed', 'error');
+                }
+                // Stop further uploads on first failure (change if you want "continue on error")
+                throw err;
             }
         }
-    });
+    };
+
+    try {
+        const workers = [];
+        const n = Math.max(1, UPLOAD_CONCURRENCY);
+        for (let i = 0; i < n; i++) workers.push(worker());
+        await Promise.all(workers);
+
+        // Done
+        $('#uploadProgress div').css('width', '100%');
+        setTimeout(() => $('#uploadProgress div').fadeOut(), 1000);
+
+        showBanner(`Uploaded ${total} file(s) successfully`, 'success');
+
+        // Refresh assets + tree (once at the end, not per batch)
+        assetPagination.allLoaded = false;
+        //loadAssets(folderId, true);
+        const tree = $('#folderTree').jstree(true);
+        tree.refresh();
+    } catch (e) {
+        // already bannered in worker; keep progress bar state
+    }
 }
 
 function jstreeCollectMatches(tree, query) {
@@ -1057,3 +1176,5 @@ document.addEventListener('DOMContentLoaded', function () {
     initInfiniteAssetScroll();
 });
 </script>
+
+

@@ -149,4 +149,37 @@ class JsonController extends Controller{
         // Replace this with your actual logic later
         return '/uploads/thumbnails/' . $thumbnailId . '.jpg';
     }
+
+    public function actionPending($assetIds){
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        $ids = array_filter(array_map('trim', explode(',', (string)$assetIds)));
+        $ids = array_values(array_unique(array_filter($ids, function ($v) {
+            return ctype_digit((string)$v);
+        })));
+        $ids = array_map('intval', $ids);
+
+        error_log(print_r($ids, 1));
+
+        if (empty($ids)) {
+            return ['ok' => true, 'assets' => []];
+        }
+
+        // Assuming your model is app\models\Asset and thumbnail_url is a column
+        $rows = Asset::find()
+            ->select(['id', 'thumbnail_url'])
+            ->where(['id' => $ids])
+            ->asArray()
+            ->all();
+
+        // Return minimal payload
+        $assets = array_map(function ($r) {
+            return [
+                'id' => (int)$r['id'],
+                'thumbnail_url' => $r['thumbnail_url'] ?: null,
+            ];
+        }, $rows);
+
+        return ['ok' => true, 'assets' => $assets];
+    }
 }

@@ -67,7 +67,14 @@ if ($id == "null"){
         </div>
     </main>
 </div>
-
+<div id="uploadOverlay" class="upload-overlay" style="display:none;">
+    <div class="upload-overlay-card">
+        <div class="upload-overlay-title">Upload Process...</div>
+        <div class="upload-overlay-bar">
+            <div class="upload-overlay-bar-fill" style="width:0%;"></div>
+        </div>
+    </div>
+</div>
 
 
 <script>
@@ -87,6 +94,7 @@ const folderSearchState = {
     index: -1
 };
 let pendingThumbPoller = null;
+let overallPct = 0;
 
 
 function getPendingAssetIds() {
@@ -453,12 +461,7 @@ async function handleUpload(files, folderId) {
         collected.push({ file, path });
     }
 
-    // progress bar (create once if missing)
-    if (!$('#uploadProgress').length) {
-        const $progress = $('<div id="uploadProgress"><div></div></div>');
-        $('#dropZone').append($progress);
-    }
-    $('#uploadProgress div').css('width', '0%').show();
+    showUploadOverlay();
 
     let completed = 0;
     const total = collected.length;
@@ -487,8 +490,8 @@ async function handleUpload(files, folderId) {
                         // batch progress -> overall progress (approx based on file count)
                         if (evt.lengthComputable) {
                             const batchPct = evt.total ? (evt.loaded / evt.total) : 0;
-                            const overallPct = Math.round(((completed + (batchPct * batch.length)) / total) * 100);
-                            $('#uploadProgress div').css('width', overallPct + '%');
+                            overallPct = Math.round(((completed + (batchPct * batch.length)) / total) * 100);
+                            updateUploadOverlay(overallPct);
                         }
                     });
                     return xhr;
@@ -528,13 +531,17 @@ async function handleUpload(files, folderId) {
 
             try {
                 const uploadedAssets = await uploadBatch(batch);
+
+                completed += batch.length;
+                $('#uploadProgress div').css('width', overallPct + '%');
                 // ✅ Render immediately (append to existing list/grid)
                 if (uploadedAssets && uploadedAssets.length && typeof renderAssets === 'function') {
                     renderAssets(uploadedAssets, true);
                     startPendingThumbnailPolling();
                 }
-                const overallPct = Math.round((completed / total) * 100);
-                $('#uploadProgress div').css('width', overallPct + '%');
+                overallPct = Math.round((completed / total) * 100);
+                updateUploadOverlay(overallPct);
+
             } catch (err) {
                 if (err && err.message === 'abort') {
                     showBanner('Upload canceled by user', 'info');
@@ -554,10 +561,10 @@ async function handleUpload(files, folderId) {
         await Promise.all(workers);
 
         // Done
-        $('#uploadProgress div').css('width', '100%');
-        setTimeout(() => $('#uploadProgress div').fadeOut(), 1000);
+        updateUploadOverlay(100);
+        hideUploadOverlay(); // remove immediately
 
-        showBanner(`Uploaded ${total} file(s) successfully`, 'success');
+        showBanner(total +' file' + (total>1?'s were':' was')+ ' uploaded successfully.', 'success');
 
         // Refresh assets + tree (once at the end, not per batch)
         assetPagination.allLoaded = false;
@@ -566,6 +573,8 @@ async function handleUpload(files, folderId) {
         tree.refresh();
     } catch (e) {
         // already bannered in worker; keep progress bar state
+    } finally {
+        hideUploadOverlay();
     }
 }
 
@@ -615,6 +624,19 @@ function getCookie(name) {
     return null;
 }
 
+function showUploadOverlay() {
+    $('#uploadOverlay').show();
+    updateUploadOverlay(0);
+}
+
+function updateUploadOverlay(pct) {
+    const p = Math.max(0, Math.min(100, Number(pct) || 0));
+    $('#uploadOverlay .upload-overlay-bar-fill').css('width', p + '%');
+}
+
+function hideUploadOverlay() {
+    $('#uploadOverlay').hide();
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     var $treeEl = $('#folderTree');
@@ -935,7 +957,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (folderSearchState.matches.length === 0) {
-            showBanner(`No folders match "${query}".`, 'error');
+            showBanner('No folders match "${query}".', 'error');
             return;
         }
 

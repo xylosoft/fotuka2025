@@ -770,3 +770,43 @@ a {
 .jstree-default .jstree-anchor {
     color: #374151;
 }
+
+.upload-overlay{
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(245, 245, 245, 0.92); /* very light gray */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-overlay-card{
+    width: min(520px, 92vw);
+    padding: 22px 26px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    text-align: center;
+}
+
+.upload-overlay-title{
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 14px;
+}
+
+.upload-overlay-bar{
+    height: 18px;
+    border: 2px solid #2e7d32; /* green border */
+    border-radius: 10px;
+    background: transparent;    /* empty box */
+    overflow: hidden;
+}
+
+.upload-overlay-bar-fill{
+    height: 100%;
+    width: 0%;
+    background: #2e7d32;        /* green fill */
+    transition: width 120ms linear;
+}

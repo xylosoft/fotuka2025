@@ -150,7 +150,7 @@ class JsonController extends Controller{
         return '/uploads/thumbnails/' . $thumbnailId . '.jpg';
     }
 
-    public function actionPending($assetIds){
+    public function actionPending($folderId, $assetIds){
         \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 
         $ids = array_filter(array_map('trim', explode(',', (string)$assetIds)));
@@ -168,7 +168,7 @@ class JsonController extends Controller{
         // Assuming your model is app\models\Asset and thumbnail_url is a column
         $rows = Asset::find()
             ->select(['id', 'thumbnail_url'])
-            ->where(['id' => $ids])
+            ->where(['id' => $ids, 'folder_id' => $folderId])
             ->asArray()
             ->all();
 

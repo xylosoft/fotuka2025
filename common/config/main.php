@@ -25,7 +25,7 @@ return [
                 '/json/folders/<id:\d+>' => 'json/folders',
                 'json/folder/<id:\d+>' => 'json/folder',
                 'json/assets/<id:\d+>' => 'json/assets',
-                'json/pending/<assetIds>' => 'json/pending',
+                'json/pending/<folderId:\d+>/<assetIds[\d,]+>' => 'json/pending',
                 '/folder/add' => 'folder/add',
                 '/folder/move' => 'folder/move',
                 '/folder/rename' => 'folder/rename',

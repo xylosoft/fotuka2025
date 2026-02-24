@@ -123,7 +123,7 @@ function pollPendingThumbnails() {
     if (!ids.length) return stopPendingThumbnailPolling();
 
     const cleanIds = ids.map(id => String(id).trim()).filter(id => id.length > 0);
-    const url = '/json/pending/' + cleanIds.join(',');
+    const url = '/json/pending/' + window.selectedFolderId + '/' + cleanIds.join(',');
 
     $.getJSON(url, function (response) {
         if (!response || !response.ok || !response.assets) return;

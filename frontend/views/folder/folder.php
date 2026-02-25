@@ -11,8 +11,8 @@ if ($id == "null"){
 }
 ?>
 
-<div class="app">
-    <aside class="sidebar">
+<div class="app split-layout" id="splitLayout">
+    <aside class="sidebar" id="leftpanel">
         <div class="folder-search">
             <i class="fa fa-search"></i>
             <input type="text" id="folderSearch" placeholder="Folder Search">
@@ -25,12 +25,9 @@ if ($id == "null"){
             <div id="folderTree"></div>
         </div>
     </aside>
-
-    <main class="main">
+    <div id="panelResizer"></div>
+    <main class="main" id="rightpanel">
         <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
-        <!-- Temporarily commenting as it needs to be determined where this will go.
-        <button id="pickFolderBtn" type="button">Upload Folder</button>
-        -->
 
         <div class="right-panel" id="rightPanel">
             <div class="folder-header">
@@ -1194,7 +1191,59 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#folderTree').on('ready.jstree', function () {
         loadFolder(<?=$id?>);
     })
-    
+
+    const layout = document.getElementById('splitLayout');
+    const left = document.getElementById('leftpanel');
+    const resizer = document.getElementById('panelResizer');
+
+    if (!layout || !left || !resizer) return;
+
+    const MIN = 220;
+    const MAX = () => Math.min(window.innerWidth * 0.55, 700);
+
+    let dragging = false;
+
+    function setLeftWidth(px) {
+        const clamped = Math.max(MIN, Math.min(MAX(), px));
+        left.style.width = clamped + 'px';
+        localStorage.setItem('fotuka.leftpanelWidth', String(clamped));
+    }
+
+    function onMove(clientX) {
+        const rect = layout.getBoundingClientRect();
+        const newWidth = clientX - rect.left;
+        setLeftWidth(newWidth);
+    }
+
+    function stopDrag() {
+        if (!dragging) return;
+        dragging = false;
+        layout.classList.remove('is-resizing');
+    }
+
+    resizer.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        dragging = true;
+        layout.classList.add('is-resizing');
+        if (resizer.setPointerCapture) {
+            resizer.setPointerCapture(e.pointerId);
+        }
+    });
+
+    window.addEventListener('pointermove', function (e) {
+        if (!dragging) return;
+        onMove(e.clientX);
+    });
+
+    window.addEventListener('pointerup', stopDrag);
+    window.addEventListener('pointercancel', stopDrag);
+
+    /* Restore saved width */
+    const saved = Number(localStorage.getItem('fotuka.leftpanelWidth'));
+    if (saved) {
+        setLeftWidth(saved);
+    }
+
     initInfiniteAssetScroll();
 });
 </script>

@@ -11,7 +11,7 @@ header {
     left: 0;
     right: 0;
     height: 70px;
-    //background: #DBEAFE;
+//background: #DBEAFE;
     color: #fff;
     display: flex;
     align-items: center;
@@ -448,13 +448,13 @@ header > div:last-child {
 }
 
 .drop-zone {
+    position:relative;
     border: 2px dashed transparent;
     transition: border-color 0.3s ease, background-color 0.3s ease;
     box-sizing: border-box;
-
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 525px);
+    height: calc(100svh - 175px);
 }
 
 .drop-zone.dragover {
@@ -536,7 +536,7 @@ a {
     overflow: visible;
 }
 #rightPanel {
-    height: calc(100vh - 70px);
+    height: 100%;
     overflow: auto;
 }
 

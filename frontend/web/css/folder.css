@@ -330,22 +330,21 @@ header > div:last-child {
     position: relative;
     flex: 1;
     background: #f9fafb;
-    padding: 20px;
+    //padding: 20px;
     overflow-y: auto;
 }
 
 /* Folder Header */
 .folder-header {
-    position: relative;
+    position: sticky;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-    // border-bottom: 1px solid #e5e7eb;
     padding-bottom: 5px;
     top: 0;
     background: #f9fafb;
-    z-index: 1;
+    z-index: 1000;
 }
 
 .folder-title {
@@ -380,7 +379,7 @@ header > div:last-child {
     border: 1px solid #d1d5db;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 999;
+    z-index: 1000;
 }
 
 .folder-dropdown-menu .menu-item {
@@ -633,7 +632,7 @@ a {
 
 #rightPanel .asset-card {
     position: relative;
-    z-index: 1;
+    z-index: 0;
 }
 
 

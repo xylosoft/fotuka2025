@@ -9,6 +9,7 @@ $id = $_COOKIE[Yii::$app->params['FOLDER_COOKIE']]??null;
 if ($id == "null"){
     $id = null;
 }
+$user = Yii::$app->user->identity;
 ?>
 
 <div class="app split-layout" id="splitLayout">
@@ -57,20 +58,21 @@ if ($id == "null"){
                 <div class="folder-section" id="subfolders"></div>
             </div>
 
-            <div id="dropZone" class="drop-zone">
-                <div id="empty-state" class="empty-state" style="display:none;">
-                    <div class="empty-card">
-                        <div class="empty-icon" aria-hidden="true">📁</div>
-                        <h2 class="empty-title">You don't have any folders.</h2>
-                        <p class="empty-subtitle">
-                            Create your first folder to start uploading and organizing your assets.
-                        </p>
+            <div id="empty-state" class="empty-state" style="display:none;">
+                <div class="empty-card">
+                    <div class="empty-icon" aria-hidden="true">📁</div>
+                    <h2 class="empty-title">You don't have any folders.</h2>
+                    <p class="empty-subtitle">
+                        Create your first folder to start uploading and organizing your assets.
+                    </p>
 
-                        <button type="button" id="btn-create-folder" class="btn-primary">
-                            + Create folder
-                        </button>
-                    </div>
+                    <button type="button" id="btn-create-folder" class="btn-primary">
+                        + Create folder
+                    </button>
                 </div>
+            </div>
+
+            <div id="dropZone" class="drop-zone">
                 <div id="assetControls" class="asset-controls"></div>
                 <div class="asset-grid" id="assetGrid"></div>
             </div>
@@ -221,6 +223,8 @@ function fetchFolders(folderId, append = false, loadAll = false) {
             const items = res.subfolders || [];
             if (folderId == 0 && items.length > 0) {
                 renderSubfolders(items, append);
+            }else if (folderId == 0){
+                setEmptyStateVisible(true);
             }
         },
         error: function() {
@@ -647,11 +651,20 @@ function jstreeOpenAncestors(tree, nodeId, done) {
 function selectHome(){
     var tree = $('#folderTree').jstree(true);
     var roots = tree.get_node('#').children;
+    var allNodes = tree.get_json('#', { flat: true });
+
     if (roots.length) {
         tree.open_node(roots[0]);
         tree.deselect_all();
         tree.select_node(roots[0]);
     }
+
+    if (allNodes.length === 1) {
+        setEmptyStateVisible(true);
+    }else{
+        fetchFolders();
+    }
+
 }
 
 // CHECKED
@@ -870,64 +883,85 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#new-folder-dialog').dialog({
         autoOpen: false,
         modal: true,
-        width: 380,
-        buttons: {
-            "Create": function() {
-                var name = $('#folder-name').val().trim();
-                if (!name) {
-                    $('#folder-error').text('Please enter a folder name.').show();
-                    return;
-                }
-
-                var tree = $('#folderTree').jstree(true);
-                var selectedNode = tree.get_selected(true)[0]; // returns the full node object
-                var parentId = selectedNode ? selectedNode.id : null;
-                var csrf = (typeof yii !== 'undefined' && yii.getCsrfToken) ? yii.getCsrfToken() : $('meta[name="csrf-token"]').attr('content');
-
-                $.ajax({
-                    url: '/folder/add',
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        name: name,
-                        parent_id: (!parentId || parentId === '#' || parentId.startsWith('j1_')) ? null : parentId,
-                        _csrf: csrf
-                    },
-                    success: function(res) {
-                        if (res && res.ok) {
-                            // Insert node client-side under selected parent
-                            var jsParent = parentId && parentId !== '' ? parentId : '#';
-                            jsParent = jsParent ? String(jsParent) : '#';
-
-                            if (!Number.isInteger(parseInt(jsParent))) {
-                                jsParent = '#';
-                            }
-
-                            var tree = $('#folderTree').jstree(true);
-                            tree.refresh();
-
-                            showBanner('Folder created successfully!', 'success');
-                        }
-                    },
-                    error: function(xhr, status, errorThrown) {
-                        const firstField = Object.keys(xhr.responseJSON.errors)[0];
-                        let message = xhr.responseJSON.errors[firstField][0];
-                        showBanner(message, 'error');
-                    }
-                });
-
-                $(this).dialog('close');
-            },
-            "Cancel": function() { $(this).dialog('close'); }
+        width: 520,
+        position: {
+            my: "center+27% top",
+            at: "center top+30%",
+            of: window
         },
-        open: function() {
-            $('#folder-name').val('').focus();
-            $('#folder-error').hide();
+        buttons: [
+            {
+                text: 'Cancel',
+                click: function () {
+                    $(this).dialog('close');
+                }
+            },
+            {
+                text: 'Create',
+                class: 'btn-primary', // <- used by the CSS override
+                click: function () {
+                    var name = $('#folder-name').val().trim();
+                    if (!name) {
+                        $('#folder-error').text('Please enter a folder name.').show();
+                        return;
+                    }
 
-            $('#folder-name').off('keypress').on('keypress', function(e) {
-                if (e.which === 13) { // Enter key
+                    var tree = $('#folderTree').jstree(true);
+                    var selectedNode = tree.get_selected(true)[0]; // returns the full node object
+                    var parentId = selectedNode ? selectedNode.id : null;
+                    var csrf = (typeof yii !== 'undefined' && yii.getCsrfToken)
+                        ? yii.getCsrfToken()
+                        : $('meta[name="csrf-token"]').attr('content');
+
+                    $.ajax({
+                        url: '/folder/add',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            name: name,
+                            parent_id: (!parentId || parentId === '#' || parentId.startsWith('j1_')) ? null : parentId,
+                            _csrf: csrf
+                        },
+                        success: function (res) {
+                            if (res && res.ok) {
+                                var jsParent = parentId && parentId !== '' ? parentId : '#';
+                                jsParent = jsParent ? String(jsParent) : '#';
+
+                                var tree = $('#folderTree').jstree(true);
+                                tree.refresh();
+
+                                if (!Number.isInteger(parseInt(jsParent))) {
+                                    jsParent = '#';
+                                    selectHome();
+                                }
+
+
+                                showBanner('Folder created successfully!', 'success');
+                            }
+                            setEmptyStateVisible(false);
+                        },
+                        error: function (xhr, status, errorThrown) {
+                            const firstField = Object.keys(xhr.responseJSON.errors)[0];
+                            let message = xhr.responseJSON.errors[firstField][0];
+                            showBanner(message, 'error');
+                        }
+                    });
+
+                    $(this).dialog('close');
+                }
+            }
+        ],
+        open: function () {
+            $('#folder-name').val('').focus();
+            $('#folder-error').hide().text('');
+
+            const $pane = $(this).closest('.ui-dialog').find('.ui-dialog-buttonpane');
+            $pane.find('button:contains("Create")').addClass('btn-primary');
+
+            $('#folder-name').off('keypress').on('keypress', function (e) {
+                if (e.which === 13) {
                     e.preventDefault();
-                    $(".ui-dialog-buttonpane button:contains('Create')").trigger('click');
+                    $pane.find('button.btn-primary').trigger('click');
                 }
             });
         }
@@ -1286,7 +1320,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     initInfiniteAssetScroll();
-    setEmptyStateVisible(true);
 });
 </script>
 

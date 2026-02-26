@@ -79,16 +79,17 @@ FolderAsset::register($this);
 
 <?= $content ?>
 
-<!--
-<div id="new-folder-dialog" title="Create Folder" style="display:none;">
-    <p style="margin-bottom:8px;">Enter folder name:</p>
-    <input type="text" id="folder-name" style="width:100%; padding:6px;">
-    <div id="folder-error" style="color:red; margin-top:6px; display:none;"></div>
-</div>-->
 <div id="new-folder-dialog" title="Create Folder" style="display:none;">
     <div class="modal-body">
-        <label class="modal-label" for="new-folder-name">Folder name</label>
-        <input id="new-folder-name" type="text" class="modal-input" placeholder="e.g., Wedding photos" />
+        <label class="modal-label" for="folder-name">Folder name</label>
+        <input
+                id="folder-name"
+                type="text"
+                class="modal-input"
+                placeholder="Please enter your folder's name"
+                autocomplete="off"
+        />
+        <div id="folder-error" class="modal-error" style="display:none;"></div>
     </div>
 </div>
 <script>

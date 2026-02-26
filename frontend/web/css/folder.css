@@ -72,7 +72,7 @@ header > div:last-child {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
 .folder-search,
@@ -782,7 +782,6 @@ a {
     width: 300px;
     min-width: 220px;
     max-width: 55vw;
-    overflow: auto;
     min-height: 0;
     flex: 0 0 auto;
 }

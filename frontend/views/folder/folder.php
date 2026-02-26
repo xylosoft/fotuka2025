@@ -103,9 +103,6 @@ function getPendingAssetIds() {
 
 function startPendingThumbnailPolling() {
     if (pendingThumbPoller) return;
-
-    console.log("Start Polling process...")
-
     pendingThumbPoller = setInterval(function () {
         pollPendingThumbnails();
     }, 1000);
@@ -116,7 +113,6 @@ function startPendingThumbnailPolling() {
 
 function stopPendingThumbnailPolling() {
     if (pendingThumbPoller) {
-        console.log("Stopping Polling process...")
         clearInterval(pendingThumbPoller);
         pendingThumbPoller = null;
     }
@@ -171,7 +167,6 @@ function loadFolder(folderId) {
     if (folderId == null){
         $('#dropZone').hide();
         $('#folderview').hide();
-        //window.selectHome();
         $('#currentFolderName').text("Home");
         $('#subfolders').empty();
         selectHome();
@@ -294,7 +289,6 @@ function joinPath(a, b) {
 }
 
 function loadAssets(folderId, showAll = false, offset = 0) {
-    //console.log("Loading assets for folder: " + folderId);
     if (!folderId){
         return;
     }
@@ -529,14 +523,26 @@ async function handleUpload(files, folderId) {
             try {
                 const uploadedAssets = await uploadBatch(batch);
 
+                // ✅ IMPORTANT: increment completed (you currently never do)
                 completed += batch.length;
-                $('#uploadProgress div').css('width', overallPct + '%');
-                // ✅ Render immediately (append to existing list/grid)
-                if (uploadedAssets && uploadedAssets.length && typeof renderAssets === 'function') {
-                    renderAssets(uploadedAssets, true);
+
+                // ✅ Decide whether this batch belongs to the current folder UI
+                // Only render if at least one file in the batch is root-of-drop
+                const batchHasRootFiles = batch.some(function (item) {
+                    return isRootOfDroppedFolder(item.path);
+                });
+
+                // ✅ Remove folders from render list
+                const renderable = (uploadedAssets || []).filter(function (a) {
+                    return !isProbablyFolderAsset(a);
+                });
+
+                // ✅ Render only if these uploads belong in the current folder view
+                if (batchHasRootFiles && renderable.length && typeof renderAssets === 'function') {
+                    renderAssets(renderable, true);
                     startPendingThumbnailPolling();
                 }
-                overallPct = Math.round((completed / total) * 100);
+
                 updateUploadOverlay(overallPct);
 
             } catch (err) {
@@ -563,9 +569,7 @@ async function handleUpload(files, folderId) {
 
         showBanner(total +' file' + (total>1?'s were':' was')+ ' uploaded successfully.', 'success');
 
-        // Refresh assets + tree (once at the end, not per batch)
         assetPagination.allLoaded = false;
-        //loadAssets(folderId, true);
         const tree = $('#folderTree').jstree(true);
         tree.refresh();
     } catch (e) {
@@ -575,6 +579,32 @@ async function handleUpload(files, folderId) {
     }
 }
 
+function normalizeRelPath(p) {
+    if (!p) return '';
+    return String(p).replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
+}
+
+// Root-of-drop means:
+// - file.jpg                            => root (1 segment)
+// - DroppedFolder/file.jpg              => root (2 segments)
+// - DroppedFolder/sub/file.jpg          => NOT root (3+ segments)
+function isRootOfDroppedFolder(path) {
+    const p = normalizeRelPath(path);
+    if (!p) return true;
+    const parts = p.split('/').filter(Boolean);
+    return parts.length <= 2;
+}
+
+function isProbablyFolderAsset(a) {
+    return (
+        a && (
+            a.is_folder === true ||
+            a.isFolder === true ||
+            a.type === 'folder' ||
+            a.kind === 'folder'
+        )
+    );
+}
 function jstreeCollectMatches(tree, query) {
     const q = String(query).trim().toLowerCase();
     if (!q) return [];
@@ -608,8 +638,31 @@ function deleteFolder(nodeId){
     var tree = $('#folderTree').jstree(true);
     var node = tree.get_node(nodeId);
     var parentId = node.parent;
-    tree.delete_node(node);
-    loadFolder(parentId);
+
+    if (confirm('Are you sure you want to delete this folder?')) {
+        $.ajax({
+            url: '/folder/delete',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                id: node.id,
+                _csrf: yii.getCsrfToken()
+            },
+            success: function(res) {
+                if (res && res.ok) {
+                    tree.delete_node(node);
+                    loadFolder(parentId);
+                    showBanner('Folder deleted successfully', 'success');
+                } else {
+                    showBanner(res.message || 'Failed to delete folder', 'error');
+                }
+            },
+            error: function() {
+                showBanner('Error deleting folder', 'error');
+            }
+        });
+    }
+
 }
 
 function getCookie(name) {
@@ -712,28 +765,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     menu.deleteItem = {
                         label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Delete',
                         action: function() {
-                            if (confirm('Are you sure you want to delete this folder?')) {
-                                $.ajax({
-                                    url: '/folder/delete',
-                                    type: 'POST',
-                                    dataType: 'json',
-                                    data: {
-                                        id: node.id,
-                                        _csrf: yii.getCsrfToken()
-                                    },
-                                    success: function(res) {
-                                        if (res && res.ok) {
-                                            deleteFolder(node.id);
-                                            showBanner('Folder deleted successfully', 'success');
-                                        } else {
-                                            showBanner(res.message || 'Failed to delete folder', 'error');
-                                        }
-                                    },
-                                    error: function() {
-                                        showBanner('Error deleting folder', 'error');
-                                    }
-                                });
-                            }
+                            deleteFolder(node.id);
                         }
                     };
                 };
@@ -809,7 +841,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (folderId != window.selectedFolderId){
                 window.selectedFolderId = folderId;
-                loadFolder(node.id)
+                loadFolder(folderId)
             }
         }
     });
@@ -829,7 +861,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 var tree = $('#folderTree').jstree(true);
                 var selectedNode = tree.get_selected(true)[0]; // returns the full node object
                 var parentId = selectedNode ? selectedNode.id : null;
-                //console.log("Adding folder with id: " + parentId);
                 var csrf = (typeof yii !== 'undefined' && yii.getCsrfToken) ? yii.getCsrfToken() : $('meta[name="csrf-token"]').attr('content');
 
                 $.ajax({
@@ -854,20 +885,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             var tree = $('#folderTree').jstree(true);
                             tree.refresh();
 
-                            $('#folderTree').on('refresh.jstree', function() {
-                                var tree = $('#folderTree').jstree(true);
-
-                                if (jsParent === '#') {
-                                    //console.log("Loading Folder null");
-                                    selectHome();
-                                }else{
-                                    tree.open_node(jsParent);
-                                    tree.deselect_all();
-                                    tree.select_node(jsParent);
-                                    //console.log("Loading Folder " + jsParent);
-                                    window.fetchFolders(jsParent, false, true);
-                                }
-                            });
                             showBanner('Folder created successfully!', 'success');
                         }
                     },
@@ -1033,7 +1050,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             return handleUpload(files, window.selectedFolderId);
         }).catch(function (err) {
-            console.error('Drop read failed:', err);
             showBanner('Could not read dropped folder(s).', 'error');
         });
     });

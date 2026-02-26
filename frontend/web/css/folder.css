@@ -17,15 +17,14 @@ header {
     align-items: center;
     padding: 0 20px;
     z-index: 1000;
-    // border-bottom: 1px solid #6B7280;
-    justify-content: space-between; /* 👈 This is the key */
+    justify-content: space-between;
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 
 header a {
     display: flex;
     align-items: center;
-    font-family: "Roboto", Arial, sans-serif; /* same Google font */
+    font-family: "Roboto", Arial, sans-serif;
     font-size: 16px;
     font-weight: 400;
     color: #6B7280;
@@ -65,7 +64,7 @@ header > div:last-child {
     overflow: hidden;
     padding: 20px;
     width: 250px;
-    background: #F8FAFC;   /* instead of flat gray */
+    background: #F8FAFC;
     border-right: 1px solid #E5E7EB;
 }
 
@@ -94,9 +93,11 @@ header > div:last-child {
 .jstree-icon.fa-folder{
     color: #8294A9;
 }
+
 .jstree-icon.fa-folder-open{
     color: #8294A9;
 }
+
 .jstree-children {
     margin-left: 0px !important;
 }
@@ -104,14 +105,13 @@ header > div:last-child {
 .asset {
     width: 250px;
     height: 250px;
-    object-fit: cover;          /* keeps image proportions while filling the box */
-    border-radius: 12px;        /* rounded corners */
-    margin: 8px;                /* space between images */
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* soft shadow for subtle depth */
+    object-fit: cover;
+    border-radius: 12px;
+    margin: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Optional: slight hover effect */
 .asset:hover {
     transform: scale(1.03);
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -120,21 +120,20 @@ header > div:last-child {
 .notification{
     display: none;
     position: fixed;
-    top: 70px;              /* 50px below top of page */
+    top: 70px;
     left: 50%;
-    transform: translateX(-50%);  /* center horizontally */
-    width: 40%;             /* only 40% of screen width */
+    transform: translateX(-50%);
+    width: 40%;
     text-align: center;
     padding: 12px 20px;
     font-weight: 600;
-    color: #222;            /* dark text for readability */
-    border-radius: 6px;     /* rounded corners for modern look */
+    color: #222;
+    border-radius: 6px;
     z-index: 9999;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     border:1px solid #6B7280;
 }
 
-/* JSTree Context Menu */
 .vakata-context {
     font-family: "Roboto", Arial, sans-serif;
     font-size: 14px;
@@ -207,6 +206,7 @@ header > div:last-child {
     background: #E5E7EB !important;
     box-shadow: none !important;
 }
+
 .vakata-context li > a .vakata-contextmenu-sep{
     display: none !important;
 }
@@ -244,18 +244,17 @@ header > div:last-child {
     color: #aaa;
 }
 
-/* User Profile icon */
 .user-profile {
     position: relative;
     width: 55px;
     height: 55px;
     border-radius: 50%;
-    border: 1px solid #6B7280; /* 👈 gray border */
+    border: 1px solid #6B7280;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    background-color: #f9fafb; /* light neutral background behind image */
+    background-color: #f9fafb;
 }
 
 .profile-pic {
@@ -270,7 +269,6 @@ header > div:last-child {
     transition: 0.2s ease;
 }
 
-/* Context Menu */
 .user-menu-container {
     position: relative;
     display: inline-block;
@@ -280,7 +278,7 @@ header > div:last-child {
     display: none;
     position: absolute;
     right: 0;
-    top: 55px; /* adjust to your header height */
+    top: 55px;
     background: #fff;
     border: 1px solid #d1d5db;
     border-radius: 6px;
@@ -300,41 +298,31 @@ header > div:last-child {
     color: #111;
     background: #fff;
     cursor: pointer;
-    line-height: 1.4;        /* consistent height prevents resizing */
+    line-height: 1.4;
     transition: background-color 0.15s ease;
 }
 
 .user-dropdown-menu .menu-item:hover {
-    background: #E5E7EB;     /* hover color only, no font-size change */
+    background: #E5E7EB;
 }
 
 .menu-icon {
     width: 18px;
     text-align: center;
-    flex-shrink: 0;          /* prevents icons from resizing */
+    flex-shrink: 0;
 }
 
 .menu-separator {
     border-top: 1px solid #E5E7EB;
 }
 
-
-
-
-
-
-
-
-/* Folder / Asset panel */
 .right-panel {
     position: relative;
     flex: 1;
     background: #f9fafb;
-    //padding: 20px;
     overflow-y: auto;
 }
 
-/* Folder Header */
 .folder-header {
     position: sticky;
     display: flex;
@@ -432,7 +420,6 @@ header > div:last-child {
     background: #f3f4f6;
 }
 
-/* Subfolders (top section) */
 .folder-section {
     display: flex;
     flex-wrap: wrap;
@@ -470,21 +457,6 @@ header > div:last-child {
     min-height: calc(100vh - 525px);
 }
 
-/*
-.drop-zone {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    min-height: 100%;
-    width: 100%;
-    z-index: 1;
-    border: 2px dashed transparent;
-    transition: border-color 0.3s ease, background-color 0.3s ease;
-}*/
-
-
 .drop-zone.dragover {
     border-color: #3b82f6;
     background: #eff6ff;
@@ -512,14 +484,14 @@ a {
 .section-title {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #1F2937; /* gray-800 */
+    color: #1F2937;
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
 .section-count {
-    background: #DBEAFE;  /* your accent yellow */
+    background: #DBEAFE;
     border:1px solid #C0C0C0;
     color: #4B5563;
     border-radius: 9999px;
@@ -535,7 +507,6 @@ a {
     }
 }
 
-/* Folders section */
 .folder-controls {
     display: flex;
     gap: 10px;
@@ -565,11 +536,10 @@ a {
     overflow: visible;
 }
 #rightPanel {
-    height: calc(100vh - 70px); /* 70px = your fixed header height */
+    height: calc(100vh - 70px);
     overflow: auto;
 }
 
-/* Assets section */
 .asset-controls {
     display: flex;
     gap: 10px;
@@ -635,21 +605,16 @@ a {
     z-index: 0;
 }
 
-
-/* === FOLDER GRID & CARD STYLING (Final Version) === */
-
-/* Folder grid layout */
 .folder-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));  /* ~5 columns */
-    gap: 0px 00px;                   /* row and column gaps */
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0px 00px;
     justify-items: center;
     align-items: start;
     padding: 0px 00px;
     background: transparent;
 }
 
-/* Individual folder card */
 .folder-card {
     width: 180px;
     height: 120px;
@@ -675,12 +640,11 @@ a {
     box-shadow: none !important;
 }
 .folder-card .emoji {
-    font-size: 70px;             /* main icon size */
+    font-size: 70px;
     line-height: 1;
     margin-top: 10px;
 }
 
-/* Pagination buttons area */
 #folderControls {
     display: flex;
     justify-content: left;
@@ -688,7 +652,6 @@ a {
     margin-top: 30px;
 }
 
-/* Button styling (to match the cleaner look) */
 #folderControls button {
     padding: 8px 20px;
     border-radius: 8px;
@@ -704,15 +667,14 @@ a {
 }
 .folder-card,
 .folder-card * {
-    user-select: none !important;      /* disable text selection */
+    user-select: none !important;
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
-
-    outline: none !important;          /* remove focus outline */
+    outline: none !important;
     background: transparent !important;
 }
-/* === Folder rename input styling === */
+
 .rename-input {
     font-size: 18px;
     border: 1px solid #d1d5db;
@@ -730,7 +692,6 @@ a {
     box-shadow: 0 0 0 1px #3b82f6;
 }
 
-/* UPLOAD / PROGRESS BAR */
 #uploadProgress {
     position: absolute;
     bottom: 10px;
@@ -774,7 +735,7 @@ a {
     position: fixed;
     inset: 0;
     z-index: 999999;
-    background: rgba(245, 245, 245, 0.92); /* very light gray */
+    background: rgba(245, 245, 245, 0.92);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -797,20 +758,19 @@ a {
 
 .upload-overlay-bar{
     height: 18px;
-    border: 2px solid #2e7d32; /* green border */
+    border: 2px solid #2e7d32;
     border-radius: 10px;
-    background: transparent;    /* empty box */
+    background: transparent;
     overflow: hidden;
 }
 
 .upload-overlay-bar-fill{
     height: 100%;
     width: 0%;
-    background: #2e7d32;        /* green fill */
+    background: #2e7d32;
     transition: width 120ms linear;
 }
 
-/* Layout container */
 #splitLayout{
     display: flex;
     width: 100%;
@@ -818,41 +778,36 @@ a {
     min-height: 0;
 }
 
-/* LEFT PANEL */
 #leftpanel{
-    width: 300px;        /* default starting width */
-    min-width: 220px;    /* clamp min */
-    max-width: 55vw;     /* clamp max */
+    width: 300px;
+    min-width: 220px;
+    max-width: 55vw;
     overflow: auto;
     min-height: 0;
-
-    /* IMPORTANT: allow width changes to actually apply inside flex */
     flex: 0 0 auto;
 }
 
-/* RIGHT PANEL */
 #rightpanel{
     flex: 1 1 auto;
-    min-width: 0;        /* critical so it can shrink */
+    min-width: 0;
     overflow: auto;
     min-height: 0;
 }
 
-/* RESIZER */
 #panelResizer{
     width: 6px;
     flex: 0 0 6px;
     cursor: col-resize;
     background: rgba(0,0,0,0.06);
     position: relative;
-
-    /* IMPORTANT: makes pointer drag reliable on touch + some trackpads */
     touch-action: none;
-
-    /* if something overlays it, this keeps it clickable */
     z-index: 50;
 }
 
 #panelResizer:hover{
     background: rgba(0,0,0,0.12);
+}
+
+#currentFolderName{
+    padding-left:10px;
 }

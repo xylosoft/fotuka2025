@@ -102,3 +102,120 @@ a.desc:after {
     text-decoration: none;
 }
 
+/* ===== Modern jQuery UI dialog styling (Fotuka look) ===== */
+.ui-dialog{
+    border: 1px solid #E5E7EB !important;
+    border-radius: 16px !important;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.18) !important;
+    padding: 0 !important;
+    overflow: hidden;
+    background: #fff;
+}
+
+.ui-widget-overlay{
+    background: rgba(17, 24, 39, 0.35) !important; /* subtle dark overlay */
+}
+
+/* Title bar */
+.ui-dialog .ui-dialog-titlebar{
+    background: #ffffff !important;
+    border: 0 !important;
+    border-bottom: 1px solid #E5E7EB !important;
+    padding: 18px 20px !important;
+}
+
+.ui-dialog .ui-dialog-title{
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+}
+
+/* Close button */
+.ui-dialog .ui-dialog-titlebar-close{
+    border: 1px solid #E5E7EB !important;
+    background: #F9FAFB !important;
+    border-radius: 10px !important;
+    width: 34px !important;
+    height: 34px !important;
+    top: 50% !important;
+    right: 14px !important;
+    transform: translateY(-50%);
+}
+
+.ui-dialog .ui-dialog-titlebar-close:hover{
+    filter: brightness(0.98);
+}
+
+/* Content area */
+.ui-dialog .ui-dialog-content{
+    padding: 18px 20px 12px 20px !important;
+    color: #111827;
+    background: #fff;
+}
+
+/* Footer (buttons area) */
+.ui-dialog .ui-dialog-buttonpane{
+    border: 0 !important;
+    border-top: 1px solid #E5E7EB !important;
+    margin: 0 !important;
+    padding: 14px 20px !important;
+    background: #fff !important;
+}
+
+.ui-dialog .ui-dialog-buttonset{
+    float: none !important;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Buttons */
+.ui-dialog .ui-dialog-buttonpane button{
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    font-weight: 700 !important;
+    border: 1px solid #D1D5DB !important;
+    background: #F9FAFB !important;
+    color: #111827 !important;
+    margin: 0 !important;
+}
+
+.ui-dialog .ui-dialog-buttonpane button:hover{
+    filter: brightness(0.98);
+}
+
+/* Primary button (we’ll assign via JS below) */
+.ui-dialog .ui-dialog-buttonpane button.btn-primary{
+    border: 1px solid #2563EB !important;
+    background: #3B82F6 !important;
+    color: #ffffff !important;
+}
+
+/* ===== Form styling inside dialog ===== */
+.modal-body{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 6px 0 12px 0;
+}
+
+.modal-label{
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.modal-input{
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #D1D5DB;
+    border-radius: 12px;
+    padding: 12px 12px;
+    font-size: 14px;
+    outline: none;
+}
+
+.modal-input:focus{
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 4px rgba(59,130,246,0.18);
+}

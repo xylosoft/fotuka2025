@@ -58,6 +58,19 @@ if ($id == "null"){
             </div>
 
             <div id="dropZone" class="drop-zone">
+                <div id="empty-state" class="empty-state" style="display:none;">
+                    <div class="empty-card">
+                        <div class="empty-icon" aria-hidden="true">📁</div>
+                        <h2 class="empty-title">You don't have any folders.</h2>
+                        <p class="empty-subtitle">
+                            Create your first folder to start uploading and organizing your assets.
+                        </p>
+
+                        <button type="button" id="btn-create-folder" class="btn-primary">
+                            + Create folder
+                        </button>
+                    </div>
+                </div>
                 <div id="assetControls" class="asset-controls"></div>
                 <div class="asset-grid" id="assetGrid"></div>
             </div>
@@ -437,6 +450,14 @@ function initInfiniteAssetScroll() {
             setTimeout(() => { scrollLock = false; }, 1000);
         }
     });
+}
+
+function setEmptyStateVisible(isEmpty) {
+    if (isEmpty) {
+        $('#empty-state').css('display', 'flex');
+    } else {
+        $('#empty-state').hide();
+    }
 }
 
 async function handleUpload(files, folderId) {
@@ -1260,7 +1281,12 @@ document.addEventListener('DOMContentLoaded', function () {
         setLeftWidth(saved);
     }
 
+    $(document).on('click', '#btn-create-folder', function () {
+        $('#new-folder-dialog').dialog('open');
+    });
+
     initInfiniteAssetScroll();
+    setEmptyStateVisible(true);
 });
 </script>
 

@@ -810,3 +810,63 @@ a {
 #currentFolderName{
     padding-left:10px;
 }
+
+.empty-state{
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 10vh;   /* 15% of viewport height */
+
+}
+
+.empty-card{
+    width: min(520px, 100%);
+    background: #ffffff;
+    border: 1px solid #E5E7EB;
+    border-radius: 16px;
+    padding: 28px;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+
+.empty-icon{
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px auto;
+    border-radius: 14px;
+    background: #DBEAFE;        /* same vibe as your header blue */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+}
+
+.empty-title{
+    margin: 0 0 8px 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.empty-subtitle{
+    margin: 0 0 18px 0;
+    color: #6B7280;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.btn-primary{
+    appearance: none;
+    border: 1px solid #2563EB;
+    background: #3B82F6;
+    color: #fff;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: transform 0.05s ease, filter 0.15s ease;
+}
+
+.btn-primary:hover{ filter: brightness(0.97); }
+.btn-primary:active{ transform: translateY(1px); }
+.btn-primary:focus{ outline: 3px solid rgba(59,130,246,0.25); outline-offset: 2px; }

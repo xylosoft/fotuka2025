@@ -59,7 +59,26 @@ $user = Yii::$app->user->identity;
                 <div class="folder-section" id="subfolders"></div>
             </div>
 
-            <div id="empty-state" class="empty-state" style="display:none;">
+            <div id="dropZone" class="drop-zone">
+                <div id="assetControls" class="asset-controls"></div>
+                <div class="asset-grid" id="assetGrid"></div>
+            </div>
+
+            <div id="empty-assets" class="empty-folders" style="display:none;">
+                <div class="empty-card">
+                    <div><img src='/images/filetypes.png' width="300" style="padding-bottom:30px"></div>
+                    <h2 class="empty-title">You don't have any assets.</h2>
+                    <p class="empty-subtitle">
+                        You can drag & drop folders or files into this area to upload your files.
+                    </p>
+
+                    <button type="button" id="btn-upload-file" class="btn-primary">
+                        Upload Files
+                    </button>
+                </div>
+            </div>
+
+            <div id="empty-folders" class="empty-folders" style="display:none;">
                 <div class="empty-card">
                     <div class="empty-icon" aria-hidden="true">📁</div>
                     <h2 class="empty-title">You don't have any folders.</h2>
@@ -74,10 +93,6 @@ $user = Yii::$app->user->identity;
                 </div>
             </div>
 
-            <div id="dropZone" class="drop-zone">
-                <div id="assetControls" class="asset-controls"></div>
-                <div class="asset-grid" id="assetGrid"></div>
-            </div>
         </div>
     </main>
 </div>
@@ -226,7 +241,7 @@ function fetchFolders(folderId, append = false, loadAll = false) {
             if (folderId == 0 && items.length > 0) {
                 renderSubfolders(items, append);
             }else if (folderId == 0){
-                setEmptyStateVisible(true);
+                setEmptyStateVisible('folders', true);
             }
         },
         error: function() {
@@ -307,6 +322,7 @@ function joinPath(a, b) {
     );
 }
 
+// CHECKED
 function loadAssets(folderId, showAll = false, offset = 0) {
     if (!folderId){
         return;
@@ -323,13 +339,16 @@ function loadAssets(folderId, showAll = false, offset = 0) {
             // Update state
             assetPagination.offset += response.assets.length;
 
+            if (response.assets.length === 0){
+                setEmptyStateVisible('assets', true);
+            }
+
             // Detect end of list
             if (response.assets.length < assetPagination.limit || response.assets.length === 0 || showAll) {
                 assetPagination.allLoaded = true;
             }
-        } else {
-            assetPagination.allLoaded = true;
-            showBanner('No assets found in this folder.', 'info');
+        }else{
+            setEmptyStateVisible('assets', true);
         }
     });
 }
@@ -458,11 +477,11 @@ function initInfiniteAssetScroll() {
     });
 }
 
-function setEmptyStateVisible(isEmpty) {
+function setEmptyStateVisible(type, isEmpty) {
     if (isEmpty) {
-        $('#empty-state').css('display', 'flex');
+        $('#empty-' + type).css('display', 'flex');
     } else {
-        $('#empty-state').hide();
+        $('#empty-' + type).hide();
     }
 }
 
@@ -520,6 +539,7 @@ async function handleUpload(files, folderId) {
                 success: function (res) {
                     if (res && res.ok) {
                         resolve(res.assets || []); // return uploaded assets for this batch
+                        setEmptyStateVisible('assets', false);
                     } else {
                         reject(new Error((res && res.error) || 'Upload failed'));
                     }
@@ -650,6 +670,7 @@ function jstreeOpenAncestors(tree, nodeId, done) {
 }
 
 
+// CHECKED
 function selectHome(){
     var tree = $('#folderTree').jstree(true);
     var roots = tree.get_node('#').children;
@@ -660,12 +681,11 @@ function selectHome(){
         tree.deselect_all();
         tree.select_node(roots[0]);
     }
+    setEmptyStateVisible('assets', false);
 
     if (allNodes.length === 1) {
-        console.log("Displaying empty");
-        setEmptyStateVisible(true);
+        setEmptyStateVisible('folders', true);
     }else{
-        console.log("Fetching Folders");
         fetchFolders();
     }
 
@@ -942,7 +962,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 showBanner('Folder created successfully!', 'success');
                             }
-                            setEmptyStateVisible(false);
+                            setEmptyStateVisible('folders', false);
                         },
                         error: function (xhr, status, errorThrown) {
                             const firstField = Object.keys(xhr.responseJSON.errors)[0];
@@ -977,6 +997,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     $('#folderTree').on('rename_node.jstree', function(e, data) {
+        console.log("Renaming...");
         const tree = $('#folderTree').jstree(true);
         const oldName = data.old;  // original folder name
         const newName = data.text; // new attempted name
@@ -993,8 +1014,9 @@ document.addEventListener('DOMContentLoaded', function () {
             success: function(res) {
                 if (!res.ok) {
                     showBanner(res.message, 'error');
-                    // revert to old name
                     tree.set_text(data.node, oldName);
+                }else{
+                    $('#currentFolderName').text(data.text);
                 }
             },
             error: function() {
@@ -1189,7 +1211,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!res.ok) {
                     showBanner(res.message || 'Rename failed', 'error');
                     // revert UI to old name
-                $input.val(oldName);
+                    $input.val(oldName);
                     $('#currentFolderName').text(oldName).show();
                 } else {
                     // success: update displayed name

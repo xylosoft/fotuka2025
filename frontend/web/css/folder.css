@@ -538,6 +538,7 @@ a {
 #rightPanel {
     height: 100%;
     overflow: auto;
+    position: relative;
 }
 
 .asset-controls {
@@ -811,12 +812,26 @@ a {
     padding-left:10px;
 }
 
-.empty-state {
-    flex: 1 1 auto;          /* fills vertical space */
+.empty-folders{
+    position: absolute;
+    top: 150px;
+    left: 0;
+    right: 0;
+
     display: flex;
-    justify-content: center; /* horizontal center */
-    align-items: center;     /* vertical center */
-    padding-top: 10vh;;
+    justify-content: center;   /* horizontal center */
+    align-items: flex-start;
+
+    padding: 0 16px;           /* keeps it nice on narrow widths */
+    z-index: 20;               /* above the grid */
+    pointer-events: none;      /* prevents blocking clicks below */
+}
+
+/* allow clicking the button inside the empty card */
+.empty-folders .empty-card,
+.empty-folders button,
+.empty-folders a{
+    pointer-events: auto;
 }
 
 .empty-card{

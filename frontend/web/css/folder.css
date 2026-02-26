@@ -332,7 +332,7 @@ header > div:last-child {
     padding-bottom: 5px;
     top: 0;
     background: #f9fafb;
-    z-index: 1000;
+    z-index: 10;
 }
 
 .folder-title {
@@ -811,12 +811,12 @@ a {
     padding-left:10px;
 }
 
-.empty-state{
+.empty-state {
+    flex: 1 1 auto;          /* fills vertical space */
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 10vh;   /* 15% of viewport height */
-
+    justify-content: center; /* horizontal center */
+    align-items: center;     /* vertical center */
+    padding-top: 10vh;;
 }
 
 .empty-card{
@@ -1022,4 +1022,25 @@ a {
     font-size: 13px;
     color: #B91C1C;
     margin-top: 4px;
+}
+
+#notification-banner.notification{
+    position: absolute;
+    top: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+
+    width: min(520px, calc(100% - 32px));
+    box-sizing: border-box;
+
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
+    background: #ffffff;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+
+    text-align: center;
+    font-weight: 700;
+    color: #111827;
 }

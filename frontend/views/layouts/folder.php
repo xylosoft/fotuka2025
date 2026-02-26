@@ -74,7 +74,6 @@ FolderAsset::register($this);
         </div>
     </div>
 </header>
-<div id="notification-banner" class="notification"></div>
 
 
 <?= $content ?>

@@ -27,10 +27,11 @@ $user = Yii::$app->user->identity;
         </div>
     </aside>
     <div id="panelResizer"></div>
-    <main class="main" id="rightpanel">
+    <main class="main">
         <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
 
         <div class="right-panel" id="rightPanel">
+            <div id="notification-banner" class="notification"></div>
             <div class="folder-header">
                 <div class="folder-title">
                     <span id="currentFolderName"><?=$folder?$folder->name:"Home"?></span>
@@ -63,7 +64,8 @@ $user = Yii::$app->user->identity;
                     <div class="empty-icon" aria-hidden="true">📁</div>
                     <h2 class="empty-title">You don't have any folders.</h2>
                     <p class="empty-subtitle">
-                        Create your first folder to start uploading and organizing your assets.
+                        Create your first folder to start uploading and organizing your assets.<br/>
+                        After creating a folder, you can right click it for additional options.
                     </p>
 
                     <button type="button" id="btn-create-folder" class="btn-primary">
@@ -660,8 +662,10 @@ function selectHome(){
     }
 
     if (allNodes.length === 1) {
+        console.log("Displaying empty");
         setEmptyStateVisible(true);
     }else{
+        console.log("Fetching Folders");
         fetchFolders();
     }
 

@@ -162,6 +162,7 @@ class AssetController extends Controller
                         'ACL' => 'private', // or 'public-read' if you want instant CloudFront access
                         'CacheControl' => 'max-age=31536000',
                         'ContentType' => $mimeType,
+                        'StorageClass' => 'INTELLIGENT_TIERING',
                     ]);
                     error_log("S3 upload result: " . ($result ? "OK" : "FAILED"));
 

@@ -21,7 +21,8 @@ return [
                 '/about' => 'site/about',
                 '/login' => 'site/login',
                 '/logout' => 'site/logout',
-                '/reset-password' => 'site/request-password-reset',
+                '/request-password-reset' => 'site/request-password-reset',
+                '/reset-password' => 'site/reset-password',
                 '/resend-verification' => 'site/resend-verification-email',
 
                 // Folder / Asset Actions

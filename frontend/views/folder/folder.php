@@ -341,6 +341,8 @@ function loadAssets(folderId, showAll = false, offset = 0) {
 
             if (response.assets.length === 0){
                 setEmptyStateVisible('assets', true);
+            }else{
+                setEmptyStateVisible('assets', false);
             }
 
             // Detect end of list

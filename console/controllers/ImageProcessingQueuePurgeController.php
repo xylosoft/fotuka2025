@@ -19,10 +19,8 @@ class ImageProcessingQueuePurgeController extends Controller
     {
         $env = YII_ENV_DEV ? 'dev' : 'prod';
         $queueUrl = 'https://sqs.' . Yii::$app->params['AWS_REGION'] . '.amazonaws.com/191728941649/' . $env . '_processing';
-        echo "Queue URL: " . $queueUrl . "\n";
         $this->purgeQueue($queueUrl);
         $queueUrl .= '-failed';
-        echo "Queue URL: " . $queueUrl . "\n";
         $this->purgeQueue($queueUrl);
     }
 
@@ -41,7 +39,7 @@ class ImageProcessingQueuePurgeController extends Controller
                 'QueueUrl' => $queueUrl,
             ]);
 
-            $this->stdout("Queue $queueUrl initiated successfully.\n");
+            $this->stdout("Queue $queueUrl purged successfully.\n");
 
         } catch (AwsException $e) {
             $this->stderr("Error purging queue:\n");

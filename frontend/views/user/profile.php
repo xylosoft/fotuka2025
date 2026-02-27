@@ -147,15 +147,11 @@ $initialAvatarSrc = $serverAvatarUrl ?: $svgDataUrl;
                     <?= $form2->field($passwordForm, 'confirmNewPassword')->passwordInput(['class' => 'form-control']) ?>
 
                     <div class="mt-3 d-flex justify-content-end">
-                        <button class="btn btn-outline-primary px-4" type="submit">Update Password</button>
+                        <button class="btn btn-fotuka-secondary px-4" type="submit">Update Password</button>
                     </div>
 
                     <?php ActiveForm::end(); ?>
                 </div>
-            </div>
-
-            <div class="small text-muted mt-3">
-                If you want, we can also add: password strength meter, “show password” toggles, and rate limiting.
             </div>
         </div>
     </div>

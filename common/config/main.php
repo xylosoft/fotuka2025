@@ -20,6 +20,7 @@ return [
                 '/contact' => 'site/contact',
                 '/about' => 'site/about',
                 '/login' => 'site/login',
+                '/logout' => 'site/logout',
                 '/reset-password' => 'site/request-password-reset',
                 '/resend-verification' => 'site/resend-verification-email',
 

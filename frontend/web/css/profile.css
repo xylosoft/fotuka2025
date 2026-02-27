@@ -74,3 +74,18 @@
     border-color: #d9534f !important;
     box-shadow: none !important;
 }
+
+.btn-fotuka-secondary {
+    background-color: rgba(47, 111, 237, 0.12);
+    border: 1px solid rgba(47, 111, 237, 0.35);
+    color: var(--fotuka-primary);
+    border-radius: 12px;
+}
+.btn-fotuka-secondary:hover,
+.btn-fotuka-secondary:focus,
+.btn-fotuka-secondary:active {
+    background-color: rgba(47, 111, 237, 0.12);
+    border-color: rgba(47, 111, 237, 0.35);
+    color: var(--fotuka-primary);
+    box-shadow: none;
+}

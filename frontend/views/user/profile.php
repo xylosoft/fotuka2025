@@ -17,6 +17,23 @@ if (!$avatarUrl) {
 }
 
 $this->title = 'Your Profile';
+
+// 1) If user has profile picture, use it:
+$serverAvatarUrl = (!Yii::$app->user->isGuest && !empty(Yii::$app->user->identity->profile_picture))
+    ? $avatarUrl
+    : null;
+
+// 2) Build SVG placeholder as a data URL (so <img> can show it)
+$svg = '<svg xmlns="http://www.w3.org/2000/svg" width="92" height="92" viewBox="0 0 24 24">
+  <circle cx="12" cy="12" r="12" fill="#E5E7EB"/>
+  <circle cx="12" cy="9" r="4" fill="#9CA3AF"/>
+  <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" fill="#9CA3AF"/>
+</svg>';
+
+$svgDataUrl = 'data:image/svg+xml;utf8,' . rawurlencode($svg);
+
+// 3) Initial image source:
+$initialAvatarSrc = $serverAvatarUrl ?: $svgDataUrl;
 ?>
 
 <div class="profile-page container py-4">
@@ -62,7 +79,13 @@ $this->title = 'Your Profile';
 
                     <div class="d-flex align-items-start gap-3 profile-avatar-block">
                         <div class="avatar-preview-wrap">
-                            <img id="currentAvatar" class="avatar-preview" src="<?= Html::encode($avatarUrl) ?>" alt="Avatar">
+                            <img
+                                    id="currentAvatar"
+                                    class="avatar-preview"
+                                    src="<?= Html::encode($initialAvatarSrc) ?>"
+                                    data-original-src="<?= Html::encode($initialAvatarSrc) ?>"
+                                    alt="Avatar"
+                            >
                         </div>
 
                         <div class="flex-grow-1">

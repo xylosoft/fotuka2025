@@ -6,6 +6,7 @@
     const btnReset = document.getElementById('btnReset');
     const avatarCropped = document.getElementById('avatarCropped');
     const currentAvatar = document.getElementById('currentAvatar');
+    const originalSrc = currentAvatar ? currentAvatar.getAttribute('data-original-src') : '';
 
     if (!input) return;
 
@@ -39,9 +40,14 @@
             cropperImage.src = reader.result;
             cropperImage.style.display = 'block';
 
+            // Optional: preview the selected image immediately (before crop)
+            if (currentAvatar) {
+                currentAvatar.src = reader.result;
+            }
+
             cropper = new Cropper(cropperImage, {
                 viewMode: 1,
-                aspectRatio: 1,         // square avatar
+                aspectRatio: 1,
                 autoCropArea: 1,
                 responsive: true,
                 background: false,
@@ -57,7 +63,6 @@
     btnCrop.addEventListener('click', function () {
         if (!cropper) return;
 
-        // Create a 512x512 avatar (good balance for quality)
         const canvas = cropper.getCroppedCanvas({
             width: 512,
             height: 512,
@@ -65,19 +70,27 @@
             imageSmoothingQuality: 'high',
         });
 
-        // JPEG smaller than PNG in most cases
         const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
 
         avatarCropped.value = dataUrl;
+
+        // This now always works because #currentAvatar always exists
         currentAvatar.src = dataUrl;
     });
 
     btnReset.addEventListener('click', function () {
         destroyCropper();
+
         cropperImage.style.display = 'none';
         cropperImage.src = '';
         input.value = '';
         avatarCropped.value = '';
+
+        // Restore what was on the page when it loaded:
+        if (currentAvatar && originalSrc) {
+            currentAvatar.src = originalSrc;
+        }
+
         setButtons(false);
     });
 

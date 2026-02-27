@@ -56,7 +56,16 @@ FolderAsset::register($this);
         <div class="user-profile" style="float:right;">
             <div class="user-menu-container">
                 <div class="user-profile">
-                    <img src="/images/profile_icon.jpg" alt="User profile" class="profile-pic">
+
+                    <?php if (Yii::$app->user->isGuest || !Yii::$app->user->identity->profile_picture){?>
+                        <svg width="51" height="51" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="12" fill="#E5E7EB"/>
+                            <circle cx="12" cy="9" r="4" fill="#9CA3AF"/>
+                            <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" fill="#9CA3AF"/>
+                        </svg>
+                    <?php }else{?>
+                        <img src="<?=Yii::$app->user->identity->profile_picture?>" alt="User profile" class="profile-pic">
+                    <?php } ?>
                 </div>
                 <div class="user-dropdown-menu">
                     <div class="menu-item" id="menu-profile">

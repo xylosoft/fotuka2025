@@ -23,6 +23,7 @@ use yii\web\IdentityInterface;
  * @property integer $updated_at
  * @property string $password write-only password
  * @property integer $customer_id
+ * @property integer $profile_picture
  */
 class User extends ActiveRecord implements IdentityInterface
 {
@@ -55,8 +56,27 @@ class User extends ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
+            [['profile_picture'], 'default', 'value' => null],
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
+            [['profile_picture'], 'string', 'max' => 255],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function attributeLabels()
+    {
+        return [
+            'id' => 'ID',
+            'username' => 'Username',
+            'email' => 'Email',
+            'status' => 'Status',
+            'created_at' => 'Creation Date',
+            'updated_at' => 'Updated Date',
+            'customer_id' => 'Customer ID',
+            'profile_picture' => 'Profile Picture URL',
         ];
     }
 

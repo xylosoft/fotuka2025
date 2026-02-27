@@ -1,0 +1,76 @@
+/* Try to blend with your existing Fotuka styling */
+.profile-page {
+    --fotuka-primary: #2f6fed;   /* tweak to match your Fotuka blue */
+    --fotuka-soft: rgba(47, 111, 237, 0.10);
+    --fotuka-border: rgba(0,0,0,0.08);
+    margin-top:100px;
+}
+
+.fotuka-card {
+    border: 1px solid var(--fotuka-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    overflow: hidden;
+}
+
+.fotuka-card-header {
+    background: linear-gradient(180deg, rgba(47, 111, 237, 0.12), rgba(47, 111, 237, 0.04));
+    border-bottom: 1px solid var(--fotuka-border);
+}
+
+.btn-fotuka {
+    background-color: var(--fotuka-primary);
+    border: 1px solid var(--fotuka-primary);
+    color: #fff;
+    border-radius: 12px;
+    transition: none;          /* remove animation */
+}
+
+.btn-fotuka:hover,
+.btn-fotuka:focus,
+.btn-fotuka:active {
+    background-color: var(--fotuka-primary);
+    border-color: var(--fotuka-primary);
+    color: #fff;
+    box-shadow: none;
+    outline: none;
+}
+
+.profile-avatar-block .avatar-preview-wrap {
+    width: 96px;
+    height: 96px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 2px solid var(--fotuka-soft);
+    flex: 0 0 auto;
+}
+
+.avatar-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cropper-area {
+    width: 100%;
+    max-width: 520px;
+}
+
+.cropper-image {
+    width: 100%;
+    max-height: 340px;
+    display: block;
+    border-radius: 14px;
+    border: 1px solid var(--fotuka-border);
+    background: #fff;
+}
+.invalid-feedback {
+    font-size: 0.85rem;
+    color: #d9534f;
+    margin-top: 6px;
+}
+
+.is-invalid {
+    border-color: #d9534f !important;
+    box-shadow: none !important;
+}

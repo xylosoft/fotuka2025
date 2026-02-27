@@ -781,7 +781,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     $('#menu-profile').on('click', function() {
-        alert('Go to Profile');
+        window.location.href = '/profile';
     });
 
     $('#menu-settings').on('click', function() {

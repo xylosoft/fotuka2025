@@ -15,12 +15,15 @@ return [
             'showScriptName' => false, // Set to false to remove index.php from URLs
             'enableStrictParsing' => false, // Set to true if you want to strictly enforce rules
             'rules' => [
+                // Site Actions
                 '/signup' => 'site/signup',
                 '/contact' => 'site/contact',
                 '/about' => 'site/about',
                 '/login' => 'site/login',
                 '/reset-password' => 'site/request-password-reset',
                 '/resend-verification' => 'site/resend-verification-email',
+
+                // Folder / Asset Actions
                 '/json/folders' => 'json/folders',
                 '/json/folders/<id:\d+>' => 'json/folders',
                 'json/folder/<id:\d+>' => 'json/folder',
@@ -32,6 +35,9 @@ return [
                 '/folders' => 'folder/folders',
                 '/folder/<id:\d+>' => 'folder/folders',
                 '/asset/upload/<id:\d+>' => 'asset/upload',
+
+                // User Actions
+                'profile' => 'user/profile',
 
             ],
         ],

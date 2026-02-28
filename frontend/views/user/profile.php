@@ -11,11 +11,7 @@ use frontend\controllers\UserController;
 
 ProfileAsset::register($this);
 
-$avatarUrl = $user->profile_picture;
-if (!$avatarUrl) {
-    $avatarUrl = '/img/default-avatar.png'; // add your own default
-}
-
+$avatarUrl = $user->profile_picture . "?v=" . $user->profile_update_date;
 $this->title = 'Your Profile';
 
 // 1) If user has profile picture, use it:
@@ -98,23 +94,31 @@ $initialAvatarSrc = $serverAvatarUrl ?: $svgDataUrl;
                                 ->hiddenInput(['id' => 'avatarCropped'])
                                 ->label(false); ?>
 
-                            <div class="mt-3 d-flex gap-2 flex-wrap">
-                                <button type="button" id="btnCrop" class="btn btn-fotuka" disabled>Crop</button>
-                                <button type="button" id="btnReset" class="btn btn-outline-secondary" disabled>Reset</button>
-                            </div>
-
                             <div class="cropper-area mt-3">
                                 <img id="cropperImage" class="cropper-image" alt="Cropper target" style="display:none;">
-                            </div>
-
-                            <div class="text-muted small mt-2">
-                                Tip: square crops look best (Fotuka will save a clean avatar).
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-4 d-flex justify-content-end">
-                        <button class="btn btn-fotuka px-4" type="submit">Save Profile</button>
+                    <div class="mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+                        <!-- LEFT SIDE -->
+                        <div class="d-flex gap-2 align-with-avatar">
+                            <button type="button" id="btnCrop" class="btn btn-outline-secondary" disabled>
+                                Crop
+                            </button>
+                            <button type="button" id="btnReset" class="btn btn-outline-secondary" disabled>
+                                Reset
+                            </button>
+                        </div>
+
+                        <!-- RIGHT SIDE -->
+                        <div>
+                            <button class="btn btn-fotuka px-4" type="submit">
+                                Save Profile
+                            </button>
+                        </div>
+
                     </div>
 
                     <?php ActiveForm::end(); ?>

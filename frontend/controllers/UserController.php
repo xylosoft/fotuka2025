@@ -57,7 +57,8 @@ class UserController extends Controller
                     // 2) If avatar cropped exists, upload to S3 and update profile_picture
                     if (!empty($profileForm->avatarCropped)) {
                         $user->profile_picture = $this->uploadCroppedAvatarToS3($profileForm->avatarCropped, $user);
-                        $user->save(false, ['profile_picture']);
+                        $user->profile_update_date = time();
+                        $user->save(false, ['profile_picture', 'profile_update_date']);
                     }
 
                     Yii::$app->session->setFlash('success', 'Profile updated.');

@@ -64,7 +64,7 @@ FolderAsset::register($this);
                             <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" fill="#9CA3AF"/>
                         </svg>
                     <?php }else{?>
-                        <img src="<?=Yii::$app->user->identity->profile_picture?>" alt="User profile" class="profile-pic">
+                        <img src="<?=Yii::$app->user->identity->profile_picture?>?v=<?=Yii::$app->user->identity->profile_update_date?>" alt="User profile" class="profile-pic">
                     <?php } ?>
                 </div>
                 <div class="user-dropdown-menu">

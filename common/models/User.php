@@ -24,6 +24,7 @@ use yii\web\IdentityInterface;
  * @property string $password write-only password
  * @property integer $customer_id
  * @property integer $profile_picture
+ * @property integer profile_update_date
  */
 class User extends ActiveRecord implements IdentityInterface
 {
@@ -60,6 +61,7 @@ class User extends ActiveRecord implements IdentityInterface
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
             [['profile_picture'], 'string', 'max' => 255],
+            ['profile_update_date', 'int']
         ];
     }
 

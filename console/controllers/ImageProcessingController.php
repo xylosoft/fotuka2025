@@ -81,6 +81,7 @@ class ImageProcessingController extends Controller {
                     }else{
                         $imageHandler->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
                         $imageHandler->createThumbnail(250, 250)->saveThumbnail($asset);
+                        $imageHandler->createPreview(800, 600)->saveThumbnail($asset);
                         $imageHandler->cleanup($asset);
 
                         // 🔹 Delete AFTER successful processing

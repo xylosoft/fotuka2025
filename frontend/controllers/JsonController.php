@@ -2,10 +2,12 @@
 
 namespace frontend\controllers;
 
+use Yii;
 use yii\web\Controller;
 use yii\web\Response;
 use common\models\Folder;
 use common\models\Asset;
+use yii\web\NotFoundHttpException;
 
 class JsonController extends Controller{
 
@@ -102,7 +104,7 @@ class JsonController extends Controller{
     }
 
 
-    public function actionAssets($id)
+    public function actionAssets($folderId)
     {
         \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 
@@ -111,7 +113,7 @@ class JsonController extends Controller{
 
         $query = Asset::find()
             ->select(['id', 'title', 'thumbnail_url', 'thumbnail_state'])
-            ->where(['folder_id' => $id, 'status' => 'active'])
+            ->where(['folder_id' => $folderId, 'status' => 'active'])
             ->orderBy(['created' => SORT_DESC]);
 
         $total = (clone $query)->count();
@@ -181,5 +183,55 @@ class JsonController extends Controller{
         }, $rows);
 
         return ['ok' => true, 'assets' => $assets];
+    }
+
+    public function actionAsset($id)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        if (Yii::$app->user->isGuest) {
+            return ['ok' => false, 'message' => 'Not authenticated'];
+        }
+
+        $id = (int)$id;
+        if ($id <= 0) {
+            return ['ok' => false, 'message' => 'Invalid asset id'];
+        }
+
+        // IMPORTANT: adjust this query to your schema
+        $asset = \common\models\Asset::find()
+            ->where(['id' => $id, 'customer_id' => $user = \Yii::$app->user->identity->customer_id])
+            ->one();
+
+        if (!$asset) {
+            return ['ok' => false, 'message' => 'Asset not found'];
+        }
+
+        // You can return hard-coded values for now if fields don’t exist yet.
+        return [
+            'ok' => true,
+            'asset' => [
+                'id' => $asset->id,
+                'filename' => $asset->filename ?? $asset->title ?? 'Untitled',
+                'title' => $asset->title ?? $asset->filename ?? 'Untitled',
+                'mime_type' => $asset->mime_type ?? 'image/jpeg',
+                'file_type' => $asset->file_type ?? 'JPG',
+                'file_size' => $asset->file->filesize ?? 0,
+
+                // One of: image, video, audio, document, spreadsheet, presentation, archive, code, font, 3d, other
+                'image_type' => $asset->file->type ?? 'image',
+
+                'width' => $asset->file->width ?? null,
+                'height' => $asset->file->height ?? null,
+                'orientation' => $asset->file->orientation ?? null,
+
+                // Optional: if you have them
+                'thumbnail_url' => $asset->thumbnail_url ?? null,
+                'preview_url' => $asset->preview_url ?? null,
+
+                // Optional: a real download url route you implement
+                'download_url' => '/asset/download/' . $asset->id,
+            ]
+        ];
     }
 }

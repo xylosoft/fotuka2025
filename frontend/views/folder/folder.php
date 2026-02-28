@@ -105,7 +105,61 @@ $user = Yii::$app->user->identity;
         </div>
     </div>
 </div>
+<!-- Asset Preview Dialog -->
+<div id="asset-preview-dialog" title="Preview" style="display:none;">
+    <div class="asset-preview-layout">
+        <div class="asset-preview-media">
 
+            <img id="assetPreviewImg" src="" alt="Preview" style="display:none;">
+            <div id="assetPreviewPlaceholder" class="asset-preview-placeholder">
+                <div class="placeholder-icon">🖼️</div>
+                <div class="placeholder-title">Preview not available</div>
+                <div class="placeholder-subtitle">This asset is still processing or no preview exists.</div>
+            </div>
+        </div>
+        <div class="asset-preview-details">
+            <div class="asset-details-title">Asset Details</div>
+
+            <div class="asset-details-row">
+                <div class="k">Filename</div>
+                <div class="v" id="ad_filename">—</div>
+            </div>
+            <div class="asset-details-row">
+                <div class="k">File Type</div>
+                <div class="v" id="ad_filetype">—</div>
+            </div>
+            <div class="asset-details-row">
+                <div class="k">File Size</div>
+                <div class="v" id="ad_filesize">—</div>
+            </div>
+            <div class="asset-details-row">
+                <div class="k">Orientation</div>
+                <div class="v" id="ad_orientation">—</div>
+            </div>
+            <div class="asset-details-row">
+                <div class="k">Image Type</div>
+                <div class="v" id="ad_imagetype">—</div>
+            </div>
+            <div class="asset-details-row">
+                <div class="k">Width</div>
+                <div class="v" id="ad_width">—</div>
+            </div>
+            <div class="asset-details-row">
+                <div class="k">Height</div>
+                <div class="v" id="ad_height">—</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Asset Right-Click Context Menu -->
+<div id="assetContextMenu" class="asset-context-menu" style="display:none;">
+    <div class="menu-item" data-action="download"><span class="menu-icon">⬇️</span> Download</div>
+    <div class="menu-item" data-action="convert"><span class="menu-icon">🔁</span> Convert</div>
+    <div class="menu-item" data-action="regen"><span class="menu-icon">🧩</span> Regenerate Thumbnail</div>
+    <div class="menu-separator"></div>
+    <div class="menu-item" data-action="share"><span class="menu-icon">🔗</span> Share</div>
+</div>
 
 <script>
 const UPLOAD_BATCH_SIZE = 1;        // 1 = one file per request (recommended)
@@ -125,6 +179,8 @@ const folderSearchState = {
 };
 let pendingThumbPoller = null;
 let overallPct = 0;
+const assetCache = {};       // id -> json asset
+let assetMenuForId = null;
 
 
 function getPendingAssetIds() {
@@ -172,6 +228,10 @@ function pollPendingThumbnails() {
             $content.html(
                 '<img class="asset" src="' + a.thumbnail_url + '" width="250" height="220">'
             );
+            $card.attr('data-thumb-state', 'ready');
+            $card.attr('data-thumb-url', a.thumbnail_url);
+            $card.attr('data-preview-url', a.preview_url);
+            $card.find('.asset-preview-btn').prop('disabled', false).removeAttr('style');
 
             $card.attr('data-thumb-state', 'ready');
         });
@@ -365,7 +425,7 @@ function renderAssets(assets, append = false) {
     assets.forEach(asset => {
         var card = '';
         if (asset.thumbnail_state == 'pending'){
-            card = '<div class="asset-card" id="asset_' +asset.id +'" data-thumb-state="pending" data-asset-id="' + asset.id + '">' +
+            card = '<div class="asset-card" id="asset_' +asset.id +'" data-thumb-state="pending" data-thumb-url="" data-asset-id="' + asset.id + '">' +
                    '<div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">' +
                    '<div style="font-size:25px;margin-bottom:12px;">Processing</div>' +
                    '<div class="spinner" style="width:40px;height:40px;border:4px solid #ccc;border-top:4px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;"></div>' +
@@ -373,15 +433,22 @@ function renderAssets(assets, append = false) {
                    '<span class="asset-title">' + asset.title + '</span>' +
                 '</div>';
 
-        }else{
-            card = '<div class="asset-card" id="asset_' + asset.id + '">' +
-                   '<div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">' +
-                   '<img class="asset" src="' + asset.thumbnail_url + '" width="250" height="220">' +
-                   '</div>' +
-                   '<span class="asset-title">' + asset.title + '</span>' +
+        }else {
+            const thumbUrl   = (asset.thumbnail_url || '').toString().trim();
+            const previewUrl = (asset.preview_url  || '').toString().trim(); // <-- snake_case
+
+            card =
+                '<div class="asset-card" ' +
+                'data-asset-id="' + asset.id + '" ' +
+                'data-thumb-url="' + thumbUrl + '" ' +
+                'data-preview-url="' + previewUrl + '">' +   // <-- EXACT NAME
+                '<div class="asset-thumb-wrap" style="width:250px;height:220px;display:flex;align-items:center;justify-content:center;">' +
+                '<img class="asset asset-clickable" src="' + thumbUrl + '" width="250" height="220">' +
+                '</div>' +
+                '<span class="asset-title">' + (asset.title || '') + '</span>' +
                 '</div>';
+            $grid.append(card);
         }
-        $grid.append(card);
     });
 
     $('#assetCount').text($('.asset-card').length);
@@ -746,6 +813,116 @@ function updateUploadOverlay(pct) {
 
 function hideUploadOverlay() {
     $('#uploadOverlay').hide();
+}
+
+function formatBytes(bytes) {
+    const n = Number(bytes || 0);
+    if (!n) return '0 B';
+    const units = ['B','KB','MB','GB','TB'];
+    const i = Math.floor(Math.log(n) / Math.log(1024));
+    return (n / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+}
+
+function openAssetPreview(assetId, initialPreviewUrl) {
+    if (!assetId) return;
+
+    const $dlg = $('#asset-preview-dialog');
+    const $img = $('#assetPreviewImg');
+    const $ph  = $('#assetPreviewPlaceholder');
+
+    // Make sure dialog markup exists
+    if ($dlg.length === 0 || $img.length === 0 || $ph.length === 0) {
+        console.error('Missing preview markup: #asset-preview-dialog, #assetPreviewImg, #assetPreviewPlaceholder');
+        return;
+    }
+
+    // Normalize initial url (from card)
+    initialPreviewUrl = ((initialPreviewUrl || '') + '').trim();
+
+    // Reset UI first (prevents /undefined)
+    $img.attr('src', '').hide();
+    $ph.show();
+
+    // If we have an initial preview url, use it immediately
+    if (initialPreviewUrl && initialPreviewUrl !== 'undefined' && initialPreviewUrl !== 'null') {
+        $img.attr('src', initialPreviewUrl).show();
+        $ph.hide();
+    }
+
+    // Open dialog immediately (fast UX)
+    $dlg.dialog('open');
+
+    // Fill placeholders in details panel while loading
+    setAssetDetailsLoading();
+
+    // Use cache if available
+    if (assetCache[assetId]) {
+        fillAssetDetails(assetCache[assetId]);
+        return;
+    }
+
+    // ✅ HERE is the AJAX call you asked for
+    $.getJSON('/json/asset/' + assetId, function(res) {
+        if (!res || !res.ok || !res.asset) {
+            setAssetDetailsError('Unable to load asset details');
+            return;
+        }
+
+        assetCache[assetId] = res.asset;
+        fillAssetDetails(res.asset);
+
+    }).fail(function() {
+        setAssetDetailsError('Unable to load asset details');
+    });
+}
+
+function setAssetDetailsLoading() {
+    $('#ad_filename').text('Loading...');
+    $('#ad_filetype').text('Loading...');
+    $('#ad_filesize').text('Loading...');
+    $('#ad_orientation').text('Loading...');
+    $('#ad_imagetype').text('Loading...');
+    $('#ad_width').text('Loading...');
+    $('#ad_height').text('Loading...');
+}
+
+function setAssetDetailsError(msg) {
+    $('#ad_filename').text('Error');
+    $('#ad_filetype').text('—');
+    $('#ad_filesize').text('—');
+    $('#ad_orientation').text('—');
+    $('#ad_imagetype').text('—');
+    $('#ad_width').text('—');
+    $('#ad_height').text('—');
+
+    console.error(msg);
+}
+
+
+function fillAssetDetails(a) {
+    // Update details panel (safe fallbacks)
+    $('#ad_filename').text(a.filename || a.title || '—');
+    $('#ad_filetype').text(a.file_type || a.mime_type || '—');
+    $('#ad_filesize').text(a.file_size ? formatBytes(a.file_size) : '—');
+    $('#ad_orientation').text(a.orientation || '—');
+    $('#ad_imagetype').text(a.image_type || '—');
+    $('#ad_width').text(a.width || '—');
+    $('#ad_height').text(a.height || '—');
+
+    // Update preview image from latest API data
+    const $img = $('#assetPreviewImg');
+    const $ph  = $('#assetPreviewPlaceholder');
+
+    const previewUrl = ((a.preview_url || a.previewUrl || '') + '').trim();
+
+    // Reset to placeholder by default
+    $img.attr('src', '').hide();
+    $ph.show();
+
+    if (previewUrl && previewUrl !== 'undefined' && previewUrl !== 'null') {
+        $img.attr('src', previewUrl).show();
+        $ph.hide();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -1345,6 +1522,96 @@ document.addEventListener('DOMContentLoaded', function () {
 
     $(document).on('click', '#btn-create-folder', function () {
         $('#new-folder-dialog').dialog('open');
+    });
+
+    $('#asset-preview-dialog').dialog({
+        autoOpen: false,
+        modal: true,
+        width: 1090,
+        height: 720,
+        resizable: false,
+        draggable: true,
+    });
+
+    $('#assetGrid').on('click', '.asset-clickable', function(e) {
+        e.stopPropagation();
+
+        const $card = $(this).closest('.asset-card');
+        const id = $card.data('asset-id');
+
+        // Read preview url from DOM safely
+        let previewUrl = (($card.data('preview-url') || '') + '').trim();
+        if (!previewUrl) {
+            previewUrl = (($card.attr('data-preview-url') || '') + '').trim();
+        }
+
+        openAssetPreview(id, previewUrl);
+    });
+
+    // right-click context menu on asset
+    $('#assetGrid').on('contextmenu', '.asset-card', function(e) {
+        e.preventDefault();
+        const id = $(this).data('asset-id');
+        if (!id) return;
+
+        assetMenuForId = id;
+
+        const $m = $('#assetContextMenu');
+        $m.css({
+            display: 'block',
+            position: 'fixed',
+            top: e.clientY + 'px',
+            left: e.clientX + 'px',
+            zIndex: 99999
+        });
+    });
+
+    // click elsewhere closes menu
+    $(document).on('click', function() {
+        $('#assetContextMenu').hide();
+    });
+
+    $(window).on('scroll resize', function() {
+        $('#assetContextMenu').hide();
+    });
+
+    // handle menu actions
+    $('#assetContextMenu').on('click', '.menu-item', function(e) {
+        const action = $(this).data('action');
+        const id = assetMenuForId;
+        $('#assetContextMenu').hide();
+
+        if (!id) return;
+
+        // grab cached details if available
+        const a = assetCache[id] || {};
+
+        if (action === 'download') {
+            // Option A: if your JSON returns a download_url
+            if (a.download_url) {
+                window.location.href = a.download_url;
+                return;
+            }
+
+            // Option B: implement this route in your app
+            window.location.href = '/asset/download/' + id;
+            return;
+        }
+
+        if (action === 'convert') {
+            alert('Convert (TODO) for asset ' + id);
+            return;
+        }
+
+        if (action === 'regen') {
+            alert('Regenerate Thumbnail (TODO) for asset ' + id);
+            return;
+        }
+
+        if (action === 'share') {
+            alert('Share (TODO) for asset ' + id);
+            return;
+        }
     });
 
     initInfiniteAssetScroll();

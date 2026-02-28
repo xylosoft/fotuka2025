@@ -15,10 +15,13 @@ use Yii;
  * @property int $folder_id
  * @property int $file_id
  * @property string $status
- * @property string|null $title
- * @property string|null $description
  * @property string $thumbnail_state
  * @property string preview_state
+ * @property string|null $title
+ * @property string|null $description
+ * @property string|null $thumbnail_url
+ * @property string|null $preview_url
+ * @property int $version
  * @property string $deleted
  * @property int $deleted_by_user_id
  */
@@ -54,13 +57,14 @@ class Asset extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['title', 'description'], 'default', 'value' => null],
+            [['title', 'description', 'thumbnail_url', 'preview_url'], 'default', 'value' => null],
             [['status'], 'default', 'value' => 'active'],
             [['thumbnail_state', 'preview_state'], 'default', 'value' => 'pending'],
             [['created', 'updated_at', 'deleted'], 'safe'],
             [['customer_id', 'user_id', 'folder_id', 'file_id', 'status', 'thumbnail_state', 'preview_state'], 'required'],
             [['customer_id', 'user_id', 'folder_id', 'file_id', 'deleted_by_user_id'], 'integer'],
-            [['status'], 'string'],
+            [['status',], 'string'],
+            [['thumbnail_url', 'preview_url'], 'string', 'max' => 500],
             [['title'], 'string', 'max' => 100],
             [['description'], 'string', 'max' => 255],
             ['status', 'in', 'range' => array_keys(self::optsStatus())],
@@ -85,9 +89,10 @@ class Asset extends \yii\db\ActiveRecord
             'description' => 'Description',
             'deleted' => 'Deleted',
             'deleted_by_user_id' => 'Deleted By',
-            'thumbnail_state' => '',
             'thumbnail_state' => 'Thumbnail State',
             'preview_state' => 'Preview State',
+            'thumbnail_url' => 'Thumbnail Url',
+            'preview_url' => 'Preview Url',
         ];
     }
 

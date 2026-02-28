@@ -568,6 +568,7 @@ a {
 }
 
 .asset-card {
+    position: relative;
     display: inline-block;
     width: 250px;
     height: 250px;
@@ -586,6 +587,7 @@ a {
     object-fit: cover;
 }
 
+
 .asset-card .asset-title {
     display: block;
     padding: 4px 12px 6px 12px;
@@ -595,6 +597,108 @@ a {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+}
+
+.asset-preview-layout{
+    display: flex;
+    height: 100%;
+    gap: 0;
+}
+
+.asset-preview-media{
+    flex: 1 1 auto;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    margin-right: 10px;
+
+}
+
+.asset-preview-media img{
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 10px;
+    background: #fff;
+}
+.asset-preview-details{
+    width: 210px;
+    flex: 0 0 210px;
+    border-left: 1px solid #E5E7EB;
+    padding: 10px 10px 10px 12px;
+    font-family: "Roboto", Arial, sans-serif;
+}
+
+.asset-details-title{
+    font-weight: 700;
+    font-size: 14px;
+    color: #111827;
+    margin-bottom: 10px;
+}
+
+.asset-details-row{
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px dashed rgba(0,0,0,0.08);
+}
+
+.asset-details-row .k{
+    width: 85px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6B7280;
+}
+
+.asset-details-row .v{
+    flex: 1;
+    font-size: 12px;
+    color: #111827;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== Asset Context Menu (right click) ===== */
+.asset-context-menu{
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    width: 190px;
+    overflow: hidden;
+    font-family: "Roboto", Arial, sans-serif;
+}
+
+.asset-context-menu .menu-item{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: #111;
+    cursor: pointer;
+    background: #fff;
+}
+
+.asset-context-menu .menu-item:hover{
+    background: #E5E7EB;
+}
+
+.asset-context-menu .menu-icon{
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.asset-context-menu .menu-separator{
+    border-top: 1px solid #E5E7EB;
 }
 
 #rightPanel::after {
@@ -1059,4 +1163,81 @@ a {
     text-align: center;
     font-weight: 700;
     color: #111827;
+}
+
+.asset-preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    width: 100%;
+    background: #F9FAFB;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 14px;
+    opacity: 0.7;
+}
+
+.placeholder-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 6px;
+}
+
+.placeholder-subtitle {
+    font-size: 13px;
+    color: #6B7280;
+    max-width: 220px;
+    line-height: 1.4;
+}
+
+/* ===== Preview Placeholder (when preview_url is missing) ===== */
+.asset-preview-placeholder{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    width: 100%;
+    background: #F9FAFB;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.asset-preview-placeholder .placeholder-icon{
+    font-size: 44px;
+    margin-bottom: 12px;
+    opacity: 0.75;
+}
+
+.asset-preview-placeholder .placeholder-title{
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 6px;
+}
+
+.asset-preview-placeholder .placeholder-subtitle{
+    font-size: 13px;
+    color: #6B7280;
+    line-height: 1.4;
+    max-width: 220px;
+}
+
+.asset-clickable{
+    cursor: zoom-in;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.asset-clickable:hover{
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
 }

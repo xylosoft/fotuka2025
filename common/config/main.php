@@ -28,9 +28,10 @@ return [
                 // Folder / Asset Actions
                 '/json/folders' => 'json/folders',
                 '/json/folders/<id:\d+>' => 'json/folders',
-                'json/folder/<id:\d+>' => 'json/folder',
-                'json/assets/<id:\d+>' => 'json/assets',
-                'json/pending/<folderId:\d+>/<assetIds[\d,]+>' => 'json/pending',
+                '/json/folder/<id:\d+>' => 'json/folder',
+                '/json/assets/<folderId:\d+>' => 'json/assets',
+                '/json/asset/<id:\d+>' => 'json/asset',
+                '/json/pending/<folderId:\d+>/<assetIds[\d,]+>' => 'json/pending',
                 '/folder/add' => 'folder/add',
                 '/folder/move' => 'folder/move',
                 '/folder/rename' => 'folder/rename',

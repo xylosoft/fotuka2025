@@ -173,7 +173,14 @@ class BaseImageHandler{
         $this->thumbnail = true;
         return $this->resize($width, $height)->convert();
     }
-    
+
+    public function createPreview($width, $height){
+        echo "Base - CreatePreview...\n";
+        $this->thumbnail = false;
+        $this->quality = 95;
+        return $this->resize($width, $height)->convert();
+    }
+
     /**
      * Calculates new Width/Height dimensions as requested.
      * @param $width
@@ -181,6 +188,9 @@ class BaseImageHandler{
      * @return void
      */
     public function resize($width, $height){
+        $this->width = $width;
+        $this->height = $height;
+
         echo "Base - Resizing to $width x $height\n";
         // If new dimensions are the same as the existing ones, no need to resize.
         if ($width == $this->attributes[self::FILE_WIDTH] && $height == $this->attributes[self::FILE_HEIGHT]){
@@ -421,8 +431,12 @@ class BaseImageHandler{
                 ],
             ]);
 
-            $key = "{$env}/thumbnail/{$asset->customer_id}/{$asset->id}";
-            //echo "KEY: $key\n";
+            $subfolder = 'thumbnail';
+            if (!$this->thumbnail){
+                $subfolder = 'preview';
+            }
+            $key = "{$env}/{$subfolder}/{$asset->customer_id}/{$asset->id}";
+            echo "**********KEY: $key\n";
 
             // Thumbnails will always be
             //$finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -431,7 +445,6 @@ class BaseImageHandler{
 
 
             // Set Mimetype as defined by the destination format.
-            echo"******* DESTINATION FORMAT IS: " . $this->destinationFormat . "\n";
             $mimeType = $this->mimeTypes[$this->destinationFormat];
 
             echo "Mime Type: " . $mimeType . "\n";
@@ -447,16 +460,18 @@ class BaseImageHandler{
             ]);
             echo "S3 upload result: " . ($result ? "OK" : "FAILED") . "\n";
 
-            // Delete temporaty files
-            @unlink($asset->file->tmp_location);
-            @unlink($this->destinationFile);
-
             // Update asset status
-            $asset->thumbnail_state = Asset::THUMBNAIL_READY;
-            $asset->thumbnail_url = Yii::$app->params['CLOUDFRONT_URL'] . '/' . $env . '/thumbnail/' . $asset->customer_id . "/" . $asset->id;
+            if ($this->thumbnail) {
+                $asset->thumbnail_state = Asset::THUMBNAIL_READY;
+                $asset->thumbnail_url = Yii::$app->params['CLOUDFRONT_URL'] . '/' . $env . '/thumbnail/' . $asset->customer_id . "/" . $asset->id;
+            } else {
+                $asset->preview_state = Asset::THUMBNAIL_READY;
+                $asset->preview_url = Yii::$app->params['CLOUDFRONT_URL'] . '/' . $env . '/preview/' . $asset->customer_id . "/" . $asset->id;
+            }
             $asset->save();
 
-            $asset->save();
+            $asset->file->width = $this->attributes[self::FILE_WIDTH];
+            $asset->file->height = $this->attributes[self::FILE_HEIGHT];
             $asset->file->tmp_location = null;
             $asset->file->save();
         }catch (\Throwable $e) {
@@ -467,6 +482,8 @@ class BaseImageHandler{
 
     public function cleanup($asset){
         @unlink($asset->file->tmp_location);
+        @unlink($this->destinationFile);
+
     }
 
 }

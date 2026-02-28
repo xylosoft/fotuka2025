@@ -114,6 +114,11 @@ $initialAvatarSrc = $serverAvatarUrl ?: $svgDataUrl;
 
                         <!-- RIGHT SIDE -->
                         <div>
+                            <a href="<?= \yii\helpers\Url::to(['/folders']) ?>"
+                               class="btn btn-outline-secondary px-4">
+                                Cancel
+                            </a>
+
                             <button class="btn btn-fotuka px-4" type="submit">
                                 Save Profile
                             </button>

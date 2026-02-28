@@ -3,7 +3,7 @@
     --fotuka-primary: #2f6fed;   /* tweak to match your Fotuka blue */
     --fotuka-soft: rgba(47, 111, 237, 0.10);
     --fotuka-border: rgba(0,0,0,0.08);
-    margin-top:100px;
+    margin-top: 70px;
 }
 
 .fotuka-card {

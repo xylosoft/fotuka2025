@@ -62,19 +62,20 @@ $user = Yii::$app->user->identity;
             <div id="dropZone" class="drop-zone">
                 <div id="assetControls" class="asset-controls"></div>
                 <div class="asset-grid" id="assetGrid"></div>
-            </div>
 
-            <div id="empty-assets" class="empty-folders" style="display:none;">
-                <div class="empty-card">
-                    <div><img src='/images/filetypes.png' width="300" style="padding-bottom:30px"></div>
-                    <h2 class="empty-title">You don't have any assets.</h2>
-                    <p class="empty-subtitle">
-                        You can drag & drop folders or files into this area to upload your files.
-                    </p>
 
-                    <button type="button" id="btn-upload-file" class="btn-primary">
-                        Upload Files
-                    </button>
+                <div id="empty-assets" class="empty-folders" style="display:none;margin-top:-65px;">
+                    <div class="empty-card">
+                        <div><img src='/images/filetypes.png' width="300" style="padding-bottom:30px"></div>
+                        <h2 class="empty-title">You don't have any assets.</h2>
+                        <p class="empty-subtitle">
+                            You can drag & drop folders or files into this area to upload your files.
+                        </p>
+
+                        <button type="button" id="btn-upload-file" class="btn-primary">
+                            Upload Files
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -198,7 +199,6 @@ function loadFolder(folderId) {
 
     if (folderId == null){
         $('#dropZone').hide();
-        $('#folderview').hide();
         $('#currentFolderName').text("Home");
         $('#subfolders').empty();
         selectHome();

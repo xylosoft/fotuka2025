@@ -3,9 +3,6 @@
 namespace common\ImageProcessing;
 
 use Yii;
-use common\models\Asset;
-use Aws\S3\S3Client;
-use Aws\Exception\AwsException;
 
 class CR2Handler extends BaseImageHandler {
 
@@ -38,17 +35,13 @@ class CR2Handler extends BaseImageHandler {
         // Ensures consistent web color
         $command .= " -colorspace sRGB";
 
-        // Take the top left as the baseline for generating the thumbnail
-        $command .= " -gravity NorthWest";
-
         // Resize / Thumbnail options
         if ($this->width && $this->height){
             if ($this->thumbnail){
-                $command .= " -thumbnail {$this->width}x{$this->height}^ -extent {$this->width}x{$this->height} -gravity North";
+                $command .= " -thumbnail {$this->width}x{$this->height}^ -gravity North -extent {$this->width}x{$this->height}";
             }else{
                 $command .= " -resize \" -resize {$this->width}x{$this->height}";
             }
-
         }
 
         // File Quality

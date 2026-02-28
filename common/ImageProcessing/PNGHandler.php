@@ -2,6 +2,8 @@
 
 namespace common\ImageProcessing;
 
+use Yii;
+
 class PNGHandler extends BaseImageHandler {
 
     public function __construct($filename, $assetId){

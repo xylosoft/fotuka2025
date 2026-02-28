@@ -136,7 +136,7 @@ class BaseImageHandler{
         // Resize / Thumbnail options
         if ($this->width && $this->height){
             if ($this->thumbnail){
-                $command .= " -thumbnail {$this->width}x{$this->height}^ -extent {$this->width}x{$this->height} -gravity North";
+                $command .= " -thumbnail {$this->width}x{$this->height}^ -gravity North -extent {$this->width}x{$this->height}";
             }else{
                 $command .= " -resize {$this->width}x{$this->height}";
             }
@@ -262,8 +262,9 @@ class BaseImageHandler{
 
     protected function getFileType(){
         // Imagemagick supported file formats: https://imagemagick.org/script/formats.php
-        $validImageFormats = array(self::FORMAT_JPEG, self::FORMAT_JPG, self::FORMAT_PNG, self::FORMAT_GIF, self::FORMAT_WEBP, self::FORMAT_AI,
-                                   self::FORMAT_TIFF, self::FORMAT_TIF, self::FORMAT_PSD, self::FORMAT_TGA);
+        $validImageFormats = array(self::FORMAT_AI, self::FORMAT_BMP, self::FORMAT_CR2, self::FORMAT_EPS, self::FORMAT_GIF,
+                                   self::FORMAT_JPEG, self::FORMAT_JPG, self::FORMAT_PDF, self::FORMAT_PNG,  self::FORMAT_PSD,
+                                   self::FORMAT_SVG, self::FORMAT_TGA, self::FORMAT_TIFF, self::FORMAT_TIF, self::FORMAT_WEBP);
 
         $validVideoFormats = array();
         $validDocumentFormats = array();
@@ -345,12 +346,19 @@ class BaseImageHandler{
         echo "Filename: $filename\n";
 
         $extension = $file->extension;
+        echo "Exrtension: $extension\n";
         if ($extension == 'jpeg'){
             $extension = 'jpg';
         }
 
+        if ($extension == 'tiff'){
+            echo "CHANGING TO TIFF\n";
+            $extension = 'tif';
+        }
+
         $handlerName = 'common\\ImageProcessing\\' . strtoupper($extension) . "Handler";
         echo "HandlerName: $handlerName\n";
+
         try{
             $handler = new $handlerName($filename, $asset->id);
             return $handler;

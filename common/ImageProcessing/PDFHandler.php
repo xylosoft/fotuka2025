@@ -3,9 +3,6 @@
 namespace common\ImageProcessing;
 
 use Yii;
-use common\models\Asset;
-use Aws\S3\S3Client;
-use Aws\Exception\AwsException;
 
 class PDFHandler extends BaseImageHandler {
 
@@ -32,11 +29,10 @@ class PDFHandler extends BaseImageHandler {
         // Resize / Thumbnail options
         if ($this->width && $this->height){
             if ($this->thumbnail){
-                $command .= " -thumbnail ";
+                $command .= " -thumbnail {$this->width}x{$this->height}^ -extent {$this->width}x{$this->height} -gravity North";
             }else{
-                $command .= " -resize ";
+                $command .= " -resize \" -resize {$this->width}x{$this->height}";
             }
-            $command .= "{$this->width}x{$this->height}\\!";
         }
 
         $command .= ' -background white -alpha remove ';

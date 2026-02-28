@@ -112,8 +112,6 @@ class UserController extends Controller
             throw new BadRequestHttpException('Image is too large.');
         }
 
-        // Create unique key
-        $timestamp = gmdate('Ymd_His');
         $key = "{$env}/profile/{$user->id}." . ($ext === 'png' ? 'png' : 'jpg');
 
         $s3 = new S3Client([
@@ -127,7 +125,6 @@ class UserController extends Controller
 
         $contentType = ($ext === 'png') ? 'image/png' : 'image/jpeg';
 
-        error_log("Putting file to S3...");
         $s3->putObject([
             'Bucket' => Yii::$app->params['AWS_BUCKET'],
             'Key' => $key,

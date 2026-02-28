@@ -174,11 +174,9 @@ class FolderController extends Controller{
      * @throws \yii\db\Exception
      */
     public function actionDelete(){
-        error_log("Deleting Folder");
         Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         $id = Yii::$app->request->post('id');
 
-        error_log("Folder to delete: $id");
         $folder = Folder::findOne($id);
         if (!$folder) {
             error_log("Folder not found...");

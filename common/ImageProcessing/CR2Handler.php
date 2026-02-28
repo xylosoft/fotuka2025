@@ -44,12 +44,11 @@ class CR2Handler extends BaseImageHandler {
         // Resize / Thumbnail options
         if ($this->width && $this->height){
             if ($this->thumbnail){
-                $command .= " -thumbnail ";
+                $command .= " -thumbnail {$this->width}x{$this->height}^ -extent {$this->width}x{$this->height} -gravity North";
             }else{
-                $command .= " -resize ";
+                $command .= " -resize \" -resize {$this->width}x{$this->height}";
             }
 
-            $command .= "{$this->width}x{$this->height}^";
         }
 
         // File Quality

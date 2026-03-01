@@ -45,6 +45,10 @@ $this->title = 'Login';
 
                 <div class="card-body p-4">
                     <?php $form = ActiveForm::begin([
+                        'validateOnBlur' => false,
+                        'validateOnChange' => false,
+                        'validateOnType' => false,
+                        'validateOnSubmit' => true,
                         'id' => 'login-form',
                         'enableClientValidation' => true,
                         'enableAjaxValidation' => false,

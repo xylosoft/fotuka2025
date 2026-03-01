@@ -91,6 +91,7 @@ class AssetController extends Controller
 
             if ($uploadedFile->saveAs($targetFile)) {
                 $uploaded++;
+                $fileSize = $uploadedFile->size;
 
                 // First we need to create the file
                 error_log("Creating file");
@@ -103,7 +104,7 @@ class AssetController extends Controller
                 $file->filename = $uploadedFile->name;
                 $file->extension = $uploadedFile->extension;
                 $file->orientation = null;
-                $file->filesize = $uploadedFile->size;
+                $file->filesize = $fileSize;
                 $file->pages = 0;
                 $file->tmp_location = $targetFile;
                 $res = null;
@@ -113,7 +114,6 @@ class AssetController extends Controller
                 if (!$res) {
                     error_log(print_r($file->getErrors(), true));
                 }
-
 
                 // Then we need to create the asset
                 error_log("Creating Asset");
@@ -139,6 +139,15 @@ class AssetController extends Controller
                         'thumbnail_state' => Asset::PREVIEW_PENDING,
                     ];
                 }
+
+                // Also update customer's and folder's ustorage usage
+                $customer = $asset->customer;
+                $customer->storage_used = $customer->storage_used + $fileSize;
+                $customer->save('space_used');
+
+                $folder = $asset->folder;
+                $folder->storage_used = $folder->storage_used + $fileSize;
+                $folder->save('space_used');
 
 
                 // Then we need to upload to S3 with the proper asset id in place

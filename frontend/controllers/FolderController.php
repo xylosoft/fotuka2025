@@ -178,6 +178,7 @@ class FolderController extends Controller{
         $id = Yii::$app->request->post('id');
 
         $folder = Folder::findOne($id);
+        $customer = $folder->customer;
         if (!$folder) {
             error_log("Folder not found...");
             return ['ok' => false, 'message' => 'Folder not found.'];
@@ -187,7 +188,9 @@ class FolderController extends Controller{
 
         // recursively mark deleted
         try {
-            $this->markFolderAndChildrenDeleted($folder, $user->id);
+            $totalStorageUsed = $this->markFolderAndChildrenDeleted($folder, $user->id);
+            $customer->storage_used = $customer->storage_used - $totalStorageUsed;
+            $customer->save('storage_used');
             return ['ok' => true];
         } catch (\Throwable $e) {
             error_log("Exception");
@@ -202,17 +205,19 @@ class FolderController extends Controller{
      *
      * @param int $folderId
      * @param int $userId
-     * @return void
+     * @return int $totalSpaceUsed
      * @throws \yii\db\Exception
      */
     private function markFolderAndChildrenDeleted($folder, $userId)
     {
+        $totalStorageUsed = 0;
         $now = date('Y-m-d H:i:s');
-        
         $folder->status = Folder::STATUS_DELETED;
         $folder->deleted = $now;
         $folder->deleted_by_user_id = $userId;
         $folder->save(false);
+
+        $folderStorageUsed = $folder->storage_used;
 
         // Mark all assets under this folder as deleted
         Asset::updateAll(
@@ -226,14 +231,13 @@ class FolderController extends Controller{
 
         // Find and recursively mark all subfolders
         $children = Folder::find()
-            ->select('id')
             ->where(['parent_id' => $folder->id])
             ->andWhere(['!=', 'status', Folder::STATUS_DELETED])
             ->all();
 
         foreach ($children as $child) {
-            error_log("Also deleting: folder:" . $child->id);
-            $this->markFolderAndChildrenDeleted($child, $userId);
+            $totalStorageUsed += $this->markFolderAndChildrenDeleted($child, $userId);
         }
+        return $totalStorageUsed + $folderStorageUsed;
     }
 }

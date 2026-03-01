@@ -13,6 +13,7 @@ use Yii;
  * @property string|null $referral_url
  * @property string|null $seo_name
  * @property string|null $status
+ * @property int $storage_used
  */
 class Customer extends \yii\db\ActiveRecord
 {
@@ -61,6 +62,7 @@ class Customer extends \yii\db\ActiveRecord
             'referral_url' => 'Referral Url',
             'seo_name' => 'Seo Name',
             'status' => 'Status',
+            'storage_used' => 'Storage used',
         ];
     }
 

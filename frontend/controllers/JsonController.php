@@ -161,8 +161,6 @@ class JsonController extends Controller{
         })));
         $ids = array_map('intval', $ids);
 
-        error_log(print_r($ids, 1));
-
         if (empty($ids)) {
             return ['ok' => true, 'assets' => []];
         }

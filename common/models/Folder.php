@@ -19,6 +19,7 @@ use Yii;
  * @property int $thumbnail_id
  * @property string $deleted
  * @property int $deleted_by_user_id
+ * @property int $storage_used
  */
 class Folder extends \yii\db\ActiveRecord
 {
@@ -80,7 +81,8 @@ class Folder extends \yii\db\ActiveRecord
             'status' => 'Status',
             'thumbnail_id' => 'Thumbnail ID',
             'deleted' => 'Deleted',
-            'deleted_by_user_id' => 'Deleted By'
+            'deleted_by_user_id' => 'Deleted By',
+            'storage_used' => 'Storage used',
         ];
     }
 
@@ -144,4 +146,10 @@ class Folder extends \yii\db\ActiveRecord
     {
         $this->status = self::STATUS_DELETED;
     }
+
+    public function getCustomer()
+    {
+        return $this->hasOne(Customer::class, ['id' => 'customer_id']);
+    }
+
 }

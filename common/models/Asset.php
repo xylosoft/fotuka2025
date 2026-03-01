@@ -162,4 +162,20 @@ class Asset extends \yii\db\ActiveRecord
     {
         return $this->hasOne(File::class, ['id' => 'file_id']);
     }
+
+    public function getCustomer()
+    {
+        return $this->hasOne(Customer::class, ['id' => 'customer_id']);
+    }
+
+    public function getUser()
+    {
+        return $this->hasOne(User::class, ['id' => 'user_id']);
+    }
+
+    public function getFolder()
+    {
+        return $this->hasOne(Folder::class, ['id' => 'folder_id']);
+    }
+
 }

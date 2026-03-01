@@ -96,6 +96,7 @@ FolderAsset::register($this);
                 class="modal-input"
                 placeholder="Please enter your folder's name"
                 autocomplete="off"
+                maxlength="50"
         />
         <div id="folder-error" class="modal-error" style="display:none;"></div>
     </div>
@@ -118,7 +119,6 @@ function showBanner(message, type = 'error') {
         .delay(3000) // visible for 4 seconds
         .fadeOut(600);
 }
-
 </script>
 
 <?php $this->endBody() ?>

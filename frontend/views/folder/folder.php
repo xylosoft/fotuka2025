@@ -238,7 +238,6 @@ function pollPendingThumbnails() {
 
 // CHECKED
 function loadFolder(folderId) {
-    console.log("Loading Folder: folderId");
     if (!folderId || isNaN(folderId)){
         folderId = null;
     }
@@ -260,7 +259,6 @@ function loadFolder(folderId) {
         $('#dropZone').hide();
         $('#currentFolderName').text("Home");
         $('#subfolders').empty();
-        console.log("SelectHome2");
         selectHome();
         $('#folderview').show();
     }else{
@@ -301,7 +299,6 @@ function fetchFolders(folderId, append = false, loadAll = false) {
             if (folderId == 0 && items.length > 0) {
                 renderSubfolders(items, append);
             }else if (folderId == 0){
-                console.log('setEmptyStateVisible6');
                 setEmptyStateVisible('folders', true);
             }
         },
@@ -401,11 +398,8 @@ function loadAssets(folderId, showAll = false, offset = 0) {
             assetPagination.offset += response.assets.length;
 
             if (response.assets.length === 0){
-                console.log('setEmptyStateVisible5');
-                console.trace();
                 setEmptyStateVisible('assets', true);
             }else{
-                console.log('setEmptyStateVisible7');
                 setEmptyStateVisible('assets', false);
             }
 
@@ -414,7 +408,6 @@ function loadAssets(folderId, showAll = false, offset = 0) {
                 assetPagination.allLoaded = true;
             }
         }else{
-            console.log('setEmptyStateVisible8');
             setEmptyStateVisible('assets', true);
         }
     });
@@ -614,7 +607,6 @@ async function handleUpload(files, folderId) {
                 success: function (res) {
                     if (res && res.ok) {
                         resolve(res.assets || []); // return uploaded assets for this batch
-                        console.log('setEmptyStateVisible1');
                         setEmptyStateVisible('assets', false);
                     } else {
                         reject(new Error((res && res.error) || 'Upload failed'));
@@ -662,7 +654,6 @@ async function handleUpload(files, folderId) {
 
                 // ✅ Render only if these uploads belong in the current folder view
                 if (batchHasRootFiles && renderable.length && typeof renderAssets === 'function') {
-                    console.log("Rendering assets");
                     renderAssets(renderable, true);
                     startPendingThumbnailPolling();
                 }
@@ -758,11 +749,10 @@ function selectHome(){
         tree.deselect_all();
         tree.select_node(roots[0]);
     }
-    console.log('setEmptyStateVisible2');
+
     setEmptyStateVisible('assets', false);
 
     if (allNodes.length === 1) {
-        console.log('setEmptyStateVisible3');
         setEmptyStateVisible('folders', true);
     }else{
         fetchFolders();
@@ -1118,6 +1108,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         $('#folder-error').text('Please enter a folder name.').show();
                         return;
                     }
+                    if (name.length > 50) {
+                        $('#folder-error').text('Folder names can\'t contain more than 50 characters').show();
+                        return;
+                    }
+
 
                     var tree = $('#folderTree').jstree(true);
                     var selectedNode = tree.get_selected(true)[0]; // returns the full node object
@@ -1145,14 +1140,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 if (!Number.isInteger(parseInt(jsParent))) {
                                     jsParent = '#';
-                                    console.log("SelectHome1");
                                     selectHome();
                                 }
 
 
                                 showBanner('Folder created successfully!', 'success');
                             }
-                            console.log('setEmptyStateVisible4');
                             setEmptyStateVisible('folders', false);
                         },
                         error: function (xhr, status, errorThrown) {
@@ -1184,7 +1177,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Minimal add: open dialog on plus icon click
     $('#btn-new-folder').on('click', function() {
-        $('#new-folder-dialog').dialog('open');
+        openNewFolderDialog();
     });
 
     $('#folderTree').on('rename_node.jstree', function(e, data) {
@@ -1532,7 +1525,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     $(document).on('click', '#btn-create-folder', function () {
-        $('#new-folder-dialog').dialog('open');
+        openNewFolderDialog();
     });
 
     $('#asset-preview-dialog').dialog({
@@ -1627,6 +1620,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     initInfiniteAssetScroll();
 });
+
+function openNewFolderDialog() {
+    var tree = $('#folderTree').jstree(true);
+    var selectedNode = tree.get_selected(true)[0];
+    var currentFolder = selectedNode.text;
+    $('#new-folder-dialog').dialog('option', 'title', 'Creating folder under "' + currentFolder + '"')
+        .dialog('open');
+
+    /*
+    const folderName = ($('#currentFolderName').text() || 'Home').trim();
+
+    $('#new-folder-dialog')
+        .dialog('option', 'title', 'Creating folder under "' + folderName + '"')
+        .dialog('open');
+        */
+}
+
 </script>
 
 

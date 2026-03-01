@@ -226,13 +226,11 @@ function pollPendingThumbnails() {
 
             const $content = $card.children('div').first();
             $content.html(
-                '<img class="asset" src="' + a.thumbnail_url + '" width="250" height="220">'
+                '<img class="asset asset-clickable" src="' + a.thumbnail_url + '" width="250" height="220">'
             );
             $card.attr('data-thumb-state', 'ready');
             $card.attr('data-thumb-url', a.thumbnail_url);
             $card.attr('data-preview-url', a.preview_url);
-            $card.find('.asset-preview-btn').prop('disabled', false).removeAttr('style');
-
             $card.attr('data-thumb-state', 'ready');
         });
     });

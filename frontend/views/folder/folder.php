@@ -387,7 +387,6 @@ function joinPath(a, b) {
 
 // CHECKED
 function loadAssets(folderId, showAll = false, offset = 0) {
-    console.log("Loading assets for folder" + folderId);
     if (!folderId){
         return;
     }
@@ -397,7 +396,6 @@ function loadAssets(folderId, showAll = false, offset = 0) {
     const limit = showAll ? 0 : assetPagination.limit;
 
     jQuery.getJSON('/json/assets/' + folderId, { limit, offset }, function(response) {
-        console.log(response.assets);
         if (response && response.assets) {
             renderAssets(response.assets, offset > 0);
 
@@ -433,6 +431,7 @@ function renderAssets(assets, append = false) {
 
     assets.forEach(asset => {
         var card = '';
+
         if (asset.thumbnail_state == 'pending'){
             card = '<div class="asset-card" id="asset_' +asset.id +'" data-thumb-state="pending" data-thumb-url="" data-asset-id="' + asset.id + '">' +
                    '<div style="width:250px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;">' +
@@ -441,7 +440,7 @@ function renderAssets(assets, append = false) {
                    '</div>' +
                    '<span class="asset-title">' + asset.title + '</span>' +
                 '</div>';
-
+             $('#assetGrid').append(card);
         }else {
             const thumbUrl   = (asset.thumbnail_url || '').toString().trim();
             const previewUrl = (asset.preview_url  || '').toString().trim(); // <-- snake_case
@@ -665,6 +664,7 @@ async function handleUpload(files, folderId) {
 
                 // ✅ Render only if these uploads belong in the current folder view
                 if (batchHasRootFiles && renderable.length && typeof renderAssets === 'function') {
+                    console.log("Rendering assets");
                     renderAssets(renderable, true);
                     startPendingThumbnailPolling();
                 }
@@ -1190,7 +1190,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     $('#folderTree').on('rename_node.jstree', function(e, data) {
-        console.log("Renaming...");
         const tree = $('#folderTree').jstree(true);
         const oldName = data.old;  // original folder name
         const newName = data.text; // new attempted name

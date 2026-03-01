@@ -12,7 +12,7 @@ use frontend\controllers\UserController;
 ProfileAsset::register($this);
 
 $avatarUrl = $user->profile_picture . "?v=" . $user->profile_update_date;
-$this->title = 'Your Profile';
+$this->title = 'Profile for ' . ($user->first_name && $user->last_name?$user->first_name . ' ' . $user->last_name:$user->username);
 
 // 1) If user has profile picture, use it:
 $serverAvatarUrl = (!Yii::$app->user->isGuest && !empty(Yii::$app->user->identity->profile_picture))
@@ -31,16 +31,14 @@ $svgDataUrl = 'data:image/svg+xml;utf8,' . rawurlencode($svg);
 // 3) Initial image source:
 $initialAvatarSrc = $serverAvatarUrl ?: $svgDataUrl;
 ?>
-
 <div class="profile-page container py-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
+    <div class="row mb-3 <?= Yii::$app->user->identity->google_id ? 'justify-content-center' : '' ?>">
+        <div class="<?= Yii::$app->user->identity->google_id ? 'col-lg-7' : 'col-12' ?>">
             <h2 class="m-0"><?= Html::encode($this->title) ?></h2>
-            <div class="text-muted">Manage your account details, avatar, and password.</div>
+            <div class="text-muted">Manage your account details, profile picture<?= Yii::$app->user->identity->google_id ? '.' : ',and password.' ?></div>
         </div>
     </div>
-
-    <div class="row g-4">
+    <div class="row g-4 <?= Yii::$app->user->identity->google_id ? 'justify-content-center' : '' ?>">
         <div class="col-lg-7">
             <div class="card fotuka-card">
                 <div class="card-header fotuka-card-header">
@@ -131,6 +129,7 @@ $initialAvatarSrc = $serverAvatarUrl ?: $svgDataUrl;
             </div>
         </div>
 
+        <?php if(!Yii::$app->user->identity->google_id){ ?>
         <div class="col-lg-5">
             <div class="card fotuka-card">
                 <div class="card-header fotuka-card-header">
@@ -163,5 +162,6 @@ $initialAvatarSrc = $serverAvatarUrl ?: $svgDataUrl;
                 </div>
             </div>
         </div>
+        <?php } ?>
     </div>
 </div>

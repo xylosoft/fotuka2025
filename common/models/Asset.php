@@ -160,7 +160,6 @@ class Asset extends \yii\db\ActiveRecord
     // Relationships
     public function getFile()
     {
-        error_log("FILE FETCHER");
         return $this->hasOne(File::class, ['id' => 'file_id']);
     }
 }

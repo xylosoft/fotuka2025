@@ -240,6 +240,7 @@ function pollPendingThumbnails() {
 
 // CHECKED
 function loadFolder(folderId) {
+    console.log("Loading Folder: folderId");
     if (!folderId || isNaN(folderId)){
         folderId = null;
     }
@@ -261,6 +262,7 @@ function loadFolder(folderId) {
         $('#dropZone').hide();
         $('#currentFolderName').text("Home");
         $('#subfolders').empty();
+        console.log("SelectHome2");
         selectHome();
         $('#folderview').show();
     }else{
@@ -301,6 +303,7 @@ function fetchFolders(folderId, append = false, loadAll = false) {
             if (folderId == 0 && items.length > 0) {
                 renderSubfolders(items, append);
             }else if (folderId == 0){
+                console.log('setEmptyStateVisible6');
                 setEmptyStateVisible('folders', true);
             }
         },
@@ -384,6 +387,7 @@ function joinPath(a, b) {
 
 // CHECKED
 function loadAssets(folderId, showAll = false, offset = 0) {
+    console.log("Loading assets for folder" + folderId);
     if (!folderId){
         return;
     }
@@ -393,6 +397,7 @@ function loadAssets(folderId, showAll = false, offset = 0) {
     const limit = showAll ? 0 : assetPagination.limit;
 
     jQuery.getJSON('/json/assets/' + folderId, { limit, offset }, function(response) {
+        console.log(response.assets);
         if (response && response.assets) {
             renderAssets(response.assets, offset > 0);
 
@@ -400,8 +405,11 @@ function loadAssets(folderId, showAll = false, offset = 0) {
             assetPagination.offset += response.assets.length;
 
             if (response.assets.length === 0){
+                console.log('setEmptyStateVisible5');
+                console.trace();
                 setEmptyStateVisible('assets', true);
             }else{
+                console.log('setEmptyStateVisible7');
                 setEmptyStateVisible('assets', false);
             }
 
@@ -410,6 +418,7 @@ function loadAssets(folderId, showAll = false, offset = 0) {
                 assetPagination.allLoaded = true;
             }
         }else{
+            console.log('setEmptyStateVisible8');
             setEmptyStateVisible('assets', true);
         }
     });
@@ -608,6 +617,7 @@ async function handleUpload(files, folderId) {
                 success: function (res) {
                     if (res && res.ok) {
                         resolve(res.assets || []); // return uploaded assets for this batch
+                        console.log('setEmptyStateVisible1');
                         setEmptyStateVisible('assets', false);
                     } else {
                         reject(new Error((res && res.error) || 'Upload failed'));
@@ -750,9 +760,11 @@ function selectHome(){
         tree.deselect_all();
         tree.select_node(roots[0]);
     }
+    console.log('setEmptyStateVisible2');
     setEmptyStateVisible('assets', false);
 
     if (allNodes.length === 1) {
+        console.log('setEmptyStateVisible3');
         setEmptyStateVisible('folders', true);
     }else{
         fetchFolders();
@@ -1135,12 +1147,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 if (!Number.isInteger(parseInt(jsParent))) {
                                     jsParent = '#';
+                                    console.log("SelectHome1");
                                     selectHome();
                                 }
 
 
                                 showBanner('Folder created successfully!', 'success');
                             }
+                            console.log('setEmptyStateVisible4');
                             setEmptyStateVisible('folders', false);
                         },
                         error: function (xhr, status, errorThrown) {

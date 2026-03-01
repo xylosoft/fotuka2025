@@ -32,9 +32,15 @@ class BaseImageHandler{
     public const FORMAT_BMP = "BMP";
     public const FORMAT_EPS = "EPS";
     public const FORMAT_SVG = "SVG";
-    public const FORMAT_PDF = "PDF";
     public const FORMAT_CR2 = "CR2";
     public const FORMAT_CR3 = "CR3";
+
+    // Document Types
+    public const FORMAT_DOC = "DOC";
+    public const FORMAT_DOCX = "DOCX";
+    public const FORMAT_XLS = "XLS";
+    public const FORMAT_XLSX = "XLSX";
+    public const FORMAT_PDF = "PDF";
 
     // FILE ATTRIBUTES
     public const FILE_SIZE = 0;
@@ -47,6 +53,7 @@ class BaseImageHandler{
     public const FILE_FILETYPE = 7;
     public const NUMBER_OF_FRAMES = 8; // GIF
     public const VALID_FORMATS = 9; // GIF
+    public const FILE_EXTENSION = 10; // GIF
 
     // FILE TYPES
     public const FILETYPE_IMAGE = 1;
@@ -97,6 +104,8 @@ class BaseImageHandler{
      */
     public function __construct($filename, $assetId){
         $this->attributes[self::FILE_NAME] = $filename;
+        echo "BASE: Filename: $filename Exists? " . (file_exists($filename)?"YES":"NO") . "\n";
+        echo file_exists($filename)?"YES FILE EXISTS\n":"NO FILE DOESNT EXIST\n";
         $this->attributes[self::ASSET_ID] = $assetId;
         $this->mimeTypes = [self::FORMAT_JPEG => "image/jpeg",
                             self::FORMAT_JPG => "image/jpeg",
@@ -120,7 +129,6 @@ class BaseImageHandler{
         }
 
         $this->attributes[self::FILE_SIZE] = filesize($filename);
-        $this->getFileInfo();
     }
 
     /**
@@ -128,6 +136,7 @@ class BaseImageHandler{
      * @return void
      */
     public function  convert(){
+
         $command = "PATH=/opt/local/bin:/usr/bin:/bin " . Yii::$app->params['IMAGEMAGICK_PATH'] . 'magick';
 
         // Source File
@@ -151,6 +160,7 @@ class BaseImageHandler{
         if (!$this->destinationFile){
             $this->destinationFile = tempnam('/tmp', $this->attributes[self::ASSET_ID]);
         }
+
         $command .= " {$this->destinationFormat}:{$this->destinationFile}";
 
         echo "COMMAND: $command\n";
@@ -165,7 +175,7 @@ class BaseImageHandler{
         $end = microtime(true);
         echo "Process took: " . ($end - $start) . " seconds.\n";
         return $this;
-        // @todo throw error if return code != 0
+
     }
 
     public function createThumbnail($width, $height){
@@ -193,7 +203,7 @@ class BaseImageHandler{
 
         echo "Base - Resizing to $width x $height\n";
         // If new dimensions are the same as the existing ones, no need to resize.
-        if ($width == $this->attributes[self::FILE_WIDTH] && $height == $this->attributes[self::FILE_HEIGHT]){
+        if (!isset($this->attributes[self::FILE_WIDTH]) || !isset($this->attributes[self::FILE_HEIGHT])){
             echo "Base: - Can't determine width and height\n";
             return $this;
         }
@@ -213,7 +223,7 @@ class BaseImageHandler{
         return $this;
     }
 
-    protected function getFileInfo(){
+    public function getFileInfo(){
         $output = null;
         $result_code = null;
 
@@ -263,34 +273,39 @@ class BaseImageHandler{
         }else{
             $this->attributes[self::FILE_COLORSPACE] = -1;
         }
-
-        // File Type
-        $this->getFileType();
-
-        //echo "File Attributes: \n" . print_r($this->attributes,1 ) . "\n";
+        return $this;
     }
 
-    protected function getFileType(){
+    protected function getFileType()
+    {
         // Imagemagick supported file formats: https://imagemagick.org/script/formats.php
         $validImageFormats = array(self::FORMAT_AI, self::FORMAT_BMP, self::FORMAT_CR2, self::FORMAT_EPS, self::FORMAT_GIF,
-                                   self::FORMAT_JPEG, self::FORMAT_JPG, self::FORMAT_PDF, self::FORMAT_PNG,  self::FORMAT_PSD,
+                                   self::FORMAT_JPEG, self::FORMAT_JPG, self::FORMAT_PNG,  self::FORMAT_PSD,
                                    self::FORMAT_SVG, self::FORMAT_TGA, self::FORMAT_TIFF, self::FORMAT_TIF, self::FORMAT_WEBP);
 
         $validVideoFormats = array();
-        $validDocumentFormats = array();
+        $validDocumentFormats = array(self::FORMAT_PDF, self::FORMAT_DOC, self::FORMAT_DOCX);
         $validAudioFormats = array();
 
-        if (in_array($this->attributes[self::FILE_FORMAT], $validImageFormats)){
+        $ext = strtoupper($this->attributes[self::FILE_EXTENSION]);
+        echo "--> EXT: $ext". "\n";
+        if (in_array($ext, $validImageFormats)) {
+            echo "Setting File Format to Image\n";
             $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_IMAGE;
-        }else if (in_array($this->attributes[self::FILE_FORMAT], $validVideoFormats)){
+        } else if (in_array($ext, $validVideoFormats)) {
+            echo "Setting File Format to Video\n";
             $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_VIDEO;
-        }else if (in_array($this->attributes[self::FILE_FORMAT], $validDocumentFormats)){
+        } else if (in_array($ext, $validDocumentFormats)) {
+            echo "Setting File Format to Document\n";
             $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_DOCUMENT;
-        }else if (in_array($this->attributes[self::FILE_FORMAT], $validAudioFormats)){
+        } else if (in_array($ext, $validAudioFormats)) {
+            echo "Setting File Format to Audio\n";
             $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_AUDIO;
-        }else{
+        } else{
+            echo "Setting File Format to Other\n";
             $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_OTHER;
         }
+        echo "GETFILETYPE: " . $this->attributes[self::FILE_FILETYPE] . "\n";
     }
 
     public function setDestinationFormat($fileFormat){
@@ -356,21 +371,31 @@ class BaseImageHandler{
         echo "Filename: $filename\n";
 
         $extension = $file->extension;
-        echo "Exrtension: $extension\n";
+        echo "Extension: $extension\n";
         if ($extension == 'jpeg'){
             $extension = 'jpg';
         }
 
         if ($extension == 'tiff'){
-            echo "CHANGING TO TIFF\n";
             $extension = 'tif';
+        }
+
+        if ($extension == 'docx'){
+            $extension = 'doc';
         }
 
         $handlerName = 'common\\ImageProcessing\\' . strtoupper($extension) . "Handler";
         echo "HandlerName: $handlerName\n";
 
+
+
         try{
             $handler = new $handlerName($filename, $asset->id);
+            $handler->setAttribute(self::FILE_EXTENSION, $extension);
+            $handler->getFileType();
+            echo "--> FILE TYPE FROM HANDLER: " . $handler->getAttribute(self::FILE_FILETYPE) . "\n";
+            $handler->getFileInfo();
+
             return $handler;
         }catch (\Throwable $e){
             echo $e->getMessage()."\n";
@@ -460,6 +485,8 @@ class BaseImageHandler{
             ]);
             echo "S3 upload result: " . ($result ? "OK" : "FAILED") . "\n";
 
+            echo "S3 Is THUMBNAIL? " . ($this->thumbnail === true?"YES":"NO") . "\n";
+
             // Update asset status
             if ($this->thumbnail) {
                 $asset->thumbnail_state = Asset::THUMBNAIL_READY;
@@ -483,7 +510,16 @@ class BaseImageHandler{
     public function cleanup($asset){
         @unlink($asset->file->tmp_location);
         @unlink($this->destinationFile);
+        return $this;
 
+    }
+
+    public function setAttribute($attributeName, $value){
+        $this->attributes[$attributeName] = $value;
+    }
+
+    public function getAttribute($attributeName){
+        return $this->attributes[$attributeName];
     }
 
 }

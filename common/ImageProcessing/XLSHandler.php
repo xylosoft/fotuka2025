@@ -4,7 +4,7 @@ namespace common\ImageProcessing;
 
 use Yii;
 
-class DOCHandler extends BaseImageHandler {
+class XLSHandler extends BaseImageHandler {
 
     private $internalHandler = null;
 
@@ -12,13 +12,13 @@ class DOCHandler extends BaseImageHandler {
         echo "******** CONSTRUCTOR ************\n";
         $this->attributes[self::FILE_NAME] = $filename;
         $this->attributes[self::ASSET_ID] = $assetId;
-        $this->attributes[self::FILE_FORMAT] = self::FORMAT_DOCX;
-        $this->attributes[self::VALID_FORMATS] = array(self::FORMAT_DOCX, self::FORMAT_DOC, self::FORMAT_DOCX, self::FORMAT_JPEG, self::FORMAT_JPG);
+        $this->attributes[self::FILE_FORMAT] = self::FORMAT_XLSX;
+        $this->attributes[self::VALID_FORMATS] = array(self::FORMAT_XLSX, self::FORMAT_XLS, self::FORMAT_DOCX, self::FORMAT_JPEG, self::FORMAT_JPG);
         $this->attributes[self::FILE_SIZE] = filesize($filename);
 
         $this->destinationFile = $filename;
-        $this->destinationFile = str_replace('.docx', '.jpg', $this->destinationFile);
-        $this->destinationFile = str_replace('.doc', '.jpg', $this->destinationFile);
+        $this->destinationFile = str_replace('.xlsx', '.jpg', $this->destinationFile);
+        $this->destinationFile = str_replace('.xls', '.jpg', $this->destinationFile);
 
         $handlerName = 'common\\ImageProcessing\\JPGHandler';
 

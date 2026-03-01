@@ -384,6 +384,10 @@ class BaseImageHandler{
             $extension = 'doc';
         }
 
+        if ($extension == 'xlsx'){
+            $extension = 'xls';
+        }
+
         $handlerName = 'common\\ImageProcessing\\' . strtoupper($extension) . "Handler";
         echo "HandlerName: $handlerName\n";
 

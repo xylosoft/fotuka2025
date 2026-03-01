@@ -25,6 +25,9 @@ use yii\web\IdentityInterface;
  * @property integer $customer_id
  * @property integer $profile_picture
  * @property integer profile_update_date
+ * @property integer google_id
+ * @property integer first_name
+ * @property integer last_name
  */
 class User extends ActiveRecord implements IdentityInterface
 {
@@ -57,11 +60,12 @@ class User extends ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
-            [['profile_picture'], 'default', 'value' => null],
+            [['profile_picture', 'google_id', 'first_name', 'last_name'], 'default', 'value' => null],
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
-            [['profile_picture'], 'string', 'max' => 255],
-            ['profile_update_date', 'int']
+            [['profile_picture', 'google_id'], 'string', 'max' => 255],
+            [['first_name', 'last_name'], 'string', 'max' => 100],
+            ['profile_update_date', 'integer']
         ];
     }
 
@@ -79,6 +83,9 @@ class User extends ActiveRecord implements IdentityInterface
             'updated_at' => 'Updated Date',
             'customer_id' => 'Customer ID',
             'profile_picture' => 'Profile Picture URL',
+            'google_id' => 'Google ID',
+            'first_name' => 'First Name',
+            'last_name' => 'Last Name',
         ];
     }
 

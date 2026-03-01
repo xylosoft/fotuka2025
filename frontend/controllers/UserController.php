@@ -7,9 +7,8 @@ use yii\web\Response;
 use yii\filters\AccessControl;
 use yii\web\BadRequestHttpException;
 use Aws\CloudFront\CloudFrontClient;
-
 use Aws\S3\S3Client;
-
+use common\classes\SiteHelper;
 use frontend\models\ProfileForm;
 use frontend\models\PasswordForm;
 
@@ -133,44 +132,8 @@ class UserController extends Controller
             'CacheControl' => 'max-age=31536000',
             'StorageClass' => 'INTELLIGENT_TIERING',
         ]);
-        $this->invalidateCloudFront('/' . $env . '/profile/' . $user->id . '.' . ($ext === 'png' ? 'png' : 'jpg'));
+        SiteHelper::invalidateCloudFront('/' . $env . '/profile/' . $user->id . '.' . ($ext === 'png' ? 'png' : 'jpg'));
 
         return Yii::$app->params['CLOUDFRONT_URL'] . '/' . $env . '/profile/' . $user->id . "." . ($ext === 'png' ? 'png' : 'jpg') ;
-    }
-
-    /**
-     * Helper: if you store S3 key, build a URL for rendering.
-     * You can move this to User model later.
-     */
-    public static function s3PublicUrl(string $key): string
-    {
-        $bucket = 'YOUR_BUCKET_NAME';
-        $region = 'us-east-1';
-
-        // Virtual-hosted style URL (common):
-        return "https://{$bucket}.s3.{$region}.amazonaws.com/{$key}";
-    }
-
-    private function invalidateCloudFront(string $path): void
-    {
-        $cloudFront = new CloudFrontClient([
-            'version' => 'latest',
-            'region'  => Yii::$app->params['AWS_REGION'],
-            'credentials' => [
-                'key'    => Yii::$app->params['AWS_ACCESS_KEY_ID'],
-                'secret' => Yii::$app->params['AWS_SECRET_ACCESS_KEY'],
-            ],
-        ]);
-
-        $cloudFront->createInvalidation([
-            'DistributionId' => Yii::$app->params['CLOUDFRONT_DISTRIBUTION_ID'],
-            'InvalidationBatch' => [
-                'Paths' => [
-                    'Quantity' => 1,
-                    'Items' => [$path],  // must start with /
-                ],
-                'CallerReference' => (string) time() . '-' . uniqid(),
-            ],
-        ]);
     }
 }

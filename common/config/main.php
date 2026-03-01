@@ -1,4 +1,10 @@
 <?php
+
+$params = array_merge(
+    require __DIR__ . '/params.php',
+    require __DIR__ . '/params-local.php'
+);
+
 return [
     'name' => 'Fotuka',
     'aliases' => [
@@ -42,6 +48,17 @@ return [
                 // User Actions
                 'profile' => 'user/profile',
 
+            ],
+        ],
+        'authClientCollection' => [
+            'class' => \yii\authclient\Collection::class,
+            'clients' => [
+                'google' => [
+                    'class' => \yii\authclient\clients\Google::class,
+                    'clientId' => $params['GOOGLE_CLIENT_ID'],
+                    'clientSecret' => $params['GOOGLE_CLIENT_SECRET'],
+                    'scope' => 'openid email profile',
+                ],
             ],
         ],
     ],

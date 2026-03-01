@@ -7,6 +7,7 @@
 use yii\bootstrap5\Html;
 use yii\bootstrap5\ActiveForm;
 use frontend\assets\AuthAsset;
+use yii\helpers\Url;
 
 AuthAsset::register($this);
 
@@ -33,6 +34,13 @@ $this->title = 'Login';
                             <div class="text-muted small">Log in to continue to Fotuka.</div>
                         </div>
                     </div>
+                </div>
+
+                <div class="google-login-wrap">
+                    <a class="btn-google-signin" href="<?= Url::to(['site/auth', 'authclient' => 'google']) ?>">
+                        <span class="google-g" aria-hidden="true"></span>
+                        <span class="google-text">Continue with Google</span>
+                    </a>
                 </div>
 
                 <div class="card-body p-4">

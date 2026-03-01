@@ -15,12 +15,17 @@ use frontend\models\PasswordResetRequestForm;
 use frontend\models\ResetPasswordForm;
 use frontend\models\SignupForm;
 use frontend\models\ContactForm;
+use yii\authclient\AuthAction;
+use yii\authclient\ClientInterface;
+use common\models\User;
+use common\classes\SiteHelper;
 
 /**
  * Site controller
  */
 class SiteController extends Controller
 {
+
     /**
      * {@inheritdoc}
      */
@@ -63,6 +68,10 @@ class SiteController extends Controller
             'captcha' => [
                 'class' => \yii\captcha\CaptchaAction::class,
                 'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
+            ],
+            'auth' => [
+                'class' => AuthAction::class,
+                'successCallback' => [$this, 'onAuthSuccess'],
             ],
         ];
     }
@@ -263,5 +272,68 @@ class SiteController extends Controller
         return $this->render('resendVerificationEmail', [
             'model' => $model
         ]);
+    }
+
+    public function onAuthSuccess(ClientInterface $client)
+    {
+        $attrs = $client->getUserAttributes();
+        $googleId  = $attrs['id'] ?? null;
+        $email     = $attrs['email'] ?? null;
+        $firstName = $attrs['given_name'] ?? null;
+        $lastName  = $attrs['family_name'] ?? null;
+        $picture   = $attrs['picture'] ?? null;
+        $locale    = $attrs['locale'] ?? null; // TODO: To be done later once we I18N the site.
+
+        if (!$email || !$googleId) {
+            Yii::$app->session->setFlash('error', 'Google login did not return valid information');
+            return $this->redirect(['site/login']);
+        }
+
+        // 1) Find existing user by email (or google_id), else create one.
+        // 2) Log them in.
+        // NOTE: Replace User::find... with your actual user model / schema.
+        $user = User::find()->where(['email' => $email])->one();
+
+        if (!$user) {
+            $user = new User();
+            $user->email = $email;
+            $user->username = strtolower($firstName . $lastName);
+            $user->first_name = $firstName ?: null;
+            $user->last_name = $lastName ?: null;
+            $user->google_id = $googleId;
+            $user->status = User::STATUS_ACTIVE;
+            $user->password_hash = "Google";
+            $user->auth_key = "-";
+
+            if (!$user->save()) {
+                Yii::$app->session->setFlash('error', 'Could not create user: ' . json_encode($user->errors));
+                return $this->redirect(['site/login']);
+            }
+            SiteHelper::DownloadGoogleProfile($user, $picture);
+        } else {
+            $changes = false;
+            if (empty($user->google_id)) {
+                $user->google_id = $googleId;
+                $changes = true;
+            }
+            if (empty($user->first_name)) {
+                $user->first_name = $firstName ?: null;
+                $changes = true;
+            }
+            if (empty($user->last_name)) {
+                $user->last_name = $lastName ?: null;
+                $changes = true;
+            }
+            if (empty($user->profile_picture)) {
+                SiteHelper::DownloadGoogleProfile($user, $picture);
+            }
+            if ($changes) {
+                $user->save(false);
+            }
+        }
+
+
+        Yii::$app->user->login($user, 3600 * 24 * 30);
+        return $this->redirect(['folder/folders']);
     }
 }

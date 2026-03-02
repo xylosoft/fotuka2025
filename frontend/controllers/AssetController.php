@@ -18,6 +18,18 @@ class AssetController extends Controller
 {
     public $enableCsrfValidation = true;
 
+    public function behaviors()
+    {
+        return array_merge(parent::behaviors(), [
+            'verbs' => [
+                'class' => \yii\filters\VerbFilter::class,
+                'actions' => [
+                    'delete' => ['POST'],
+                ],
+            ],
+        ]);
+    }
+
     public function actionUpload(){
         Yii::$app->response->format = Response::FORMAT_JSON;
 
@@ -263,4 +275,54 @@ class AssetController extends Controller
             error_log($e->getMessage());
         }
     }
+
+    public function actionDelete()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        $userId = Yii::$app->user->id;
+
+        // Bulk delete: ids[] posted
+        $ids = Yii::$app->request->post('ids', null);
+
+        // Single delete fallback: id posted
+        if ($ids === null) {
+            $id = Yii::$app->request->post('id');
+            $ids = $id ? [$id] : [];
+        }
+
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+
+        if (empty($ids)) {
+            return ['ok' => false, 'message' => 'No asset ids provided.'];
+        }
+
+        $assets = Asset::find()
+            ->where(['id' => $ids, 'user_id' => $userId])
+            ->all();
+
+        if (empty($assets)) {
+            return ['ok' => false, 'message' => 'No matching assets found.'];
+        }
+
+        // Soft delete recommended
+        $deletedCount = 0;
+        foreach ($assets as $asset) {
+            $asset->status = Asset::STATUS_DELETED; // adjust constant to yours
+            if ($asset->save(false)) {
+                $deletedCount++;
+            }
+        }
+
+        return [
+            'ok' => true,
+            'deleted' => $deletedCount,
+            'requested' => count($ids),
+        ];
+    }
+
 }

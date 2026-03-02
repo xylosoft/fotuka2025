@@ -39,20 +39,36 @@ $user = Yii::$app->user->identity;
                 </div>
 
                 <div class="folder-actions">
-                    <i class="fa fa-ellipsis-v folder-menu-btn"></i>
-                    <div class="folder-dropdown-menu">
-                        <div class="menu-item folder-rename">
-                            <span class="menu-icon">✏️</span> Rename
-                        </div>
-                        <div class="menu-item folder-upload">
-                            <span class="menu-icon">📤</span> Upload
-                        </div>
-                        <div class="menu-separator"></div>
-                        <div class="menu-item folder-delete">
-                            <span class="menu-icon">🗑️</span> Delete
-                        </div>
+                    <button type="button" id="btnEnterSelection" class="action-btn">
+                        Select Assets
+                    </button>
+
+                    <div id="bulkActionBar" class="bulk-toolbar" style="display:none;">
+                        <button type="button" id="btnToggleSelectAll" class="action-btn">
+                            Select All
+                        </button>
+                        <button type="button" id="btnBulkDelete" class="action-btn" disabled>
+                            Delete
+                        </button>
+                        <button type="button" id="btnBulkShare" class="action-btn" disabled>
+                            Share
+                        </button>
+                        <button type="button" id="btnBulkDownload" class="action-btn" disabled>
+                            Download
+                        </button>
+                        <button type="button" id="btnCancelSelection" class="action-btn">
+                            Cancel
+                        </button>
                     </div>
+
+                    <i class="fa fa-ellipsis-v folder-menu-btn"></i>
+
+                    <div class="folder-dropdown-menu">
+                        ...
+                    </div>
+
                 </div>
+
             </div>
 
             <div id="folderview">
@@ -181,6 +197,7 @@ let pendingThumbPoller = null;
 let overallPct = 0;
 const assetCache = {};       // id -> json asset
 let assetMenuForId = null;
+let selectionMode = false;
 
 
 function getPendingAssetIds() {
@@ -224,15 +241,25 @@ function pollPendingThumbnails() {
             const $card = $('#asset_' + a.id);
             if (!$card.length) return;
 
-            const $content = $card.children('div').first();
-            $content.html(
-                '<img class="asset asset-clickable" src="' + a.thumbnail_url + '" width="250" height="220">'
-            );
-            $card.attr('data-thumb-state', 'ready');
-            $card.attr('data-thumb-url', a.thumbnail_url);
-            $card.attr('data-preview-url', a.preview_url);
-            $card.attr('data-thumb-state', 'ready');
+            const thumbUrl   = (a.thumbnail_url || '').toString().trim();
+            const previewUrl = (a.preview_url  || '').toString().trim();
+            const title = $card.find('.asset-title').text() || '';
+
+            $card
+                .attr('data-thumb-state', 'ready')
+                .attr('data-thumb-url', thumbUrl)
+                .attr('data-preview-url', previewUrl)
+                .html(
+                    '<label class="asset-select" title="Select">' +
+                    '<input type="checkbox" class="asset-select-box" value="' + a.id + '">' +
+                    '</label>' +
+                    '<div class="asset-thumb-wrap" style="width:250px;height:220px;display:flex;align-items:center;justify-content:center;">' +
+                    '<img class="asset asset-clickable" src="' + thumbUrl + '" width="250" height="220">' +
+                    '</div>' +
+                    '<span class="asset-title">' + title + '</span>'
+                );
         });
+
     });
 }
 
@@ -434,19 +461,28 @@ function renderAssets(assets, append = false) {
              $('#assetGrid').append(card);
         }else {
             const thumbUrl   = (asset.thumbnail_url || '').toString().trim();
-            const previewUrl = (asset.preview_url  || '').toString().trim(); // <-- snake_case
+            const previewUrl = (asset.preview_url  || '').toString().trim();
 
             card =
                 '<div class="asset-card" ' +
                 'data-asset-id="' + asset.id + '" ' +
+                'data-thumb-state="ready" ' +
                 'data-thumb-url="' + thumbUrl + '" ' +
-                'data-preview-url="' + previewUrl + '">' +   // <-- EXACT NAME
+                'data-preview-url="' + previewUrl + '">' +
+
+                // checkbox overlay (hidden unless selection mode is on)
+                '<label class="asset-select" title="Select">' +
+                '<input type="checkbox" class="asset-select-box" value="' + asset.id + '">' +
+                '</label>' +
+
                 '<div class="asset-thumb-wrap" style="width:250px;height:220px;display:flex;align-items:center;justify-content:center;">' +
                 '<img class="asset asset-clickable" src="' + thumbUrl + '" width="250" height="220">' +
                 '</div>' +
                 '<span class="asset-title">' + (asset.title || '') + '</span>' +
                 '</div>';
+
             $grid.append(card);
+
         }
     });
 
@@ -923,6 +959,58 @@ function fillAssetDetails(a) {
         $img.attr('src', previewUrl).show();
         $ph.hide();
     }
+}
+
+function getSelectableCheckboxes() {
+    // Only ready cards have checkboxes; this returns those present
+    return $('#assetGrid .asset-select-box');
+}
+
+function getSelectedAssetIds() {
+    return $('#assetGrid .asset-select-box:checked')
+        .map(function () { return parseInt($(this).val(), 10); })
+        .get()
+        .filter(id => !isNaN(id));
+}
+
+function updateBulkUI() {
+    const $boxes = getSelectableCheckboxes();
+    const total = $boxes.length;
+    const selected = getSelectedAssetIds().length;
+
+    $('#bulkSelectedCount').text(selected + ' selected');
+
+    const enabled = selected > 0;
+    $('#btnBulkDelete').prop('disabled', !enabled);
+    $('#btnBulkShare').prop('disabled', !enabled);
+    $('#btnBulkDownload').prop('disabled', !enabled);
+
+    // Toggle label
+    if (total > 0 && selected === total) {
+        $('#btnToggleSelectAll').text('Unselect All');
+    } else {
+        $('#btnToggleSelectAll').text('Select All');
+    }
+}
+
+function enterSelectionMode() {
+    selectionMode = true;
+    $('#rightPanel').addClass('selection-mode');
+    $('#btnEnterSelection').hide();
+    $('#bulkActionBar').show();
+    updateBulkUI();
+}
+
+function exitSelectionMode() {
+    selectionMode = false;
+    $('#rightPanel').removeClass('selection-mode');
+    $('#bulkActionBar').hide();
+    $('#btnEnterSelection').show();
+
+    // Clear selection visuals + checkboxes
+    $('#assetGrid .asset-select-box').prop('checked', false);
+    $('#assetGrid .asset-card').removeClass('is-selected');
+    updateBulkUI();
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -1541,6 +1629,17 @@ document.addEventListener('DOMContentLoaded', function () {
         e.stopPropagation();
 
         const $card = $(this).closest('.asset-card');
+
+        // If in selection mode, toggle checkbox instead of opening preview
+        if (selectionMode) {
+            const $cb = $card.find('.asset-select-box');
+            if ($cb.length) {
+                $cb.prop('checked', !$cb.prop('checked')).trigger('change');
+            }
+            return;
+        }
+
+        // FIX: this was broken in your current code (quote mismatch)
         const id = $card.data('asset-id');
 
         // Read preview url from DOM safely
@@ -1618,6 +1717,97 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Enter selection mode
+    $('#btnEnterSelection').on('click', function () {
+        enterSelectionMode();
+    });
+
+    // Cancel selection mode
+    $('#btnCancelSelection').on('click', function () {
+        exitSelectionMode();
+    });
+
+    // Select All / Unselect All toggle
+    $('#btnToggleSelectAll').on('click', function () {
+        const $boxes = getSelectableCheckboxes();
+        const total = $boxes.length;
+        const selected = $boxes.filter(':checked').length;
+
+        const shouldSelectAll = !(total > 0 && selected === total);
+        $boxes.prop('checked', shouldSelectAll).trigger('change');
+    });
+
+    // Keep card highlight in sync + bulk buttons enabled state
+    $('#assetGrid').on('change', '.asset-select-box', function () {
+        const $card = $(this).closest('.asset-card');
+        $card.toggleClass('is-selected', $(this).is(':checked'));
+        updateBulkUI();
+    });
+
+    // Prevent checkbox click from triggering preview click
+    $('#assetGrid').on('click', '.asset-select-box', function (e) {
+        e.stopPropagation();
+    });
+
+    // Optional: in selection mode, clicking the card toggles its checkbox
+    $('#assetGrid').on('click', '.asset-card', function (e) {
+        if (!selectionMode) return;
+        if ($(e.target).is('.asset-select-box')) return;
+
+        const $cb = $(this).find('.asset-select-box');
+        if ($cb.length) {
+            $cb.prop('checked', !$cb.prop('checked')).trigger('change');
+        }
+    });
+
+    // If you want ESC to cancel selection mode
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape' && selectionMode) {
+            exitSelectionMode();
+        }
+    });
+
+    $('#btnBulkDelete').on('click', function() {
+        const ids = getSelectedAssetIds();
+        if (!ids.length) return;
+
+        if (!confirm('Delete ' + ids.length + ' selected asset(s)?')) return;
+
+        $.ajax({
+            url: '/asset/delete',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                ids: ids,
+                _csrf: yii.getCsrfToken()
+            },
+            success: function(res) {
+                if (res && res.ok) {
+                    ids.forEach(function(id) {
+                        $('.asset-card[data-asset-id="' + id + '"]').remove();
+                    });
+
+                    $('#assetCount').text($('.asset-card').length);
+
+                    // After deleting, keep selection mode but update state
+                    updateBulkUI();
+
+                    // If nothing left selected, your action buttons auto-disable
+                    // Optionally exit selection mode if grid is empty
+                    if ($('.asset-card').length === 0) {
+                        exitSelectionMode();
+                        setEmptyStateVisible('assets', true);
+                    }
+                } else {
+                    showBanner((res && res.message) ? res.message : 'Bulk delete failed.', 'error');
+                }
+            },
+            error: function() {
+                showBanner('Server error while deleting assets.', 'error');
+            }
+        });
+    });
+    
     initInfiniteAssetScroll();
 });
 

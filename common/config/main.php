@@ -44,6 +44,7 @@ return [
                 '/folders' => 'folder/folders',
                 '/folder/<id:\d+>' => 'folder/folders',
                 '/asset/upload/<id:\d+>' => 'asset/upload',
+                '/folder/delete' => 'folder/delete',
 
                 // User Actions
                 'profile' => 'user/profile',

@@ -6,7 +6,6 @@ use yii\web\Controller;
 use yii\web\Response;
 use yii\filters\AccessControl;
 use yii\web\BadRequestHttpException;
-use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
 use common\classes\SiteHelper;
 use frontend\models\ProfileForm;

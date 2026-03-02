@@ -5,6 +5,7 @@ namespace common\classes;
 use Yii;
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
+use Aws\CloudFront\CloudFrontClient;
 
 class SiteHelper
 {

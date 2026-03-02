@@ -337,4 +337,9 @@ class SiteController extends Controller
         Yii::$app->user->login($user, 3600 * 24 * 30);
         return $this->redirect(['folder/folders']);
     }
+
+    public function actionOpenSource()
+    {
+        return $this->render('open-source');
+    }
 }

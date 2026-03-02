@@ -30,6 +30,7 @@ return [
                 '/request-password-reset' => 'site/request-password-reset',
                 '/reset-password' => 'site/reset-password',
                 '/resend-verification' => 'site/resend-verification-email',
+                '/legal/open-source' => 'site/open-source',
 
                 // Folder / Asset Actions
                 '/json/folders' => 'json/folders',

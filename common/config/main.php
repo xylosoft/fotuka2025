@@ -47,6 +47,9 @@ return [
                 '/asset/upload/<id:\d+>' => 'asset/upload',
                 '/folder/delete' => 'folder/delete',
 
+                // templates
+                '/templates/wedding' => 'site/wedding',
+
                 // User Actions
                 'profile' => 'user/profile',
 

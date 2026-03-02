@@ -342,4 +342,11 @@ class SiteController extends Controller
     {
         return $this->render('open-source');
     }
+
+    public function actionWedding()
+    {
+        $this->layout = false;
+        return $this->render('wedding');
+    }
+
 }

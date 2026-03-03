@@ -119,6 +119,36 @@ function showBanner(message, type = 'error') {
         .delay(3000) // visible for 4 seconds
         .fadeOut(600);
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const $menu = $('.user-dropdown-menu');
+    
+    // Hide dropdown when clicking anywhere else
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.user-menu-container').length) {
+            $menu.hide();
+        }
+    });
+
+    $('#menu-profile').on('click', function() {
+        window.location.href = '/profile';
+    });
+
+    $('#menu-settings').on('click', function() {
+        alert('Open Settings');
+    });
+
+    $('#menu-logout').on('click', function() {
+        window.location.href = '/logout';
+    });
+
+    // Toggle dropdown when clicking profile image
+    $('.user-profile').on('click', function(e) {
+        e.stopPropagation();
+        $menu.toggle();
+    });
+
+});
 </script>
 
 <?php $this->endBody() ?>

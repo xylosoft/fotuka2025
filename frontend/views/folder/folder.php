@@ -64,7 +64,16 @@ $user = Yii::$app->user->identity;
                     <i class="fa fa-ellipsis-v folder-menu-btn"></i>
 
                     <div class="folder-dropdown-menu">
-                        ...
+                        <div class="menu-item folder-rename">
+                            <span class="menu-icon">✏️</span> Rename
+                        </div>
+                        <div class="menu-item folder-upload">
+                            <span class="menu-icon">📤</span> Upload
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-item folder-delete">
+                            <span class="menu-icon">🗑️</span> Delete
+                        </div>
                     </div>
 
                 </div>
@@ -286,10 +295,12 @@ function loadFolder(folderId) {
         $('#dropZone').hide();
         $('#currentFolderName').text("Home");
         $('#subfolders').empty();
+        $('#btnEnterSelection').hide();
         selectHome();
         $('#folderview').show();
     }else{
         $('#folderview').hide();
+        $('#btnEnterSelection').show();
         var selected = tree.get_selected(true);
         $('#currentFolderName').text(selected[0].text);
         loadAssets(assetPagination.folderId, false, 0);
@@ -1015,7 +1026,6 @@ function exitSelectionMode() {
 
 document.addEventListener('DOMContentLoaded', function () {
     var $treeEl = $('#folderTree');
-    const $menu = $('.user-dropdown-menu');
     const $container = $('.user-menu-container');
     const dropZone = $('#dropZone');
     const progressBar = $('<div id="uploadProgress"><div></div></div>').appendTo(dropZone);
@@ -1025,36 +1035,6 @@ document.addEventListener('DOMContentLoaded', function () {
         folderSearchState.lastQuery = '';
         folderSearchState.matches = [];
         folderSearchState.index = -1;
-    });
-
-    // Toggle dropdown when clicking profile image
-    $('.user-profile').on('click', function(e) {
-        e.stopPropagation();
-        $menu.toggle();
-    });
-
-    // Hide dropdown when clicking anywhere else
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('.user-menu-container').length) {
-            $menu.hide();
-        }
-    });
-
-    // Hide dropdown when mouse leaves the menu area
-    $container.on('mouseleave', function() {
-        $menu.hide();
-    });
-
-    $('#menu-profile').on('click', function() {
-        window.location.href = '/profile';
-    });
-
-    $('#menu-settings').on('click', function() {
-        alert('Open Settings');
-    });
-
-    $('#menu-logout').on('click', function() {
-        alert('Log out');
     });
 
     $treeEl.jstree({
@@ -1083,10 +1063,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         label: '<span style="font-size:16px;padding-right:10px;">✏️</span> Rename',
                         action: function() { tree.edit(node); } // opens inline rename input
                     };
+                    <?php /*
                     menu.moveItem = {
                         label: '<span style="font-size:16px;padding-right:10px;">↷️</span> Move',
                         action: function() { javascript:void(0); }
-                    };
+                    };*/
+                    ?>
                     menu.deleteItem = {
                         label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Delete',
                         action: function() {

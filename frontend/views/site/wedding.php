@@ -737,4 +737,4 @@ $this->title = Html::encode($coupleNames . ' — Wedding Gallery');
 </script>
 
 </body>
-</html>A Celebration of Love
+</html>

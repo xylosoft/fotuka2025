@@ -53,6 +53,13 @@ return [
                 // User Actions
                 'profile' => 'user/profile',
 
+                //Google Import
+                'google-drive/start' => 'google-drive/start',
+                'google-drive/callback' => 'google-drive/callback',
+                'google-drive/status' => 'google-drive/status',
+                'google-drive/token' => 'google-drive/token',
+                'asset/import-google-drive' => 'google-drive/import-google-drive',
+
             ],
         ],
         'authClientCollection' => [

@@ -151,4 +151,8 @@ class SiteHelper
         ]);
     }
 
+    public static function uploadAsset(){
+
+    }
+
 }

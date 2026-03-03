@@ -10,6 +10,8 @@ if ($id == "null"){
     $id = null;
 }
 $user = Yii::$app->user->identity;
+$gdImport = (int)Yii::$app->request->get('gd_import', 0);
+$googleConnected = $user && $user->hasGoogleDriveConnected();
 ?>
 
 <div class="app split-layout" id="splitLayout">
@@ -186,6 +188,25 @@ $user = Yii::$app->user->identity;
     <div class="menu-item" data-action="share"><span class="menu-icon">🔗</span> Share</div>
 </div>
 
+<div id="gd-import-modal" style="display:none;">
+    <div class="gd-modal-body">
+        <div class="gd-row">
+            <div class="gd-title">Import from Google Drive</div>
+            <div class="gd-subtitle">Pick files or folders to import into Fotuka.</div>
+        </div>
+
+        <div class="gd-row gd-actions">
+            <button type="button" class="btn btn-primary" id="gd-btn-connect">Connect Google Drive</button>
+            <button type="button" class="btn btn-success" id="gd-btn-pick" disabled>Pick items</button>
+            <button type="button" class="btn btn-default" id="gd-btn-cancel">Cancel</button>
+        </div>
+
+        <div class="gd-row">
+            <div id="gd-status" class="gd-status"></div>
+        </div>
+    </div>
+</div>
+
 <script>
 const UPLOAD_BATCH_SIZE = 1;        // 1 = one file per request (recommended)
 const UPLOAD_CONCURRENCY = 2;       // how many requests at once (2 is a good start)
@@ -207,7 +228,7 @@ let overallPct = 0;
 const assetCache = {};       // id -> json asset
 let assetMenuForId = null;
 let selectionMode = false;
-
+const autoImport = <?= $gdImport ?>;
 
 function getPendingAssetIds() {
     return $('.asset-card[data-thumb-state="pending"]')
@@ -435,18 +456,16 @@ function loadAssets(folderId, showAll = false, offset = 0) {
             // Update state
             assetPagination.offset += response.assets.length;
 
-            if (response.assets.length === 0){
-                setEmptyStateVisible('assets', true);
-            }else{
-                setEmptyStateVisible('assets', false);
-            }
+            const hasAnyAssets = $('#assetGrid .asset-card').length > 0 || offset > 0;
+            setEmptyStateVisible('assets', !hasAnyAssets && response.assets.length === 0);
 
             // Detect end of list
             if (response.assets.length < assetPagination.limit || response.assets.length === 0 || showAll) {
                 assetPagination.allLoaded = true;
             }
         }else{
-            setEmptyStateVisible('assets', true);
+            const hasAnyAssets = $('#assetGrid .asset-card').length > 0 || offset > 0;
+            setEmptyStateVisible('assets', !hasAnyAssets);
         }
     });
 }
@@ -848,7 +867,9 @@ function getCookie(name) {
     return null;
 }
 
-function showUploadOverlay() {
+function showUploadOverlay(title) {
+    const t = title || "Upload Process...";
+    $('#uploadOverlay .upload-overlay-title').text(t);
     $('#uploadOverlay').show();
     updateUploadOverlay(0);
 }
@@ -879,7 +900,7 @@ function openAssetPreview(assetId, initialPreviewUrl) {
 
     // Make sure dialog markup exists
     if ($dlg.length === 0 || $img.length === 0 || $ph.length === 0) {
-        console.error('Missing preview markup: #asset-preview-dialog, #assetPreviewImg, #assetPreviewPlaceholder');
+        //console.error('Missing preview markup: #asset-preview-dialog, #assetPreviewImg, #assetPreviewPlaceholder');
         return;
     }
 
@@ -941,8 +962,6 @@ function setAssetDetailsError(msg) {
     $('#ad_imagetype').text('—');
     $('#ad_width').text('—');
     $('#ad_height').text('—');
-
-    console.error(msg);
 }
 
 
@@ -1024,6 +1043,312 @@ function exitSelectionMode() {
     updateBulkUI();
 }
 
+window.FotukaGoogleDrive = (function() {
+    let pickerApiLoaded = false;
+    let apiKey = "<?= Yii::$app->params['googleDrive']['apiKey'] ?>";
+    let clientId = "<?= Yii::$app->params['googleDrive']['clientId'] ?>";
+    let targetFolderId = null;
+    const IMPORT_BATCH_SIZE = 1;      // 1 = per-file UI updates (what you want)
+    const IMPORT_CONCURRENCY = 2;     // adjust as desired
+
+    function openImportModal(opts) {
+        targetFolderId = opts.targetFolderId;
+
+        // Use jQuery UI dialog if you're already using it
+        $("#gd-import-modal").dialog({
+            modal: true,
+            width: 520,
+            title: "Import from Google Drive",
+            close: function() {
+                $("#gd-status").text("");
+                $("#gd-btn-pick").prop("disabled", true);
+            }
+        });
+
+        $("#gd-status").text("Not connected.");
+        bindButtons();
+        checkSession();
+        loadPickerApi();
+    }
+
+    function bindButtons() {
+        $("#gd-btn-cancel").off("click").on("click", function() {
+            $("#gd-import-modal").dialog("close");
+        });
+
+        $("#gd-btn-connect").off("click").on("click", function() {
+            $("#gd-status").text("Redirecting to Google to connect…");
+            window.location.href = "/google-drive/start";
+        });
+
+        $("#gd-btn-pick").off("click").on("click", function() {
+
+            // Close the "Import from Google" dialog
+            $("#gd-import-modal").dialog("close");
+
+            // Open the Google Picker
+            createPicker();
+        });
+    }
+
+    function checkSession() {
+        $.getJSON("/google-drive/status", function(resp) {
+            if (resp.connected) {
+                // Hide connect button if connected
+                $("#gd-btn-connect").hide();
+
+                // Enable picker
+                $("#gd-btn-pick").prop("disabled", false).show();
+
+                let msg = resp.email
+                    ? "Connected as " + resp.email + ". Pick items to import."
+                    : "Connected. Pick items to import.";
+
+                $("#gd-status").text(msg);
+            } else {
+                // Show connect button if not connected
+                $("#gd-btn-connect").show();
+
+                $("#gd-btn-pick").prop("disabled", true).show();
+
+                $("#gd-status").text("Not connected. Click “Connect Google Drive”.");
+            }
+        });
+    }
+
+    function loadPickerApi() {
+        if (pickerApiLoaded) return;
+
+        // Load the Google APIs JS (Picker uses this)
+        if (!document.getElementById("google-api-js")) {
+            let s = document.createElement("script");
+            s.id = "google-api-js";
+            s.src = "https://apis.google.com/js/api.js";
+            s.onload = function() {
+                gapi.load("picker", { callback: function() { pickerApiLoaded = true; }});
+            };
+            document.head.appendChild(s);
+        } else {
+            gapi.load("picker", { callback: function() { pickerApiLoaded = true; }});
+        }
+    }
+
+    function createPicker() {
+        if (!pickerApiLoaded) {
+            $("#gd-status").text("Picker is still loading… try again in a second.");
+            return;
+        }
+
+        $("#gd-status").text("Requesting access token…");
+
+        // IMPORTANT: token must come from your backend (OAuth flow).
+        // We'll fetch a short-lived access token from your server.
+        $.getJSON("/google-drive/token", function(resp) {
+            if (!resp.ok) {
+                $("#gd-status").text("Not connected. Click “Connect Google Drive”.");
+                $("#gd-btn-pick").prop("disabled", true);
+                return;
+            }
+
+            let accessToken = resp.accessToken;
+
+            let view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+                .setIncludeFolders(true)
+                .setSelectFolderEnabled(true);
+
+            let picker = new google.picker.PickerBuilder()
+                .setAppId(resp.projectNumber || "") // optional
+                .setOAuthToken(accessToken)
+                .setDeveloperKey(apiKey)
+                .addView(view)
+                .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+                .setCallback(pickerCallback)
+                .build();
+
+            picker.setVisible(true);
+            $("#gd-status").text("Picker opened.");
+        }).fail(function() {
+            $("#gd-status").text("Failed to fetch token from server.");
+        });
+    }
+
+    function pickerCallback(data) {
+        if (data.action === google.picker.Action.CANCEL) {
+            showBanner("Your Google Drive import has been canceled", "error");
+            return;
+        }
+
+        if (data.action !== google.picker.Action.PICKED) return;
+
+        let items = (data.docs || []).map(function(d) {
+            return {
+                id: d.id,
+                name: d.name || "",
+                mimeType: d.mimeType || ""
+            };
+        });
+
+        if (!items.length) {
+            showBanner("Your Google Drive import has been canceled", "error");
+            return;
+        }
+
+        // ✅ incremental importing with overlay + per-file UI updates
+        importItems(items).catch(function(err) {
+            showBanner(err && err.message ? err.message : "Google Drive import failed.", "error");
+        });
+    }
+
+    function autoPickIfConnected() {
+        $.getJSON("/google-drive/status", function(resp) {
+            if (!resp.connected) {
+                // Not connected - show connect button and stop
+                $("#gd-btn-connect").show();
+                $("#gd-btn-pick").prop("disabled", true);
+                $("#gd-status").text("Not connected. Click “Connect Google Drive”.");
+                return;
+            }
+
+            // Connected: hide connect, enable pick
+            $("#gd-btn-connect").hide();
+            $("#gd-btn-pick").prop("disabled", false);
+            $("#gd-status").text("Connected. Opening picker…");
+
+            // Ensure picker API loaded, then open picker
+            // If your module uses loadPickerApi(), call it here too.
+            loadPickerApi();
+
+            // Poll until picker is loaded
+            let tries = 0;
+            let t = setInterval(function() {
+                tries++;
+                if (pickerApiLoaded) {
+                    clearInterval(t);
+                    createPicker();
+                } else if (tries > 20) {
+                    clearInterval(t);
+                    $("#gd-status").text("Picker failed to load. Please click “Pick items”.");
+                }
+            }, 200);
+        });
+    }
+
+    function openPicker(opts) {
+        targetFolderId = opts.targetFolderId;
+
+        loadPickerApi();
+
+        let tries = 0;
+        let t = setInterval(function() {
+            tries++;
+            if (pickerApiLoaded) {
+                clearInterval(t);
+                createPicker();
+            } else if (tries > 20) {
+                clearInterval(t);
+                showBanner("Google Picker failed to load. Please try again.", "error");
+            }
+        }, 200);
+    }
+
+    async function importItems(items) {
+        if (!targetFolderId) {
+            showBanner("Import failed: target folder is missing.", "error");
+            return;
+        }
+
+        showUploadOverlay("Importing from Google Drive...");
+
+        let completed = 0;
+        const total = items.length;
+
+        // Make batches (size 1 => per-file)
+        const batches = [];
+        for (let i = 0; i < items.length; i += IMPORT_BATCH_SIZE) {
+            batches.push(items.slice(i, i + IMPORT_BATCH_SIZE));
+        }
+
+        const importBatch = (batch) => {
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    url: "/asset/import-google-drive",
+                    method: "POST",
+                    dataType: "json",
+                    data: {
+                        targetFolderId: targetFolderId,
+                        items: batch,
+                        _csrf: yii.getCsrfToken()
+                    },
+                    success: function(resp) {
+                        if (!resp || resp.ok !== true) {
+                            reject(new Error((resp && resp.error) || "Import failed"));
+                            return;
+                        }
+                        resolve(resp);
+                    },
+                    error: function(xhr) {
+                        reject(new Error("Import request failed: HTTP " + xhr.status));
+                    }
+                });
+        });
+        };
+
+        const worker = async () => {
+            while (batches.length) {
+                const batch = batches.shift();
+                if (!batch) return;
+
+                const resp = await importBatch(batch);
+
+                // Update counters + overlay progress
+                completed += batch.length;
+                const pct = Math.round((completed / total) * 100);
+                updateUploadOverlay(pct);
+
+                // Render processing cards as soon as each batch is done
+                if (resp.assets && resp.assets.length) {
+
+                    // If backend sends rootImportFolderId + folder_id per asset,
+                    // only render assets that belong to the root imported folder.
+                    let renderable = resp.assets;
+
+                    if (resp.rootImportFolderId) {
+                        renderable = renderable.filter(function(a) {
+                            return String(a.folder_id) === String(resp.rootImportFolderId);
+                        });
+                    }
+
+                    if (renderable.length) {
+                        renderAssets(renderable, true);
+                        startPendingThumbnailPolling();
+                        setEmptyStateVisible('assets', false);
+                    }
+                }
+            }
+        };
+
+        try {
+            const n = Math.max(1, IMPORT_CONCURRENCY);
+            const workers = [];
+            for (let i = 0; i < n; i++) workers.push(worker());
+            await Promise.all(workers);
+
+            updateUploadOverlay(100);
+            hideUploadOverlay();
+
+            showBanner("Google Drive completed for " + total + " file" + (total>1?"s":"") + ".", "success");
+
+            // Optional: refresh tree if importing created folders
+            const tree = $('#folderTree').jstree(true);
+            tree.refresh();
+        } finally {
+            hideUploadOverlay();
+        }
+    }
+
+    return { openImportModal, autoPickIfConnected, openPicker };https
+})();
+
 document.addEventListener('DOMContentLoaded', function () {
     var $treeEl = $('#folderTree');
     const $container = $('.user-menu-container');
@@ -1073,6 +1398,33 @@ document.addEventListener('DOMContentLoaded', function () {
                         label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Delete',
                         action: function() {
                             deleteFolder(node.id);
+                        }
+                    };
+                    menu.googleImport = {
+                        label: '<span style="font-size:16px;padding-right:10px;"><img src="/images/googledrive.png" width="20"></span> Import from Google Drive',
+                        action: function() {
+
+                            <?php if ($googleConnected): ?>
+
+                            // User already authorized → open picker directly
+                            FotukaGoogleDrive.openPicker({
+                                targetFolderId: window.selectedFolderId
+                            });
+
+                            <?php else: ?>
+
+                            // Not authorized → show connect dialog
+                            FotukaGoogleDrive.openImportModal({
+                                targetFolderId: window.selectedFolderId
+                            });
+
+                            <?php endif; ?>
+
+                        }
+                    };                    menu.dropboxImport = {
+                        label: '<span style="font-size:16px;padding-right:10px;"></span> Import from Dropbox',
+                        action: function() {
+                            // To be implemented
                         }
                     };
                 };
@@ -1789,7 +2141,19 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
-    
+
+    if (autoImport === 1) {
+        // Remove the query param so refresh/back doesn't re-trigger the auto popup
+        history.replaceState({}, document.title, window.location.pathname);
+
+        // Open the import modal
+        FotukaGoogleDrive.openImportModal({ targetFolderId: CURRENT_FOLDER_ID });
+
+        // Auto-open picker once status says connected
+        setTimeout(function() {
+            FotukaGoogleDrive.autoPickIfConnected();
+        }, 500);
+    }
     initInfiniteAssetScroll();
 });
 

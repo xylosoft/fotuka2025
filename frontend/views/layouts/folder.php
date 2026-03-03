@@ -122,7 +122,7 @@ function showBanner(message, type = 'error') {
 
 document.addEventListener('DOMContentLoaded', function () {
     const $menu = $('.user-dropdown-menu');
-    
+
     // Hide dropdown when clicking anywhere else
     $(document).on('click', function(e) {
         if (!$(e.target).closest('.user-menu-container').length) {

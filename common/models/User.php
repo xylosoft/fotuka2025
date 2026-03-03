@@ -240,4 +240,57 @@ class User extends ActiveRecord implements IdentityInterface
     {
         $this->password_reset_token = null;
     }
+
+    // Google Drive Integration
+    public function setGoogleAccessToken(?string $token): void
+    {
+        $this->google_access_token_enc = $token ? $this->encrypt($token) : null;
+    }
+
+    public function getGoogleAccessToken(): ?string
+    {
+        return $this->google_access_token_enc ? $this->decrypt($this->google_access_token_enc) : null;
+    }
+
+    public function setGoogleRefreshToken(?string $token): void
+    {
+        $this->google_refresh_token_enc = $token ? $this->encrypt($token) : null;
+    }
+
+    public function getGoogleRefreshToken(): ?string
+    {
+        return $this->google_refresh_token_enc ? $this->decrypt($this->google_refresh_token_enc) : null;
+    }
+
+    public function hasGoogleDriveConnected(): bool
+    {
+        return !empty($this->getGoogleRefreshToken()) || (!empty($this->getGoogleAccessToken()) && !$this->isGoogleAccessTokenExpired());
+    }
+
+    public function isGoogleAccessTokenExpired(int $skewSeconds = 60): bool
+    {
+        if (empty($this->google_token_expires_at)) return true;
+        return (time() + $skewSeconds) >= (int)$this->google_token_expires_at;
+    }
+
+    private function encrypt(string $plain): string
+    {
+        $key = Yii::$app->params['googleDrive']['tokenEncryptKey'] ?? null;
+
+        if (!$key) {
+            throw new \RuntimeException('Google token encryption key is not configured.');
+        }
+
+        $cipher = Yii::$app->security->encryptByKey($plain, $key);
+        return base64_encode($cipher);
+    }
+
+    private function decrypt(string $enc): string
+    {
+        $key = Yii::$app->params['googleDrive']['tokenEncryptKey'];
+        $cipher = base64_decode($enc, true);
+        if ($cipher === false) return null;
+        $plain = Yii::$app->security->decryptByKey($cipher, $key);
+        return $plain === false ? null : $plain;
+    }
 }

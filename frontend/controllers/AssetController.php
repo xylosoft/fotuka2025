@@ -14,6 +14,7 @@ use Aws\S3\S3Client;
 use Aws\Sqs\SqsClient;
 use Aws\Exception\AwsException;
 
+
 class AssetController extends Controller
 {
     public $enableCsrfValidation = true;
@@ -77,7 +78,7 @@ class AssetController extends Controller
         foreach ($files as $index => $uploadedFile) {
             // Ignore .DS_Store files
             if ($uploadedFile->name == ".DS_Store"){
-                error_log("Skipping...");
+                error_log("Skipping .DS_Store file.");
                 continue;
             }
             $relativePath = $paths[$index] ?? $uploadedFile->name;
@@ -90,7 +91,7 @@ class AssetController extends Controller
 
             $folderPath = trim(dirname($relativePath), '/');
             error_log("Folder Path: $folderPath");
-            $uploadFolderId = $this->ensureFolderPath($customerId, $userId, $folderId, $folderPath);
+            $uploadFolderId = AssetController::ensureFolderPath($customerId, $userId, $folderId, $folderPath);
 
             error_log("Original Filename: {$uploadedFile->baseName}");
             error_log("Original Extension: {$uploadedFile->extension}");
@@ -102,6 +103,7 @@ class AssetController extends Controller
             error_log("Target File: {$targetFile}");
 
             if ($uploadedFile->saveAs($targetFile)) {
+
                 $uploaded++;
                 $fileSize = $uploadedFile->size;
 
@@ -238,7 +240,7 @@ class AssetController extends Controller
         return ['ok' => true, 'uploaded' => $uploaded, 'assets' => $assets,];
     }
 
-    private function ensureFolderPath($customerId, $userId, $folderId, $path){
+    public static function ensureFolderPath($customerId, $userId, $folderId, $path){
         try {
             error_log("Insside ensureFolderPath");
             if ($path == ".") {
@@ -252,7 +254,7 @@ class AssetController extends Controller
 
             foreach ($parts as $part) {
                 error_log("Processing folder: $part - Parent: $parentId - Name: $part");
-                $folder = Folder::findOne(['parent_id' => $parentId, 'name' => $part]);
+                $folder = Folder::findOne(['parent_id' => $parentId, 'name' => $part, 'status' => 'active']);
                 if (!$folder) {
                     error_log("Creating folder: $part as child of $parentId");
                     $folder = new Folder([

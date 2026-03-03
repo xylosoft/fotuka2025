@@ -307,6 +307,10 @@ header > div:last-child {
     background: #E5E7EB;
 }
 
+.dropdown-menu img[src*="googledrive"] {
+    background: transparent !important;
+}
+
 .menu-icon {
     width: 18px;
     text-align: center;
@@ -1443,3 +1447,9 @@ a {
     outline-offset: 2px;
     border-radius: 12px;
 }
+
+.gd-modal-body { padding: 16px; min-width: 380px; }
+.gd-title { font-size: 18px; font-weight: 600; }
+.gd-subtitle { margin-top: 4px; color: #666; }
+.gd-actions { margin-top: 14px; display: flex; gap: 10px; }
+.gd-status { margin-top: 12px; font-size: 13px; color: #333; }

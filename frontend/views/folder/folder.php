@@ -134,6 +134,17 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
 </div>
 <!-- Asset Preview Dialog -->
 <div id="asset-preview-dialog" title="Preview" style="display:none;">
+    <div class="asset-preview-topbar">
+        <div class="asset-preview-topbar-left">
+            <div class="asset-preview-topbar-title">Asset Details</div>
+        </div>
+        <div class="asset-preview-topbar-actions">
+            <button type="button" class="asset-nav-btn" id="adPrev">← Prev</button>
+            <button type="button" class="asset-nav-btn" id="adNext">Next →</button>
+            <button type="button" class="asset-nav-btn" id="adClose">✕ Close</button>
+        </div>
+    </div>
+
     <div class="asset-preview-layout">
         <div class="asset-preview-media">
 
@@ -174,6 +185,23 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
             <div class="asset-details-row">
                 <div class="k">Height</div>
                 <div class="v" id="ad_height">—</div>
+            </div>
+            <div class="asset-details-row tags-row">
+                <div class="k">
+                    <strong>Tags</strong>
+                    <button type="button" class="asset-nav-btn" id="btnShowAddTag">+ Add</button>
+
+                    <!-- move add UI here so it appears right under + Add -->
+                    <div id="ad_tag_add" class="tag-add-row">
+                        <input type="text" id="ad_tag_input" class="tag-input" placeholder="Type tag">
+                        <button type="button" class="asset-nav-btn" id="btnSaveTag">Save</button>
+                        <button type="button" class="asset-nav-btn" id="btnCancelTag">Cancel</button>
+                    </div>
+                </div>
+
+                <div class="v">
+                    <div id="ad_tags" class="tag-list"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -229,6 +257,47 @@ const assetCache = {};       // id -> json asset
 let assetMenuForId = null;
 let selectionMode = false;
 const autoImport = <?= $gdImport ?>;
+let currentPreviewAssetId = null;
+
+function getAssetOrder() {
+    return $('#assetGrid .asset-card[data-asset-id]')
+        .map(function () { return parseInt($(this).attr('data-asset-id'), 10); })
+        .get()
+        .filter(id => !isNaN(id));
+}
+
+function getCardPreviewUrl(assetId) {
+    const $card = $('#assetGrid .asset-card[data-asset-id="' + assetId + '"]');
+    if (!$card.length) return '';
+    return (($card.attr('data-preview-url') || '') + '').trim();
+}
+
+function updateDialogNavButtons() {
+    const order = getAssetOrder();
+    const idx = order.indexOf(currentPreviewAssetId);
+
+    const enabled = (idx !== -1 && order.length > 1);
+    $('#adPrev').prop('disabled', !enabled);
+    $('#adNext').prop('disabled', !enabled);
+}
+
+function goDialogPrev() {
+    const order = getAssetOrder();
+    const idx = order.indexOf(currentPreviewAssetId);
+    if (idx === -1 || order.length < 2) return;
+
+    const prevId = order[(idx - 1 + order.length) % order.length];
+    openAssetPreview(prevId, getCardPreviewUrl(prevId));
+}
+
+function goDialogNext() {
+    const order = getAssetOrder();
+    const idx = order.indexOf(currentPreviewAssetId);
+    if (idx === -1 || order.length < 2) return;
+
+    const nextId = order[(idx + 1) % order.length];
+    openAssetPreview(nextId, getCardPreviewUrl(nextId));
+}
 
 function getPendingAssetIds() {
     return $('.asset-card[data-thumb-state="pending"]')
@@ -932,8 +1001,43 @@ function formatBytes(bytes) {
     return (n / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
 }
 
+function renderTags(tags) {
+    const $wrap = $('#ad_tags');
+    $wrap.empty();
+
+    if (!tags || !tags.length) {
+        $wrap.append('<div style="color:#6B7280;font-size:12px;">No tags</div>');
+        return;
+    }
+
+    tags.forEach(t => {
+        const id = t.id;              // asset_labels.id
+    const name = (t.name || '').toString();
+
+    const chip =
+        '<span class="tag-chip" data-asset-label-id="' + id + '">' +
+        '<span class="tag-name">' + escapeHtml(name) + '</span>' +
+        '<div class="tag-trash" title="Remove tag">&#x2612;</div>' +
+        '</span>';
+
+    $wrap.append(chip);
+});
+}
+
+function escapeHtml(s) {
+    return (s || '').toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function openAssetPreview(assetId, initialPreviewUrl) {
     if (!assetId) return;
+
+    currentPreviewAssetId = parseInt(assetId, 10);
+    updateDialogNavButtons();
 
     const $dlg = $('#asset-preview-dialog');
     const $img = $('#assetPreviewImg');
@@ -993,6 +1097,7 @@ function setAssetDetailsLoading() {
     $('#ad_imagetype').text('Loading...');
     $('#ad_width').text('Loading...');
     $('#ad_height').text('Loading...');
+    $('#ad_tags').empty().append('<div style="color:#6B7280;font-size:12px;">Loading...</div>');
 }
 
 function setAssetDetailsError(msg) {
@@ -1003,6 +1108,7 @@ function setAssetDetailsError(msg) {
     $('#ad_imagetype').text('—');
     $('#ad_width').text('—');
     $('#ad_height').text('—');
+    $('#ad_tags').empty().append('<div style="color:#6B7280;font-size:12px;">—</div>');
 }
 
 
@@ -1030,6 +1136,9 @@ function fillAssetDetails(a) {
         $img.attr('src', previewUrl).show();
         $ph.hide();
     }
+
+    renderTags(a.tags || []);
+    updateDialogNavButtons();
 }
 
 function getSelectableCheckboxes() {
@@ -1082,6 +1191,49 @@ function exitSelectionMode() {
     $('#assetGrid .asset-select-box').prop('checked', false);
     $('#assetGrid .asset-card').removeClass('is-selected');
     updateBulkUI();
+}
+
+function hideAddTagRow() {
+    $('#ad_tag_add').removeClass('is-open');
+    $('#ad_tag_input').val('');
+}
+
+function createTagForCurrentAsset() {
+    const name = ($('#ad_tag_input').val() || '').trim();
+    if (!name) return;
+
+    const payload = {
+        asset_id: currentPreviewAssetId,
+        name: name
+    };
+
+    $.ajax({
+        url: '/asset/createtag',
+        type: 'POST',
+        dataType: 'json',
+        data: payload,
+        success: function (res) {
+            if (!res || !res.ok || !res.tag) {
+                showBanner((res && res.message) ? res.message : 'Unable to create tag', 'error');
+                return;
+            }
+
+            hideAddTagRow();
+
+            // Update cache + UI
+            if (!assetCache[currentPreviewAssetId]) assetCache[currentPreviewAssetId] = {};
+            if (!assetCache[currentPreviewAssetId].tags) assetCache[currentPreviewAssetId].tags = [];
+
+            // Avoid duplicates in cache
+            const exists = assetCache[currentPreviewAssetId].tags.some(t => parseInt(t.id, 10) === parseInt(res.tag.id, 10));
+            if (!exists) assetCache[currentPreviewAssetId].tags.push(res.tag);
+
+            renderTags(assetCache[currentPreviewAssetId].tags);
+        },
+        error: function () {
+            showBanner('Server error creating tag', 'error');
+        }
+    });
 }
 
 window.FotukaGoogleDrive = (function() {
@@ -2218,6 +2370,87 @@ document.addEventListener('DOMContentLoaded', function () {
             FotukaGoogleDrive.autoPickIfConnected();
         }, 500);
     }
+
+    $('#adClose').on('click', function () {
+        $('#asset-preview-dialog').dialog('close');
+    });
+
+    $('#adPrev').on('click', function () { goDialogPrev(); });
+    $('#adNext').on('click', function () { goDialogNext(); });
+
+    // keyboard nav when dialog is open
+    $(document).on('keydown', function (e) {
+        if (!$('#asset-preview-dialog').dialog('isOpen')) return;
+
+        if (e.key === 'Escape') $('#asset-preview-dialog').dialog('close');
+        if (e.key === 'ArrowLeft') goDialogPrev();
+        if (e.key === 'ArrowRight') goDialogNext();
+    });
+
+    $('#asset-preview-dialog').on('click', '.tag-trash', function () {
+        const $chip = $(this).closest('.tag-chip');
+        const assetLabelId = parseInt($chip.attr('data-asset-label-id'), 10);
+        if (!assetLabelId) return;
+
+        $.ajax({
+            url: '/asset/deletetag/' + assetLabelId,
+            type: 'POST',
+            dataType: 'json',
+            success: function (res) {
+                if (!res || !res.ok) {
+                    showBanner((res && res.message) ? res.message : 'Unable to delete tag', 'error');
+                    return;
+                }
+
+                // Remove from UI
+                $chip.remove();
+
+                // Keep cache in sync if present
+                if (assetCache[currentPreviewAssetId] && assetCache[currentPreviewAssetId].tags) {
+                    assetCache[currentPreviewAssetId].tags =
+                        assetCache[currentPreviewAssetId].tags.filter(t => parseInt(t.id, 10) !== assetLabelId);
+                    renderTags(assetCache[currentPreviewAssetId].tags);
+                }
+            },
+            error: function () {
+                showBanner('Server error deleting tag', 'error');
+            }
+        });
+    });
+
+
+    jQuery(document).on('click', '#btnShowAddTag', function (e) {
+        e.preventDefault();
+        console.log('Add clicked');
+        const row = jQuery('#ad_tag_add');
+        console.log(row);
+        console.log(jQuery('#ad_tag_input'));
+
+        if (row.length) {
+            row.addClass('is-open');
+            jQuery('#ad_tag_input').focus();
+        }
+    });
+
+
+
+    $(document).on('click', '#btnCancelTag', function (e) {
+        e.preventDefault();
+        $('#ad_tag_add').removeClass('is-open');
+        $('#ad_tag_input').val('');
+    });
+
+    $('#btnSaveTag').on('click', function () {
+        createTagForCurrentAsset();
+    });
+
+    $('#ad_tag_input').on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            createTagForCurrentAsset();
+        }
+    });
+
     initInfiniteAssetScroll();
 });
 

@@ -7,7 +7,8 @@ use yii\web\Controller;
 use yii\web\Response;
 use common\models\Folder;
 use common\models\Asset;
-use yii\web\NotFoundHttpException;
+use common\models\AssetLabel;
+use common\models\Label;
 
 class JsonController extends Controller{
 
@@ -197,7 +198,7 @@ class JsonController extends Controller{
         }
 
         // IMPORTANT: adjust this query to your schema
-        $asset = \common\models\Asset::find()
+        $asset = Asset::find()
             ->where(['id' => $id, 'customer_id' => $user = \Yii::$app->user->identity->customer_id])
             ->one();
 
@@ -205,6 +206,20 @@ class JsonController extends Controller{
             return ['ok' => false, 'message' => 'Asset not found'];
         }
 
+        $tags = (new \yii\db\Query())
+            ->from('asset_labels al')
+            ->innerJoin('labels l', 'l.id = al.label_id')
+            ->select([
+                'id' => 'al.id',
+                'name' => 'l.name',
+                'confidence' => 'al.confidence',
+            ])
+            ->where([
+                'al.customer_id' => $asset->customer_id,
+                'al.asset_id' => (int)$asset->id,
+            ])
+            ->orderBy(['l.name' => SORT_ASC])
+            ->all();
         // You can return hard-coded values for now if fields don’t exist yet.
         return [
             'ok' => true,
@@ -229,6 +244,9 @@ class JsonController extends Controller{
 
                 // Optional: a real download url route you implement
                 'download_url' => '/asset/download/' . $asset->id,
+
+                // tags
+                'tags' => $tags,
             ]
         ];
     }

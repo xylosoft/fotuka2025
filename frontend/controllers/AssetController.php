@@ -10,6 +10,8 @@ use yii\helpers\FileHelper;
 use common\models\Asset;
 use common\models\File;
 use common\models\Folder;
+use common\models\AssetLabel;
+use common\models\Label;
 use Aws\S3\S3Client;
 use Aws\Sqs\SqsClient;
 use Aws\Exception\AwsException;
@@ -276,42 +278,50 @@ class AssetController extends Controller
     {
         Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 
-        $userId = Yii::$app->user->id;
-
-        // Bulk delete: ids[] posted
-        $ids = Yii::$app->request->post('ids', null);
-
-        // Single delete fallback: id posted
-        if ($ids === null) {
-            $id = Yii::$app->request->post('id');
-            $ids = $id ? [$id] : [];
-        }
-
-        if (!is_array($ids)) {
-            $ids = [$ids];
-        }
-
-        $ids = array_values(array_filter(array_map('intval', $ids)));
-
-        if (empty($ids)) {
-            return ['ok' => false, 'message' => 'No asset ids provided.'];
-        }
-
-        $assets = Asset::find()
-            ->where(['id' => $ids, 'user_id' => $userId])
-            ->all();
-
-        if (empty($assets)) {
-            return ['ok' => false, 'message' => 'No matching assets found.'];
-        }
-
-        // Soft delete recommended
         $deletedCount = 0;
-        foreach ($assets as $asset) {
-            $asset->status = Asset::STATUS_DELETED; // adjust constant to yours
-            if ($asset->save(false)) {
-                $deletedCount++;
+        $ids = array();
+
+        try{
+            $userId = Yii::$app->user->id;
+
+            // Bulk delete: ids[] posted
+            $ids = Yii::$app->request->post('ids', null);
+
+            // Single delete fallback: id posted
+            if ($ids === null) {
+                $id = Yii::$app->request->post('id');
+                $ids = $id ? [$id] : [];
             }
+
+            if (!is_array($ids)) {
+                $ids = [$ids];
+            }
+
+            $ids = array_values(array_filter(array_map('intval', $ids)));
+
+            if (empty($ids)) {
+                return ['ok' => false, 'message' => 'No asset ids provided.'];
+            }
+
+            $assets = Asset::find()
+                ->where(['id' => $ids, 'user_id' => $userId])
+                ->all();
+
+            if (empty($assets)) {
+                return ['ok' => false, 'message' => 'No matching assets found.'];
+            }
+
+            // Soft delete recommended
+
+            foreach ($assets as $asset) {
+                $asset->status = Asset::STATUS_DELETED; // adjust constant to yours
+                if ($asset->save(false)) {
+                    $deletedCount++;
+                }
+            }
+        }catch (\Exception $e){
+            error_log($e->getMessage());
+            error_log($e->getTraceAsString());
         }
 
         return [
@@ -321,4 +331,94 @@ class AssetController extends Controller
         ];
     }
 
+    public function actionDeleteTag($id)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $id = (int)$id;
+        if (!$id) {
+            throw new BadRequestHttpException('Missing id');
+        }
+
+        //$customerId = (int)Yii::$app->user->identity->customer_id;
+
+        $row = AssetLabel::find()
+            ->where(['id' => $id])
+            ->one();
+
+        if (!$row) {
+            return ['ok' => false, 'message' => 'Tag not found'];
+        }
+
+        // Optional: enforce ownership by checking the asset exists for this customer (extra safety)
+        // if ($row->asset && (int)$row->asset->customer_id !== $customerId) throw new ForbiddenHttpException();
+
+        $row->delete();
+
+        return ['ok' => true];
+    }
+
+
+    public function actionCreateTag()
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $assetId = (int)Yii::$app->request->post('asset_id');
+        $name = trim((string)Yii::$app->request->post('name'));
+
+        if (!$assetId || $name === '') {
+            throw new BadRequestHttpException('Missing asset_id or name');
+        }
+
+        $name = mb_strtolower($name);
+        $customerId = (int)Yii::$app->user->identity->customer_id;
+
+        // Ensure asset belongs to this customer
+        $asset = Asset::find()
+            ->where(['id' => $assetId, 'customer_id' => $customerId])
+            ->one();
+
+        if (!$asset) {
+            return ['ok' => false, 'message' => 'Asset not found'];
+        }
+
+        // Find or create label
+        $label = Label::find()->where(['name' => $name])->one();
+        if (!$label) {
+            $label = new Label();
+            $label->name = $name;
+            if (!$label->save()) {
+                return ['ok' => false, 'message' => 'Unable to create label', 'errors' => $label->errors];
+            }
+        }
+
+        // Find or create asset label
+        $assetLabel = AssetLabel::find()
+            ->where([
+                'customer_id' => $customerId,
+                'asset_id' => $assetId,
+                'label_id' => (int)$label->id,
+            ])
+            ->one();
+
+        if (!$assetLabel) {
+            $assetLabel = new AssetLabel();
+            $assetLabel->customer_id = $customerId;
+            $assetLabel->asset_id = $assetId;
+            $assetLabel->label_id = (int)$label->id;
+            $assetLabel->confidence = null; // user-created tag
+            if (!$assetLabel->save()) {
+                return ['ok' => false, 'message' => 'Unable to create tag', 'errors' => $assetLabel->errors];
+            }
+        }
+
+        return [
+            'ok' => true,
+            'tag' => [
+                'id' => (int)$assetLabel->id,   // IMPORTANT: asset_labels.id for delete
+                'name' => $label->name,
+                'confidence' => $assetLabel->confidence,
+            ],
+        ];
+    }
 }

@@ -47,6 +47,10 @@ return [
                 '/asset/upload/<id:\d+>' => 'asset/upload',
                 '/folder/delete' => 'folder/delete',
 
+                //Asset Actions
+                '/asset/deletetag/<id:\d+>' => 'asset/delete-tag',
+                '/asset/createtag/' => 'asset/create-tag',
+
                 // templates
                 '/templates/wedding' => 'site/wedding',
 

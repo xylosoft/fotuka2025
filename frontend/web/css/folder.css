@@ -1462,3 +1462,193 @@ a {
 .gd-subtitle { margin-top: 4px; color: #666; }
 .gd-actions { margin-top: 14px; display: flex; gap: 10px; }
 .gd-status { margin-top: 12px; font-size: 13px; color: #333; }
+
+ /* Hide jQuery UI title bar so our custom topbar is used */
+ .ui-dialog .ui-dialog-titlebar { display: none; }
+
+/* Top bar like wedding template buttons */
+.asset-preview-topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.10);
+    background: rgba(255,255,255,0.92);
+}
+
+.asset-preview-topbar-title{
+    font-weight: 800;
+    font-size: 14px;
+    color: #111827;
+}
+
+.asset-preview-topbar-actions{
+    display:flex;
+    gap: 8px;
+    align-items:center;
+}
+
+/* EXACT wedding button styles applied to dialog buttons */
+.asset-nav-btn{
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(15,23,42,0.18);
+    background: rgba(255,255,255,0.90);
+    cursor:pointer;
+    font-weight: 900;
+    font-size: 12px;
+    color:#334155;
+
+    /* Important for consistent look */
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+
+    outline: none;
+}
+
+.asset-nav-btn:hover{ background: rgba(255,255,255,1); }
+.asset-nav-btn:disabled{ opacity:0.5; cursor:default; }
+
+
+/* Remove ugly focus ring */
+.asset-nav-btn:focus,
+.asset-nav-btn:focus-visible{
+    outline:none;
+    box-shadow:none;
+}
+
+.tag-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top: 6px;
+}
+
+/* Make tags look exactly like wedding buttons */
+.tag-chip{
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(15,23,42,0.18);
+    background: rgba(255,255,255,0.90);
+    cursor: default;
+    font-weight: 900;
+    font-size: 12px;
+    color:#334155;
+
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+
+    /* IMPORTANT so tags don't become full-width */
+    width: auto;
+    flex: 0 0 auto;
+
+    outline: none;
+}
+
+.tag-chip:hover{ background: rgba(255,255,255,1); }
+
+.tag-chip .tag-trash{
+    width: 14px;
+    height: 14px;
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+.tag-chip .tag-trash{
+    font-weight: 900;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.85;
+    margin-left: 4px;
+}
+
+.tag-chip .tag-trash:hover{ opacity: 1; }
+
+.tag-add-row{
+    margin-top: 10px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+}
+
+.tag-input{
+    flex:1;
+    padding: 8px 10px;
+    border: 1px solid rgba(0,0,0,0.18);
+    border-radius: 10px;
+    outline: none;
+}
+.asset-tag-add-btn{
+    margin-left: 8px;
+    padding: 5px 8px;
+}
+
+#ad_tags.tag-list{
+    display:flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    align-items: flex-start;
+}
+
+#ad_tags {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+}
+
+/* Chips must be auto-width and inline-flex (never full-width) */
+#ad_tags .tag-chip {
+    display: inline-flex !important;
+    width: auto !important;
+    max-width: 100% !important;
+    flex: 0 0 auto !important;
+    white-space: nowrap;
+}
+
+.tag-add-row{
+    margin-top: 8px;
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tag-input{
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(15,23,42,0.18);
+    background: rgba(255,255,255,0.90);
+    outline: none;
+    font-size: 12px;
+    font-weight: 700;
+    color:#334155;
+}
+
+.asset-details-row.tags-row {
+    display: block;              /* don't let some layout rule force weird positioning */
+}
+
+.asset-details-row.tags-row .k,
+.asset-details-row.tags-row .v {
+    position: static !important;
+    overflow: visible !important;
+}
+
+/* Default hidden */
+#ad_tag_add { display: none; }
+
+/* When opened — force override of any earlier display:none */
+#ad_tag_add.is-open { display: block !important; }
+
+.btnShowAddTag{
+    margin-top:50px;
+}

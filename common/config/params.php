@@ -8,4 +8,8 @@ return [
     'user.passwordMinLength' => 8,
     'CLOUDFRONT_URL' => 'https://d1x4tn8afe9x1r.cloudfront.net',
     'CLOUDFRONT_DISTRIBUTION_ID' => 'E3MH7D85P8TZ4D',
+    'rekognition' => [
+        'minConfidence' => 70,   // tune later
+        'maxLabels' => 15,
+    ],
 ];

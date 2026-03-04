@@ -178,4 +178,15 @@ class Asset extends \yii\db\ActiveRecord
         return $this->hasOne(Folder::class, ['id' => 'folder_id']);
     }
 
+    public function getAssetLabels()
+    {
+        return $this->hasMany(\common\models\AssetLabel::class, ['asset_id' => 'id']);
+    }
+
+    public function getLabels()
+    {
+        return $this->hasMany(\common\models\Label::class, ['id' => 'label_id'])
+            ->via('assetLabels');
+    }
+
 }

@@ -5,6 +5,7 @@ namespace console\controllers;
 use Yii;
 use common\ImageProcessing\BaseImageHandler;
 use common\models\Asset;
+use common\classes\AssetLabelFetcher;
 use \yii\console\Controller;
 use Aws\Sqs\SqsClient;
 
@@ -91,6 +92,7 @@ class ImageProcessingController extends Controller {
                         ]);
                     }
 
+                    $this->fetchLabels($asset);
                     $asset = null;
                     $data = null;
                     $imageHandler = null;
@@ -114,6 +116,11 @@ class ImageProcessingController extends Controller {
         }
 
         echo "Done\n";
+    }
+
+    private function fetchLabels($asset){
+        $fetcher = new AssetLabelFetcher();
+        $fetcher->fetchAndSaveLabelsForAsset($asset);
     }
 
     private function checkTimestamp(){

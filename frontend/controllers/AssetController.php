@@ -35,18 +35,12 @@ class AssetController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
 
         $folderId = Yii::$app->request->post('id');
-        error_log("UPLOAD - Folder ID: $folderId");
         $customerId = Yii::$app->user->identity->customer_id;
-        error_log("UPLOAD - Customer ID: $customerId");
         $userId = Yii::$app->user->id;
-        error_log("UPLOAD - User ID: $userId");
         $env = YII_ENV_DEV ? 'dev' : 'prod';
-        error_log("UPLOAD - Env: $env");
 
         $files = UploadedFile::getInstancesByName('files');
         $paths = Yii::$app->request->post('paths', []);
-        error_log(count($files) . " files are being Uploaded...");
-        error_log("Paths: " . print_r($paths,1));
 
         if (empty($files)) {
             return ['ok' => false, 'error' => 'No files received'];

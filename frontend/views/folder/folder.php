@@ -452,6 +452,7 @@ function loadAssets(folderId, showAll = false, offset = 0) {
     jQuery.getJSON('/json/assets/' + folderId, { limit, offset }, function(response) {
         if (response && response.assets) {
             renderAssets(response.assets, offset > 0);
+            startPendingThumbnailPolling();
 
             // Update state
             assetPagination.offset += response.assets.length;
@@ -632,6 +633,11 @@ async function handleUpload(files, folderId) {
         collected.push({ file, path });
     }
 
+    const uploadHadFolders = collected.some(function(x) {
+        const p = normalizeRelPath(x.path);
+        return p.includes('/');   // folder upload produces relative paths with slashes
+    });
+
     showUploadOverlay();
 
     let completed = 0;
@@ -686,7 +692,7 @@ async function handleUpload(files, folderId) {
                     }
                 }
             });
-        UPLOAD_BATCH_SIZE});
+        });
     };
 
     // Create batches
@@ -751,8 +757,24 @@ async function handleUpload(files, folderId) {
         showBanner(total +' file' + (total>1?'s were':' was')+ ' uploaded successfully.', 'success');
 
         assetPagination.allLoaded = false;
-        const tree = $('#folderTree').jstree(true);
-        tree.refresh();
+
+        if (uploadHadFolders) {
+            const tree = $('#folderTree').jstree(true);
+            const selectedId = (tree.get_selected() || [])[0];
+
+            $('#folderTree').one('refresh.jstree', function() {
+                const t = $('#folderTree').jstree(true);
+                if (selectedId) {
+                    t.deselect_all();
+                    t.select_node(selectedId);
+                    jstreeOpenAncestors(t, selectedId, function() {
+                        t.open_node(selectedId);
+                    });
+                }
+            });
+
+            tree.refresh();
+        }
     } catch (e) {
         // already bannered in worker; keep progress bar state
     } finally {
@@ -881,6 +903,10 @@ function updateUploadOverlay(pct) {
 
 function hideUploadOverlay() {
     $('#uploadOverlay').hide();
+}
+
+function setUploadOverlayIndeterminate(on) {
+    $('#uploadOverlay').toggleClass('indeterminate', !!on);
 }
 
 function formatBytes(bytes) {
@@ -1259,6 +1285,9 @@ window.FotukaGoogleDrive = (function() {
 
         showUploadOverlay("Importing from Google Drive...");
 
+        const googleImportHadFolders = items.some(i => i.mimeType === 'application/vnd.google-apps.folder');
+        setUploadOverlayIndeterminate(googleImportHadFolders);
+
         let completed = 0;
         const total = items.length;
 
@@ -1280,17 +1309,23 @@ window.FotukaGoogleDrive = (function() {
                         _csrf: yii.getCsrfToken()
                     },
                     success: function(resp) {
+                        // Treat server-side failure as a rejection so the caller can handle it uniformly.
                         if (!resp || resp.ok !== true) {
-                            reject(new Error((resp && resp.error) || "Import failed"));
+                            console.log("GD importBatch server error:", resp);
+                            reject(new Error((resp && resp.error) ? resp.error : "Google import failed"));
                             return;
                         }
+
+                        // Optional: log for debugging
+                        // console.log("GD importBatch success:", resp);
+
                         resolve(resp);
                     },
                     error: function(xhr) {
-                        reject(new Error("Import request failed: HTTP " + xhr.status));
+                        reject(new Error("Google import request failed: HTTP " + xhr.status));
                     }
                 });
-        });
+            });
         };
 
         const worker = async () => {
@@ -1307,16 +1342,15 @@ window.FotukaGoogleDrive = (function() {
 
                 // Render processing cards as soon as each batch is done
                 if (resp.assets && resp.assets.length) {
-
-                    // If backend sends rootImportFolderId + folder_id per asset,
-                    // only render assets that belong to the root imported folder.
                     let renderable = resp.assets;
 
+                    // Only render files that belong to the imported folder root (not subfolders)
                     if (resp.rootImportFolderId) {
-                        renderable = renderable.filter(function(a) {
-                            return String(a.folder_id) === String(resp.rootImportFolderId);
-                        });
+                        renderable = renderable.filter(a => String(a.folder_id) === String(resp.rootImportFolderId));
                     }
+
+                    // Also: only render into the currently visible folder
+                    renderable = renderable.filter(a => String(a.folder_id) === String(window.selectedFolderId));
 
                     if (renderable.length) {
                         renderAssets(renderable, true);
@@ -1336,17 +1370,32 @@ window.FotukaGoogleDrive = (function() {
             updateUploadOverlay(100);
             hideUploadOverlay();
 
-            showBanner("Google Drive completed for " + total + " file" + (total>1?"s":"") + ".", "success");
+            showBanner("Google Drive import completed. " + total + " item(s) processed.", "success");
 
-            // Optional: refresh tree if importing created folders
-            const tree = $('#folderTree').jstree(true);
-            tree.refresh();
+            if (googleImportHadFolders) {
+                const tree = $('#folderTree').jstree(true);
+                const selectedId = (tree.get_selected() || [])[0];
+
+                $('#folderTree').one('refresh.jstree', function() {
+                    const t = $('#folderTree').jstree(true);
+                    if (selectedId) {
+                        t.deselect_all();
+                        t.select_node(selectedId);
+                        jstreeOpenAncestors(t, selectedId, function() {
+                            t.open_node(selectedId);
+                        });
+                    }
+                });
+
+                tree.refresh();
+            }
         } finally {
+            setUploadOverlayIndeterminate(false);
             hideUploadOverlay();
         }
     }
 
-    return { openImportModal, autoPickIfConnected, openPicker };https
+    return { openImportModal, autoPickIfConnected, openPicker };
 })();
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -2147,7 +2196,7 @@ document.addEventListener('DOMContentLoaded', function () {
         history.replaceState({}, document.title, window.location.pathname);
 
         // Open the import modal
-        FotukaGoogleDrive.openImportModal({ targetFolderId: CURRENT_FOLDER_ID });
+        FotukaGoogleDrive.openImportModal({ targetFolderId: window.selectedFolderId });
 
         // Auto-open picker once status says connected
         setTimeout(function() {

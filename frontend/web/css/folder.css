@@ -311,6 +311,15 @@ header > div:last-child {
     background: transparent !important;
 }
 
+.upload-overlay.indeterminate .upload-overlay-bar-fill {
+    width: 35% !important;
+    animation: uploadIndeterminate 1.2s infinite linear;
+}
+@keyframes uploadIndeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+}
+
 .menu-icon {
     width: 18px;
     text-align: center;

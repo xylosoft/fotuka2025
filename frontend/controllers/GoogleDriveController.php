@@ -165,82 +165,6 @@ class GoogleDriveController extends Controller
         return $client;
     }
 
-    public function actionImportGoogleDriveOld()
-    {
-        Yii::$app->response->format = Response::FORMAT_JSON;
-
-        $targetFolderId = (int)Yii::$app->request->post('targetFolderId');
-        $items = Yii::$app->request->post('items', []);
-
-        if (!$targetFolderId || !is_array($items) || empty($items)) {
-            throw new BadRequestHttpException("Missing targetFolderId or items.");
-        }
-
-        $user = Yii::$app->user->identity;
-
-        $client = $this->buildGoogleDriveClientForUser($user);
-        if ($client === null) {
-            return ['ok' => false, 'error' => 'Not connected to Google Drive'];
-        }
-
-        $drive = new GoogleDrive($client);
-
-        $imported = 0;
-        $skipped = 0;
-
-        foreach ($items as $item) {
-            $fileId = $item['id'] ?? null;
-            if (!$fileId) { $skipped++; continue; }
-
-            $meta = $drive->files->get($fileId, ['fields' => 'id,name,mimeType,size']);
-            if ($meta->mimeType === 'application/vnd.google-apps.folder') {
-                $res = $this->importDriveFolderRecursive($drive, $meta->id, $targetFolderId);
-                $imported += $res['imported'];
-                $skipped += $res['skipped'];
-            } else {
-                $ok = $this->importDriveFile($drive, $meta->id, $targetFolderId, $meta->name);
-                $ok ? $imported++ : $skipped++;
-            }
-        }
-
-        return [
-            'ok' => true,
-            'importedCount' => $imported,
-            'skippedCount' => $skipped,
-        ];
-    }
-
-    private function importDriveFolderRecursiveOld(GoogleDrive $drive, string $driveFolderId, int $fotukaFolderId): array
-    {
-        $imported = 0;
-        $skipped = 0;
-
-        $pageToken = null;
-        do {
-            $resp = $drive->files->listFiles([
-                'q' => sprintf("'%s' in parents and trashed = false", $driveFolderId),
-                'fields' => 'nextPageToken, files(id,name,mimeType)',
-                'pageSize' => 1000,
-                'pageToken' => $pageToken,
-            ]);
-
-            foreach ($resp->getFiles() as $f) {
-                if ($f->getMimeType() === 'application/vnd.google-apps.folder') {
-                    $r = $this->importDriveFolderRecursive($drive, $f->getId(), $fotukaFolderId);
-                    $imported += $r['imported'];
-                    $skipped += $r['skipped'];
-                } else {
-                    $ok = $this->importDriveFile($drive, $f->getId(), $fotukaFolderId, $f->getName());
-                    $ok ? $imported++ : $skipped++;
-                }
-            }
-
-            $pageToken = $resp->getNextPageToken();
-        } while (!empty($pageToken));
-
-        return ['imported' => $imported, 'skipped' => $skipped];
-    }
-
     private function importDriveFile(GoogleDrive $drive, string $fileId, int $fotukaFolderId, string $originalName): bool
     {
         try {
@@ -371,6 +295,7 @@ class GoogleDriveController extends Controller
         $imported = 0;
         $skipped = 0;
         $assets = [];
+        $rootImportFolderId = null;
 
         foreach ($items as $item) {
             error_log("Processing item: " . print_r($item, true));
@@ -410,6 +335,11 @@ class GoogleDriveController extends Controller
                     $targetFolderId,
                     $meta->getName() // create a matching folder under target
                 );
+
+                if (!empty($res['rootFolderId'])) {
+                    $rootImportFolderId = (int)$res['rootFolderId'];
+                }
+
                 $imported += $res['imported'];
                 $skipped += $res['skipped'];
                 $assets = array_merge($assets, $res['assets']);
@@ -454,6 +384,7 @@ class GoogleDriveController extends Controller
             'importedCount' => $imported,
             'skippedCount' => $skipped,
             'assets' => $assets,
+            'rootImportFolderId' => $rootImportFolderId, // ✅ new
         ];
     }
 
@@ -481,6 +412,11 @@ class GoogleDriveController extends Controller
 
         // ensureFolderPath returns the Fotuka folder id for this folder path
         $thisFolderId = AssetController::ensureFolderPath($customerId, $userId, $fotukaTargetFolderId, $newRelativePath);
+
+        $rootFolderId = null;
+        if ($relativeFolderPath === '') {
+            $rootFolderId = (int)$thisFolderId; // ✅ only top-level imported folder
+        }
 
         $pageToken = null;
         do {
@@ -546,7 +482,12 @@ class GoogleDriveController extends Controller
             $pageToken = $resp->getNextPageToken();
         } while (!empty($pageToken));
 
-        return ['imported' => $imported, 'skipped' => $skipped, 'assets' => $assets];
+        return [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'assets' => $assets,
+            'rootFolderId' => $rootFolderId,
+        ];
     }
 
     private function importDriveFileToFotuka(

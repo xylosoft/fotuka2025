@@ -452,6 +452,21 @@ function loadAssets(folderId, showAll = false, offset = 0) {
     jQuery.getJSON('/json/assets/' + folderId, { limit, offset }, function(response) {
         if (response && response.assets) {
             renderAssets(response.assets, offset > 0);
+
+            if (offset === 0) {
+                const $scroller =
+                    $('#assetScroll:visible').length ? $('#assetScroll') :
+                        $('#rightPanel:visible').length ? $('#rightPanel') :
+                            $('#assetGrid').closest('.scroll-container').length ? $('#assetGrid').closest('.scroll-container') :
+                                $(window);
+
+                if ($scroller[0] === window) {
+                    window.scrollTo(0, 0);
+                } else {
+                    $scroller.scrollTop(0);
+                }
+            }
+
             startPendingThumbnailPolling();
 
             // Update state

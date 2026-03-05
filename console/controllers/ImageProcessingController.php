@@ -61,7 +61,7 @@ class ImageProcessingController extends Controller {
                     'QueueUrl' => $queueUrl,
                     'MaxNumberOfMessages' => 1,
                     'WaitTimeSeconds' => 20,
-                    'VisibilityTimeout' => 60,
+                    'VisibilityTimeout' => 120, // 2 minutes
                 ]);
 
                 if (empty($result['Messages'])) {
@@ -75,7 +75,9 @@ class ImageProcessingController extends Controller {
                     $asset = Asset::findOne($data->assetId);
 
                     $imageHandler = BaseImageHandler::fetchHandler($asset);
+
                     if (!$imageHandler){
+                        // TODO: Add unsupported thumbnail/preview URL for this asset.
                         $asset->thumbnail_state = Asset::THUMBNAIL_UNSUPPORTED;
                         $asset->preview_state = Asset::THUMBNAIL_UNSUPPORTED;
                         $asset->save();
@@ -84,13 +86,13 @@ class ImageProcessingController extends Controller {
                         $imageHandler->createThumbnail(250, 250)->saveThumbnail($asset);
                         $imageHandler->createPreview(800, 600)->saveThumbnail($asset);
                         $imageHandler->cleanup($asset);
-
-                        // 🔹 Delete AFTER successful processing
-                        $sqs->deleteMessage([
-                            'QueueUrl' => $queueUrl,
-                            'ReceiptHandle' => $message['ReceiptHandle'],
-                        ]);
                     }
+
+                    $sqs->deleteMessage([
+                        'QueueUrl' => $queueUrl,
+                        'ReceiptHandle' => $message['ReceiptHandle'],
+                    ]);
+
 
                     $this->fetchLabels($asset);
                     $asset = null;
@@ -101,12 +103,12 @@ class ImageProcessingController extends Controller {
                 $result = null;
             } catch (\Aws\Exception\AwsException $e) {
                 // AWS SDK errors (throttling, timeouts, auth, etc.)
-                echo  "AwsException - " . $e->getAwsErrorMessage() . "\n" .  $e->getMessage() . "\n";
+                echo "AwsException - " . $e->getAwsErrorMessage() . "\n" .  $e->getMessage() . "\n";
                 echo "Ending Image Processing job 1\n";
                 exit;
             }
             catch(\Throwable $e){
-                echo  "Exception2 - " .  $e->getMessage() . "\n" . $e->getTraceAsString() . "\n";
+                echo "Exception2 - " .  $e->getMessage() . "\n" . $e->getTraceAsString() . "\n";
                 echo "Ending Image Processing job 2\n";
                 exit;
             }

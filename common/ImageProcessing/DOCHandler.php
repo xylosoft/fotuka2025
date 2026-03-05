@@ -24,7 +24,7 @@ class DOCHandler extends BaseImageHandler {
 
         // Pre-process file before sending it to JPGHandler
         $command = "HOME=/tmp TMPDIR=/tmp PATH=/opt/local/bin:/usr/bin:/bin " . Yii::$app->params['SOFFICE_PATH'] .
-            'soffice --headless --nologo --nolockcheck --norestore --nodefault';
+            'soffice --headless --nologo --nolockcheck --norestore --nodefault --safe-mode';
 
         $command .= ' --convert-to jpg';
 

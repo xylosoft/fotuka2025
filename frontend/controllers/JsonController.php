@@ -57,6 +57,7 @@ class JsonController extends Controller{
 
     public function actionFolder($id){
         $id = ($id==0?null:$id);
+        $user = \Yii::$app->user->identity;
         \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 
         $offset = (int)\Yii::$app->request->get('offset', 0);
@@ -69,7 +70,7 @@ class JsonController extends Controller{
 
         $query = Folder::find()
             ->select(['id', 'name', 'thumbnail_id'])
-            ->where(['status' => 'active'])
+            ->where(['status' => 'active', 'customer_id' => $user->customer_id])
             ->orderBy(['name' => SORT_ASC]);
 
         if ($id === null) {
@@ -77,7 +78,7 @@ class JsonController extends Controller{
         } else {
             $query->andWhere(['parent_id' => $id]);
         }
-        //error_log($query->createCommand()->getRawSql());
+
         $total = (clone $query)->count();
 
         if ($limit > 0) {
@@ -107,6 +108,7 @@ class JsonController extends Controller{
 
     public function actionAssets($folderId)
     {
+        $user = \Yii::$app->user->identity;
         \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 
         $offset = (int)\Yii::$app->request->get('offset', 0);
@@ -114,7 +116,7 @@ class JsonController extends Controller{
 
         $query = Asset::find()
             ->select(['id', 'title', 'thumbnail_url', 'thumbnail_state'])
-            ->where(['folder_id' => $folderId, 'status' => 'active'])
+            ->where(['folder_id' => $folderId, 'status' => 'active',  'customer_id' => $user->customer_id])
             ->orderBy(['created' => SORT_DESC]);
 
         $total = (clone $query)->count();
@@ -154,6 +156,7 @@ class JsonController extends Controller{
     }
 
     public function actionPending($folderId, $assetIds){
+        $user = \Yii::$app->user->identity;
         \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 
         $ids = array_filter(array_map('trim', explode(',', (string)$assetIds)));
@@ -169,7 +172,7 @@ class JsonController extends Controller{
         // Assuming your model is app\models\Asset and thumbnail_url is a column
         $rows = Asset::find()
             ->select(['id', 'thumbnail_url'])
-            ->where(['id' => $ids, 'folder_id' => $folderId])
+            ->where(['id' => $ids, 'folder_id' => $folderId, 'customer_id' => $user->customer_id])
             ->asArray()
             ->all();
 
@@ -187,6 +190,7 @@ class JsonController extends Controller{
     public function actionAsset($id)
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
+        $user = \Yii::$app->user->identity;
 
         if (Yii::$app->user->isGuest) {
             return ['ok' => false, 'message' => 'Not authenticated'];
@@ -199,7 +203,7 @@ class JsonController extends Controller{
 
         // IMPORTANT: adjust this query to your schema
         $asset = Asset::find()
-            ->where(['id' => $id, 'customer_id' => $user = \Yii::$app->user->identity->customer_id])
+            ->where(['id' => $id, 'customer_id' => $user->customer_id])
             ->one();
 
         if (!$asset) {

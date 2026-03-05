@@ -88,7 +88,6 @@ class FolderController extends Controller{
 
         // Validation failed
         Yii::$app->response->statusCode = 422;
-        error_log(print_r($model->getErrors(), 1));
         return [
             'ok'     => false,
             'errors' => $model->getErrors(),
@@ -136,7 +135,7 @@ class FolderController extends Controller{
         }
         return [
             'ok' => false,
-            'message' => 'A folder with this name already exists in this location.',
+            'message' => 'A folder with this name already exists.',
             'errors' => $folder->getErrors(),
         ];
     }
@@ -163,7 +162,7 @@ class FolderController extends Controller{
 
         return [
             'ok' => false,
-            'message' => 'A folder with this name already exists in this location.',
+            'message' => 'A folder with this name already exists.',
             'errors' => $folder->getErrors(),
         ];
     }
@@ -180,7 +179,6 @@ class FolderController extends Controller{
         $folder = Folder::findOne($id);
         $customer = $folder->customer;
         if (!$folder) {
-            error_log("Folder not found...");
             return ['ok' => false, 'message' => 'Folder not found.'];
         }
 
@@ -193,8 +191,6 @@ class FolderController extends Controller{
             $customer->save('storage_used');
             return ['ok' => true];
         } catch (\Throwable $e) {
-            error_log("Exception");
-            error_log('Failed recursive delete: ' . $e->getMessage());
             return ['ok' => false, 'message' => 'Failed to delete folder tree.'];
         }
     }

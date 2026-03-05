@@ -65,16 +65,13 @@ class AssetController extends Controller
         $uniqueDir = uniqid('upload_' . $folderId . '_', true);
         $uploadPath = $tempBase . '/' . $uniqueDir;
         FileHelper::createDirectory($uploadPath);
-        error_log("Created folder: " . $uploadPath);
 
         $uploaded = 0;
         $assets = [];
 
-        error_log("AssetController UPLOAD: There are: " . count($files) . " uploaded.");
         foreach ($files as $index => $uploadedFile) {
             // Ignore .DS_Store files
             if ($uploadedFile->name == ".DS_Store"){
-                error_log("Skipping .DS_Store file.");
                 continue;
             }
             $relativePath = $paths[$index] ?? $uploadedFile->name;
@@ -86,17 +83,8 @@ class AssetController extends Controller
             }
 
             $folderPath = trim(dirname($relativePath), '/');
-            error_log("Folder Path: $folderPath");
             $uploadFolderId = AssetController::ensureFolderPath($customerId, $userId, $folderId, $folderPath);
-
-            error_log("Original Filename: {$uploadedFile->baseName}");
-            error_log("Original Extension: {$uploadedFile->extension}");
-            error_log("Original Filename: {$uploadedFile->name}");
-            error_log("Relative Path: {$relativePath}");
-            error_log("New Folder ID: {$uploadFolderId}");
-
             $targetFile = $uploadPath . '/' . $uploadedFile->name;
-            error_log("Target File: {$targetFile}");
 
             if ($uploadedFile->saveAs($targetFile)) {
 
@@ -104,7 +92,6 @@ class AssetController extends Controller
                 $fileSize = $uploadedFile->size;
 
                 // First we need to create the file
-                error_log("Creating file");
                 $file = new File();
                 $file->customer_id = $customerId;
                 $file->user_id = $userId;
@@ -120,11 +107,6 @@ class AssetController extends Controller
                 $res = null;
                 $res = $file->save();
 
-                error_log("File entry was created: " . ($res ? "Successfully" : "FAILED"));
-                if (!$res) {
-                    error_log(print_r($file->getErrors(), true));
-                }
-
                 // Then we need to create the asset
                 error_log("Creating Asset");
                 $asset = new Asset();
@@ -138,17 +120,12 @@ class AssetController extends Controller
                 $asset->thumbnail_url = null;
                 $res = $asset->save();
 
-                error_log("Asset entry was created: " . ($res?"Successfully":"FAILED"));
-                if (!$res) {
-                    error_log(print_r($asset->getErrors(), true));
-                }else{
-                    $assets[] = [
-                        'id' => (int)$asset->id,
-                        'title' => (string)$asset->title,
-                        'thumbnail_url' => $asset->thumbnail_url,
-                        'thumbnail_state' => Asset::PREVIEW_PENDING,
-                    ];
-                }
+                $assets[] = [
+                    'id' => (int)$asset->id,
+                    'title' => (string)$asset->title,
+                    'thumbnail_url' => $asset->thumbnail_url,
+                    'thumbnail_state' => Asset::PREVIEW_PENDING,
+                ];
 
                 // Also update customer's and folder's ustorage usage
                 $customer = $asset->customer;
@@ -163,16 +140,12 @@ class AssetController extends Controller
                 // Then we need to upload to S3 with the proper asset id in place
                 // The path for S3 will be: <environment>/original/<customer_id>/<asset_id> without
                 try {
-                    error_log("Uploading file to S3...");
-
                     // Determine proper file type.
                     $finfo = finfo_open(FILEINFO_MIME_TYPE);
                     $mimeType = finfo_file($finfo, $targetFile);
                     finfo_close($finfo);
-                    error_log("Mime Type: " . $mimeType);
 
                     $key = "{$env}/original/{$customerId}/{$asset->id}";
-                    error_log("S3 path: " . $key);
 
                     $result = $s3->putObject([
                         'Bucket' => Yii::$app->params['AWS_BUCKET'],
@@ -183,12 +156,10 @@ class AssetController extends Controller
                         'ContentType' => $mimeType,
                         'StorageClass' => 'INTELLIGENT_TIERING',
                     ]);
-                    error_log("S3 upload result: " . ($result ? "OK" : "FAILED"));
 
 
                     // Queue file for thumbnail & preview generation.
                     $queueUrl = 'https://sqs.' . Yii::$app->params['AWS_REGION'] . '.amazonaws.com/191728941649/' . $env . '_processing';
-                    error_log("Queue URL: " . $queueUrl);
 
                     $event = [
                         'type' => 'Processing',
@@ -225,9 +196,11 @@ class AssetController extends Controller
                 } catch (AwsException $e) {
                     // If anything fails, remove the file & asset entries.
                     error_log('S3 Upload error: ' . $e->getMessage());
+                    error_log('Stack Trace: ' . $e->getTraceAsString());
                     return ['error' => false, 'message' => 'S3 Upload failed.', 'assets' => []];
                 }catch (\Throwable $e){
                     error_log('S3 Upload error: ' . $e->getMessage());
+                    error_log('Stack Trace: ' . $e->getTraceAsString());
                     return ['error' => false, 'message' => 'S3 Upload failed.', 'assets' => []];
                 }
             }
@@ -238,21 +211,16 @@ class AssetController extends Controller
 
     public static function ensureFolderPath($customerId, $userId, $folderId, $path){
         try {
-            error_log("Insside ensureFolderPath");
             if ($path == ".") {
-                error_log("returning $folderId");
                 return $folderId;
             }
 
             $parts = explode('/', $path);
-            error_log("Parts" . print_r($parts, 1));
             $parentId = $folderId;
 
             foreach ($parts as $part) {
-                error_log("Processing folder: $part - Parent: $parentId - Name: $part");
                 $folder = Folder::findOne(['parent_id' => $parentId, 'name' => $part, 'status' => 'active']);
                 if (!$folder) {
-                    error_log("Creating folder: $part as child of $parentId");
                     $folder = new Folder([
                         'customer_id' => $customerId,
                         'parent_id' => $parentId,
@@ -261,15 +229,14 @@ class AssetController extends Controller
                         'status' => Folder::STATUS_ACTIVE
                     ]);
                     $folder->save();
-                } else {
-                    error_log("Folder already exists");
                 }
                 $parentId = $folder->id;
             }
 
-            error_log("Returning: $parentId");
             return $parentId;
         }catch(\Exception $e){
+            error_log("ensureFolderPath Exception: " . $e->getMessage());
+            error_log("Stack Trace: " . $e->getTraceAsString());
             error_log($e->getMessage());
         }
     }
@@ -277,6 +244,7 @@ class AssetController extends Controller
     public function actionDelete()
     {
         Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        $user = Yii::$app->user->identity;
 
         $deletedCount = 0;
         $ids = array();
@@ -304,7 +272,7 @@ class AssetController extends Controller
             }
 
             $assets = Asset::find()
-                ->where(['id' => $ids, 'user_id' => $userId])
+                ->where(['id' => $ids, 'customer_id' => $user->customer_id])
                 ->all();
 
             if (empty($assets)) {
@@ -334,6 +302,7 @@ class AssetController extends Controller
     public function actionDeleteTag($id)
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
+        $user = Yii::$app->user->identity;
 
         $id = (int)$id;
         if (!$id) {
@@ -343,7 +312,7 @@ class AssetController extends Controller
         //$customerId = (int)Yii::$app->user->identity->customer_id;
 
         $row = AssetLabel::find()
-            ->where(['id' => $id])
+            ->where(['id' => $id, 'customer_id' => $user->customer_id])
             ->one();
 
         if (!$row) {

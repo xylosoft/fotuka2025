@@ -57,9 +57,11 @@ class SignupForm extends Model
 
 
     /**
-     * Signs user up.
-     *
-     * @return bool whether the creating new account was successful and email was sent
+     * Signs in user.
+     * @return bool|null
+     * @throws \Throwable
+     * @throws \yii\db\Exception
+     * @throws \yii\db\StaleObjectException
      */
     public function signup()
     {

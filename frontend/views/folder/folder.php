@@ -1,4 +1,6 @@
 <?php
+use common\models\Folder;
+
 /** @var yii\web\View $this */
 $this->title = 'Fotuka';
 \yii\web\JqueryAsset::register($this);
@@ -6,14 +8,23 @@ $id = $this->params['id'];
 $selectedId = $id ?? '#';
 
 $id = $_COOKIE[Yii::$app->params['FOLDER_COOKIE']]??null;
+
 if ($id == "null"){
     $id = null;
+}else if ($id != null){
+    $exists = Folder::find()
+        ->where(['id' => $id])
+        ->andWhere(['=', 'status', Folder::STATUS_ACTIVE])
+        ->exists();
+    if (!$exists){
+        $id = null;
+    }
 }
+
 $user = Yii::$app->user->identity;
 $gdImport = (int)Yii::$app->request->get('gd_import', 0);
 $googleConnected = $user && $user->hasGoogleDriveConnected();
 ?>
-
 <div class="app split-layout" id="splitLayout">
     <aside class="sidebar" id="leftpanel">
         <div class="folder-search">
@@ -187,17 +198,17 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                 <div class="v" id="ad_height">—</div>
             </div>
             <div class="asset-details-row tags-row">
+                <!--
                 <div class="k">
                     <strong>Tags</strong>
                     <button type="button" class="asset-nav-btn" id="btnShowAddTag">+ Add</button>
 
-                    <!-- move add UI here so it appears right under + Add -->
-                    <div id="ad_tag_add" class="tag-add-row">
-                        <input type="text" id="ad_tag_input" class="tag-input" placeholder="Type tag">
-                        <button type="button" class="asset-nav-btn" id="btnSaveTag">Save</button>
-                        <button type="button" class="asset-nav-btn" id="btnCancelTag">Cancel</button>
+                    <div class="tag-add-buttons">
+                        <button type="button" class="asset-nav-btn tag-cancel-btn" id="btnCancelTag">Cancel</button>
+                        <button type="button" class="tag-save-btn" id="btnSaveTag">Save</button>
                     </div>
                 </div>
+                -->
 
                 <div class="v">
                     <div id="ad_tags" class="tag-list"></div>
@@ -299,6 +310,11 @@ function goDialogNext() {
     openAssetPreview(nextId, getCardPreviewUrl(nextId));
 }
 
+function resetTagAddUI(){
+    $('#ad_tag_add').removeClass('is-open');
+    $('#ad_tag_input').val('');
+}
+
 function getPendingAssetIds() {
     return $('.asset-card[data-thumb-state="pending"]')
         .map(function () { return $(this).data('asset-id'); })
@@ -364,7 +380,9 @@ function pollPendingThumbnails() {
 
 // CHECKED
 function loadFolder(folderId) {
+    console.log("Loading folders for "  + folderId);
     if (!folderId || isNaN(folderId)){
+        console.log("Setting FolderID to null");
         folderId = null;
     }
 
@@ -402,6 +420,7 @@ function loadFolder(folderId) {
 
 // CHECKED
 function fetchFolders(folderId, append = false, loadAll = false) {
+    console.log("fetchFolders");
     if (folderId == null || isNaN(folderId)){
         folderId = 0;
     }
@@ -912,6 +931,7 @@ function jstreeOpenAncestors(tree, nodeId, done) {
 
 // CHECKED
 function selectHome(){
+    console.log("Selecting Home...");
     var tree = $('#folderTree').jstree(true);
     var roots = tree.get_node('#').children;
     var allNodes = tree.get_json('#', { flat: true });
@@ -1036,6 +1056,7 @@ function escapeHtml(s) {
 function openAssetPreview(assetId, initialPreviewUrl) {
     if (!assetId) return;
 
+    resetTagAddUI();
     currentPreviewAssetId = parseInt(assetId, 10);
     updateDialogNavButtons();
 
@@ -2432,7 +2453,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-
+    $('#btnPrevAsset').on('click', function(){
+        resetTagAddUI();
+    });
 
     $(document).on('click', '#btnCancelTag', function (e) {
         e.preventDefault();

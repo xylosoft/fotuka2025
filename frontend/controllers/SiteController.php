@@ -121,7 +121,7 @@ class SiteController extends Controller
     {
         Yii::$app->user->logout();
 
-        return $this->goHome();
+        return $this->redirect(['site/login']);
     }
 
     /**
@@ -296,7 +296,17 @@ class SiteController extends Controller
         $user = User::find()->where(['email' => $email])->one();
 
         if (!$user) {
+            $customer = new Customer();
+            $customer->display_name = strtolower($firstName . ' ' . $lastName);
+            $customer->ip_country_code = null;
+            $customer->referral_url = null;
+            $customer->status = Customer::STATUS_ACTIVE;
+            $customer->seo_name = null;
+            $customer->referral_url = null;
+            $customer->save();
+
             $user = new User();
+            User->customer_id = $customer->id;
             $user->email = $email;
             $user->username = strtolower($firstName . $lastName);
             $user->first_name = $firstName ?: null;

@@ -1652,3 +1652,33 @@ a {
 .btnShowAddTag{
     margin-top:50px;
 }
+
+.tag-add-buttons{
+    display:flex;
+    justify-content:space-between;
+    margin-top:10px;
+}
+
+.tag-save-btn{
+    background:#3B82F6;
+    color:white;
+    border:1px solid #2563EB;
+    border-radius:12px;
+    padding:7px 16px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.tag-save-btn:hover{
+    background:#2563EB;
+}
+
+#ad_tag_add{
+    margin-top:12px;
+    padding-top:12px;
+    border-top:1px solid rgba(0,0,0,0.08);
+}
+
+#btnShowAddTag{
+    margin-bottom:8px;
+}

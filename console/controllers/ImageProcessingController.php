@@ -73,18 +73,26 @@ class ImageProcessingController extends Controller {
                     $data = json_decode($message['Body'])->data;
                     echo "Processing message: for Asset ID: " . $data->assetId . "\n";
                     $asset = Asset::findOne($data->assetId);
+                    $file = $asset->file;
 
                     $imageHandler = BaseImageHandler::fetchHandler($asset);
 
                     if (!$imageHandler){
-                        // TODO: Add unsupported thumbnail/preview URL for this asset.
-                        $asset->thumbnail_state = Asset::THUMBNAIL_UNSUPPORTED;
-                        $asset->preview_state = Asset::THUMBNAIL_UNSUPPORTED;
-                        $asset->save();
+                        echo "Unable to process thumbnail for asset " . $data->assetId . "\n";
                     }else{
                         $imageHandler->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
                         $imageHandler->createThumbnail(250, 250)->saveThumbnail($asset);
                         $imageHandler->createPreview(800, 600)->saveThumbnail($asset);
+
+                        if ($imageHandler->getAttribute(BaseImageHandler::FILE_FILETYPE) == BaseImageHandler::FILETYPE_IMAGE){
+                            $file->width = $imageHandler->getAttribute(BaseImageHandler::FILE_WIDTH);
+                            $file->height = $imageHandler->getAttribute(BaseImageHandler::FILE_HEIGHT);
+                        }
+
+                        $file->type = $imageHandler->getAttribute(BaseImageHandler::FILE_FILETYPE);
+                        $file->tmp_location = null;
+                        $file->save();
+
                         $imageHandler->cleanup($asset);
                     }
 
@@ -93,8 +101,9 @@ class ImageProcessingController extends Controller {
                         'ReceiptHandle' => $message['ReceiptHandle'],
                     ]);
 
-
-                    $this->fetchLabels($asset);
+                    if ($asset->file->type == 'image'){
+                        $this->fetchLabels($asset);
+                    }
                     $asset = null;
                     $data = null;
                     $imageHandler = null;
@@ -102,22 +111,19 @@ class ImageProcessingController extends Controller {
 
                 $result = null;
             } catch (\Aws\Exception\AwsException $e) {
-                // AWS SDK errors (throttling, timeouts, auth, etc.)
                 echo "AwsException - " . $e->getAwsErrorMessage() . "\n" .  $e->getMessage() . "\n";
                 echo "Ending Image Processing job 1\n";
-                exit;
             }
             catch(\Throwable $e){
                 echo "Exception2 - " .  $e->getMessage() . "\n" . $e->getTraceAsString() . "\n";
                 echo "Ending Image Processing job 2\n";
-                exit;
             }
 
             // If file has changed, exit so new process can be restarted by crontab.
             $this->checkTimestamp();
         }
 
-        echo "Done\n";
+        echo "Exiting Process...\n";
     }
 
     private function fetchLabels($asset){

@@ -32,21 +32,21 @@ class XLSHandler extends BaseImageHandler {
 
         $command .= ' ' . $this->attributes[self::FILE_NAME];
 
-        echo "COMMAND: $command\n";
-
         $start = microtime(true);
         $output = null;
         $result_code = null;
         exec($command, $output, $result_code);
-        echo "Result Code: $result_code\n";
         echo print_r($output,1) . "\n";
         $end = microtime(true);
-        echo "Process took: " . ($end - $start) . " seconds.\n";
 
-
-        $this->internalHandler = new $handlerName($this->destinationFile, $this->attributes[self::ASSET_ID]);
-        $this->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
-        $this->internalHandler->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
+        if (!file_exists($this->destinationFile)){
+            // TODO: Delete temp files
+            throw new Exception("Invalid File Format.");
+        }else{
+            $this->internalHandler = new $handlerName($this->destinationFile, $this->attributes[self::ASSET_ID]);
+            $this->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
+            $this->internalHandler->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
+        }
 
         parent::__construct($filename, $assetId, true);
     }

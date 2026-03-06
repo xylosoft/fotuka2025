@@ -56,14 +56,21 @@ class BaseImageHandler{
     public const FILE_EXTENSION = 10; // GIF
 
     // FILE TYPES
-    public const FILETYPE_IMAGE = 1;
-    public const FILETYPE_VIDEO = 2;
-    public const FILETYPE_DOCUMENT = 3;
-    public const FILETYPE_AUDIO = 4;
+    public const FILETYPE_IMAGE = 'image';
+    public const FILETYPE_VIDEO = 'video';
+    public const FILETYPE_DOCUMENT = 'document';
+    public const FILETYPE_SPREADSHEET = 'spreadsheet';
+    public const FILETYPE_PRESENTATION = 'presentation';
+    public const FILETYPE_ARCHIVE = 'archive';
+    public const FILETYPE_CODE = 'code';
+    public const FILETYPE_FONT = 'font';
+    public const FILETYPE_3D = '3d';
+    public const FILETYPE_AUDIO = 'audio';
     public const FILETYPE_OTHER = 5;
 
     // ASSET ATTRIBUTES
     public const ASSET_ID = "ASSET_ID";
+    public const ERROR = false;
 
     //original Image Properties
     protected $attributes = array();
@@ -104,8 +111,6 @@ class BaseImageHandler{
      */
     public function __construct($filename, $assetId){
         $this->attributes[self::FILE_NAME] = $filename;
-        echo "BASE: Filename: $filename Exists? " . (file_exists($filename)?"YES":"NO") . "\n";
-        echo file_exists($filename)?"YES FILE EXISTS\n":"NO FILE DOESNT EXIST\n";
         $this->attributes[self::ASSET_ID] = $assetId;
         $this->mimeTypes = [self::FORMAT_JPEG => "image/jpeg",
                             self::FORMAT_JPG => "image/jpeg",
@@ -136,7 +141,6 @@ class BaseImageHandler{
      * @return void
      */
     public function  convert(){
-
         $command = "PATH=/opt/local/bin:/usr/bin:/bin " . Yii::$app->params['IMAGEMAGICK_PATH'] . 'magick';
 
         // Source File
@@ -163,29 +167,19 @@ class BaseImageHandler{
 
         $command .= " {$this->destinationFormat}:{$this->destinationFile}";
 
-        echo "COMMAND: $command\n";
-
-        $start = microtime(true);
         $output = null;
         $result_code = null;
-        echo "FINAL COMMAND (Base): $command\n";
         exec($command, $output, $result_code);
-        echo "Result Code: $result_code\n";
-        echo print_r($output,1) . "\n";
-        $end = microtime(true);
-        echo "Process took: " . ($end - $start) . " seconds.\n";
         return $this;
 
     }
 
     public function createThumbnail($width, $height){
-        echo "Base - CreateThumbnail...\n";
         $this->thumbnail = true;
         return $this->resize($width, $height)->convert();
     }
 
     public function createPreview($width, $height){
-        echo "Base - CreatePreview...\n";
         $this->thumbnail = false;
         $this->quality = 95;
         return $this->resize($width, $height)->convert();
@@ -201,10 +195,8 @@ class BaseImageHandler{
         $this->width = $width;
         $this->height = $height;
 
-        echo "Base - Resizing to $width x $height\n";
         // If new dimensions are the same as the existing ones, no need to resize.
         if (!isset($this->attributes[self::FILE_WIDTH]) || !isset($this->attributes[self::FILE_HEIGHT])){
-            echo "Base: - Can't determine width and height\n";
             return $this;
         }
 
@@ -224,14 +216,12 @@ class BaseImageHandler{
     }
 
     public function getFileInfo(){
+        error_log("BASE: getFileInfo");
         $output = null;
         $result_code = null;
 
         $command = "PATH=/opt/local/bin:/usr/bin:/bin " . Yii::$app->params['IMAGEMAGICK_PATH'] . "identify \"{$this->attributes[self::FILE_NAME]}\"";
-        echo "BaseImageController: Command: $command\n";
         exec($command, $output, $result_code);
-        echo "Output: " . print_r($output) . "\n";
-
 
         // Count number of frames for GIF Files
         if ($this->attributes[self::FILE_FORMAT] == self::FORMAT_GIF){
@@ -241,11 +231,8 @@ class BaseImageHandler{
         if ($output && is_array($output)){
             $output = $output[0];
         }
-        //echo "Command: $command\n";
-        //echo "Result Code: $result_code\n";
-        //echo "Output: $output\n";
+
         $properties = explode(' ', $output);
-        //echo print_r($properties,1) . "\n";
 
         // File Format
         $this->attributes[self::FILE_FORMAT] = isset($properties[1])?$properties[1]:"Unknown";
@@ -276,8 +263,7 @@ class BaseImageHandler{
         return $this;
     }
 
-    protected function getFileType()
-    {
+    public static function getFileType($extension){
         // Imagemagick supported file formats: https://imagemagick.org/script/formats.php
         $validImageFormats = array(self::FORMAT_AI, self::FORMAT_BMP, self::FORMAT_CR2, self::FORMAT_EPS, self::FORMAT_GIF,
                                    self::FORMAT_JPEG, self::FORMAT_JPG, self::FORMAT_PNG,  self::FORMAT_PSD,
@@ -287,34 +273,29 @@ class BaseImageHandler{
         $validDocumentFormats = array(self::FORMAT_PDF, self::FORMAT_DOC, self::FORMAT_DOCX);
         $validAudioFormats = array();
 
-        $ext = strtoupper($this->attributes[self::FILE_EXTENSION]);
-        echo "--> EXT: $ext". "\n";
-        if (in_array($ext, $validImageFormats)) {
-            echo "Setting File Format to Image\n";
-            $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_IMAGE;
-        } else if (in_array($ext, $validVideoFormats)) {
-            echo "Setting File Format to Video\n";
-            $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_VIDEO;
-        } else if (in_array($ext, $validDocumentFormats)) {
-            echo "Setting File Format to Document\n";
-            $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_DOCUMENT;
-        } else if (in_array($ext, $validAudioFormats)) {
-            echo "Setting File Format to Audio\n";
-            $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_AUDIO;
+        $extension = strtoupper($extension);
+        echo "Extension: $extension\n";
+        echo print_r($validDocumentFormats,1) . "\n";
+
+        if (in_array($extension, $validImageFormats)) {
+            return self::FILETYPE_IMAGE;
+        } else if (in_array($extension, $validVideoFormats)) {
+            return self::FILETYPE_VIDEO;
+        } else if (in_array($extension, $validDocumentFormats)) {
+            echo "FILE IS DOCUMENT\n";
+            return self::FILETYPE_DOCUMENT;
+        } else if (in_array($extension, $validAudioFormats)) {
+            return self::FILETYPE_AUDIO;
         } else{
-            echo "Setting File Format to Other\n";
-            $this->attributes[self::FILE_FILETYPE] = self::FILETYPE_OTHER;
+            echo "FILE IS OTHER\n";
+            return self::FILETYPE_OTHER;
         }
-        echo "GETFILETYPE: " . $this->attributes[self::FILE_FILETYPE] . "\n";
     }
 
     public function setDestinationFormat($fileFormat){
         $this->destinationFormat = $fileFormat;
-        echo"******* SETTING DESTINATION FORMAT TO: " . $this->destinationFormat . "\n";
 
         // Check to see if it's a supported destination format.
-        //echo "File Format: " . $fileFormat . "\n";
-        //echo "Allowed Formats: " . print_r($this->attributes[self::VALID_FORMATS],1) . "\n";
         if (!$this->supportsDestinationFormat()){
             throw new \Exception("File Format conversion not supported.");
         }
@@ -366,12 +347,8 @@ class BaseImageHandler{
         }
 
         $file = $asset->file;
-        echo "BaseHandler: Downloading File\n";
-        $filename = self::downloadFile($asset, $file);
-        echo "Filename: $filename\n";
-
         $extension = $file->extension;
-        echo "Extension: $extension\n";
+
         if ($extension == 'jpeg'){
             $extension = 'jpg';
         }
@@ -388,28 +365,42 @@ class BaseImageHandler{
             $extension = 'xls';
         }
 
-        $handlerName = 'common\\ImageProcessing\\' . strtoupper($extension) . "Handler";
-        echo "HandlerName: $handlerName\n";
 
+        $handlerName = 'common\\ImageProcessing\\' . strtoupper($extension) . "Handler";
+        $filename = self::downloadFile($asset, $file);
+        $fileType = self::getFileType($extension);
+        $handler = null;
 
 
         try{
             $handler = new $handlerName($filename, $asset->id);
-            $handler->setAttribute(self::FILE_EXTENSION, $extension);
-            $handler->getFileType();
-            echo "--> FILE TYPE FROM HANDLER: " . $handler->getAttribute(self::FILE_FILETYPE) . "\n";
-            $handler->getFileInfo();
-
-            return $handler;
-        }catch (\Throwable $e){
-            echo $e->getMessage()."\n";
-            echo $e->getTraceAsString()."\n";
-            return null;
+        }catch (\Exception $e){
+            $handler = null;
         }
+
+        if (!$handler){
+            $asset->thumbnail_state = Asset::THUMBNAIL_UNSUPPORTED;
+            $asset->preview_state = Asset::THUMBNAIL_UNSUPPORTED;
+            $asset->thumbnail_url = '/images/nothumbnail.png';
+            $asset->preview_url = '/images/nopreview.png';
+            $asset->save();
+
+            $file = $asset->file;
+            $file->type = $fileType;
+            $file->tmp_location = null;
+            $file->save();
+        }else{
+            $handler->setAttribute(self::FILE_EXTENSION, $extension);
+            $handler->setAttribute(self::DESTINATION_FILE, $filename);
+            $handler->setAttribute(self::FILE_FILETYPE, $fileType);
+            if ($handler->getAttribute(self::FILE_FILETYPE) == self::FILETYPE_IMAGE){
+                $handler->getFileInfo();
+            }
+        }
+        return $handler;
     }
 
     public static function downloadFile($asset, $file){
-
         // If file has been recently uploaded, use tmp file to avoid unnecessary downloads
         if ($file->tmp_location && file_exists($file->tmp_location)){
             return $file->tmp_location;
@@ -430,16 +421,16 @@ class BaseImageHandler{
         ]);
 
         $key = "{$env}/original/{$asset->customer_id}/{$asset->id}";
+
         try {
             $result = $s3->getObject([
                 'Bucket' => Yii::$app->params['AWS_BUCKET'],
                 'Key'    => $key,
                 'SaveAs' => $filename, // streams directly to disk
             ]);
-
-            echo "Downloaded to: $filename\n";
         } catch (AwsException $e) {
-            echo "S3 error: " . $e->getAwsErrorMessage() . "\n";
+            error_log("S3 error: " . $e->getAwsErrorMessage());
+            error_log("S3 error: " . $e->getTraceAsString());
             return null;
         }
         return $filename;
@@ -448,6 +439,7 @@ class BaseImageHandler{
     public function saveThumbnail($asset){
         $env = YII_ENV_DEV ? 'dev' : 'prod';
         $this->destinationFormat = SELF::FORMAT_JPG;
+        $file = $asset->file;
 
         try {
 
@@ -465,7 +457,6 @@ class BaseImageHandler{
                 $subfolder = 'preview';
             }
             $key = "{$env}/{$subfolder}/{$asset->customer_id}/{$asset->id}";
-            echo "**********KEY: $key\n";
 
             // Thumbnails will always be
             //$finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -476,8 +467,6 @@ class BaseImageHandler{
             // Set Mimetype as defined by the destination format.
             $mimeType = $this->mimeTypes[$this->destinationFormat];
 
-            echo "Mime Type: " . $mimeType . "\n";
-
             $result = $s3->putObject([
                 'Bucket' => Yii::$app->params['AWS_BUCKET'],
                 'Key' => $key,
@@ -487,9 +476,6 @@ class BaseImageHandler{
                 'ContentType' => $mimeType,
                 'StorageClass' => 'INTELLIGENT_TIERING',
             ]);
-            echo "S3 upload result: " . ($result ? "OK" : "FAILED") . "\n";
-
-            echo "S3 Is THUMBNAIL? " . ($this->thumbnail === true?"YES":"NO") . "\n";
 
             // Update asset status
             if ($this->thumbnail) {
@@ -500,14 +486,9 @@ class BaseImageHandler{
                 $asset->preview_url = Yii::$app->params['CLOUDFRONT_URL'] . '/' . $env . '/preview/' . $asset->customer_id . "/" . $asset->id;
             }
             $asset->save();
-
-            $asset->file->width = $this->attributes[self::FILE_WIDTH];
-            $asset->file->height = $this->attributes[self::FILE_HEIGHT];
-            $asset->file->tmp_location = null;
-            $asset->file->save();
         }catch (\Throwable $e) {
-            echo "Error Uploading to S3: " . $e->getMessage() . "\n";
-            echo $e->getTraceAsString() . "\n";
+            error_log($e->getMessage() );
+            error_log($e->getTraceAsString());
         }
     }
 

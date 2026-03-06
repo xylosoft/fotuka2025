@@ -198,7 +198,6 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                 <div class="v" id="ad_height">—</div>
             </div>
             <div class="asset-details-row tags-row">
-                <!--
                 <div class="k">
                     <strong>Tags</strong>
                     <button type="button" class="asset-nav-btn" id="btnShowAddTag">+ Add</button>
@@ -208,7 +207,6 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                         <button type="button" class="tag-save-btn" id="btnSaveTag">Save</button>
                     </div>
                 </div>
-                -->
 
                 <div class="v">
                     <div id="ad_tags" class="tag-list"></div>

@@ -3,13 +3,14 @@
 namespace common\ImageProcessing;
 
 use Yii;
+use common\models\Asset;
+use yii\db\Exception;
 
 class DOCHandler extends BaseImageHandler {
 
     private $internalHandler = null;
 
     public function __construct($filename, $assetId){
-        echo "******** CONSTRUCTOR ************\n";
         $this->attributes[self::FILE_NAME] = $filename;
         $this->attributes[self::ASSET_ID] = $assetId;
         $this->attributes[self::FILE_FORMAT] = self::FORMAT_DOCX;
@@ -32,22 +33,22 @@ class DOCHandler extends BaseImageHandler {
 
         $command .= ' ' . $this->attributes[self::FILE_NAME];
 
-        echo "COMMAND: $command\n";
 
         $start = microtime(true);
         $output = null;
         $result_code = null;
         exec($command, $output, $result_code);
-        echo "Result Code: $result_code\n";
-        echo print_r($output,1) . "\n";
         $end = microtime(true);
         echo "Process took: " . ($end - $start) . " seconds.\n";
 
-
-        $this->internalHandler = new $handlerName($this->destinationFile, $this->attributes[self::ASSET_ID]);
-        $this->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
-        $this->internalHandler->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
-
+        if (!file_exists($this->destinationFile)){
+            // TODO: Delete temp files
+            throw new Exception("Invalid File Format.");
+        }else{
+            $this->internalHandler = new $handlerName($this->destinationFile, $this->attributes[self::ASSET_ID]);
+            $this->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
+            $this->internalHandler->setDestinationFormat(BaseImageHandler::FORMAT_JPG);
+        }
         parent::__construct($filename, $assetId, true);
     }
 
@@ -57,38 +58,32 @@ class DOCHandler extends BaseImageHandler {
      * @throws \Exception
      */
     public function convert(){
-        echo "******** CONVERT ************\n";
         $this->internalHandler->convert();
         return $this;
     }
 
     public function createThumbnail($width, $height){
-        echo "******** createThumbnail ************\n";
         $this->internalHandler->createThumbnail($width, $height);
         return $this;
     }
 
 
     public function createPreview($width, $height){
-        echo "******** createPreview ************\n";
         $this->internalHandler->createPreview($width, $height);
         return $this;
     }
 
     public function resize($width, $height){
-        echo "******** resize ************\n";
         $this->internalHandler->resize($width, $height);
         return $this;
     }
 
     public function saveThumbnail($asset){
-        echo "******** saveThumbnail ************\n";
         $this->internalHandler->saveThumbnail($asset);
         return $this;
     }
 
     public function cleanup($asset){
-        echo "******** cleanup ************\n";
         //$this->internalHandler->cleanup($asset);
         //@unlink($this->destinationFile);
         return $this;
@@ -98,7 +93,4 @@ class DOCHandler extends BaseImageHandler {
         $this->internalHandler->getFileInfo();
         return $this;
     }
-
 }
-
-///soffice --headless --convert-to jpg --outdir ./1084FjVkav.jpg 3.docx

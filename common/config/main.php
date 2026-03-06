@@ -22,37 +22,46 @@ return [
             'enableStrictParsing' => false, // Set to true if you want to strictly enforce rules
             'rules' => [
                 // Site Actions
-                '/signup' => 'site/signup',
-                '/contact' => 'site/contact',
-                '/about' => 'site/about',
-                '/login' => 'site/login',
-                '/logout' => 'site/logout',
-                '/request-password-reset' => 'site/request-password-reset',
-                '/reset-password' => 'site/reset-password',
-                '/resend-verification' => 'site/resend-verification-email',
-                '/legal/open-source' => 'site/open-source',
+                'signup' => 'site/signup',
+                'contact' => 'site/contact',
+                'about' => 'site/about',
+                'login' => 'site/login',
+                'logout' => 'site/logout',
+                'request-password-reset' => 'site/request-password-reset',
+                'reset-password' => 'site/reset-password',
+                'resend-verification' => 'site/resend-verification-email',
+                'legal/open-source' => 'site/open-source',
 
                 // Folder / Asset Actions
-                '/json/folders' => 'json/folders',
-                '/json/folders/<id:\d+>' => 'json/folders',
-                '/json/folder/<id:\d+>' => 'json/folder',
-                '/json/assets/<folderId:\d+>' => 'json/assets',
-                '/json/asset/<id:\d+>' => 'json/asset',
-                '/json/pending/<folderId:\d+>/<assetIds[\d,]+>' => 'json/pending',
-                '/folder/add' => 'folder/add',
-                '/folder/move' => 'folder/move',
-                '/folder/rename' => 'folder/rename',
-                '/folders' => 'folder/folders',
-                '/folder/<id:\d+>' => 'folder/folders',
-                '/asset/upload/<id:\d+>' => 'asset/upload',
-                '/folder/delete' => 'folder/delete',
+                'json/folders' => 'json/folders',
+                'json/folders/<id:\d+>' => 'json/folders',
+                'json/folder/<id:\d+>' => 'json/folder',
+                'json/assets/<folderId:\d+>' => 'json/assets',
+                'json/asset/<id:\d+>' => 'json/asset',
+                'json/pending/<folderId:\d+>/<assetIds[\d,]+>' => 'json/pending',
+                'folder/add' => 'folder/add',
+                'folder/move' => 'folder/move',
+                'folder/rename' => 'folder/rename',
+                'folders' => 'folder/folders',
+                'folder/<id:\d+>' => 'folder/folders',
+                'asset/upload/<id:\d+>' => 'asset/upload',
+                'folder/delete' => 'folder/delete',
 
                 //Asset Actions
-                '/asset/deletetag/<id:\d+>' => 'asset/delete-tag',
-                '/asset/createtag/' => 'asset/create-tag',
+                'asset/deletetag/<id:\d+>' => 'asset/delete-tag',
+                'asset/createtag/' => 'asset/create-tag',
 
                 // templates
-                '/templates/wedding' => 'site/wedding',
+                //'/templates/wedding' => 'site/wedding', // sample only. To be deleted
+
+                '/templates' => 'template/index',
+                '/templateeditor' => 'template/editor',
+                'templateeditor/<id:\d+>' => 'template/editor',
+                'template/delete/<id:\d+>' => 'template/delete',
+                'publish/<folder_id:\d+>' => 'published-page/publish',
+                'pages/<uri:[A-Za-z0-9\-_]+>/password' => 'published-page/password',
+                'pages/<uri:[A-Za-z0-9\-_]+>/download-all' => 'published-page/download-all',
+                'pages/<uri:[A-Za-z0-9\-_]+>' => 'published-page/view',
 
                 // User Actions
                 'profile' => 'user/profile',

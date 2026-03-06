@@ -85,7 +85,21 @@ FolderAsset::register($this);
 </header>
 
 
-<?= $content ?>
+<?php
+$controllerId = Yii::$app->controller->id;
+$actionId = Yii::$app->controller->action->id;
+
+/*
+ * Wide workspace pages:
+ * keep full width for folder / asset style screens.
+ * Everything else gets a centered content container.
+ */
+$isWideWorkspacePage = in_array($controllerId, ['folder', 'asset', 'site']);
+?>
+
+<div class="layout-page <?= $isWideWorkspacePage ? 'layout-page--wide' : 'layout-page--centered' ?>">
+    <?= $content ?>
+</div>
 
 <div id="new-folder-dialog" title="Create Folder" style="display:none;">
     <div class="modal-body">
@@ -150,6 +164,76 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 </script>
+<style>
+    :root {
+        --app-header-height: 70px;
+        --page-side-padding: 24px;
+        --page-top-gap: 18px;
+        --page-max-width: 1380px;
+    }
+
+    /* Base wrapper */
+    .layout-page {
+        box-sizing: border-box;
+        padding-left: var(--page-side-padding);
+        padding-right: var(--page-side-padding);
+    }
+
+    .layout-page--centered {
+        max-width: var(--page-max-width);
+        margin: 0 auto;
+        padding-top: calc(var(--app-header-height) + var(--page-top-gap));
+        padding-bottom: 24px;
+        min-height: 100vh;
+    }
+
+    .layout-page--wide {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* First child inside the wide wrapper must fill all available height */
+    .layout-page--wide > * {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+    }
+
+    /* If your folder/assets page root uses .app, make it fill the wrapper */
+    .layout-page--wide .app {
+        height: 100% !important;
+        min-height: 0 !important;
+    }
+
+    /* Let inner columns shrink correctly inside flex/grid layouts */
+    .layout-page--wide .main,
+    .layout-page--wide .sidebar {
+        min-height: 0;
+    }
+
+    @media (max-width: 900px) {
+        :root {
+            --page-side-padding: 14px;
+            --page-top-gap: 12px;
+        }
+
+        .layout-page--centered,
+        .layout-page--wide {
+            max-width: none;
+        }
+
+        .layout-page--wide {
+            height: calc(100vh - var(--app-header-height) - var(--page-top-gap));
+        }
+    }
+</style>
 
 <?php $this->endBody() ?>
 </body>

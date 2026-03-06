@@ -306,7 +306,7 @@ class SiteController extends Controller
             $customer->save();
 
             $user = new User();
-            User->customer_id = $customer->id;
+            $user->customer_id = $customer->id;
             $user->email = $email;
             $user->username = strtolower($firstName . $lastName);
             $user->first_name = $firstName ?: null;

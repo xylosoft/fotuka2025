@@ -227,7 +227,7 @@ $sectionTypes = [
 
     .theme-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
     }
 
@@ -579,10 +579,17 @@ $sectionTypes = [
         position: absolute;
         inset: 0;
         z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
         font-weight: 700;
-        padding: 20px 26px;
+        padding: 22px 28px;
         width: 100%;
+        height: 100%;
         white-space: pre-line;
+        word-break: break-word;
+        overflow: hidden;
         background: transparent !important;
     }
 
@@ -831,6 +838,35 @@ $sectionTypes = [
         let sharedPicker = null;
         let activeColorTarget = null;
         let previewSortable = null;
+
+        function getHighlightedPreviewFontSize(section, previewHeight) {
+            const baseFont = parseInt(section.settings.font_size || 24, 10);
+            const text = (getSectionPreviewText(section) || '').trim();
+
+            if (!text) {
+                return Math.max(16, Math.round(baseFont * 0.82));
+            }
+
+            const lines = text.split(/\n+/).filter(line => line.trim() !== '').length || 1;
+            const longestLine = text.split('\n').reduce((max, line) => Math.max(max, line.trim().length), 0);
+
+            let scale = 0.82;
+
+            if (lines >= 2) scale -= 0.08;
+            if (lines >= 3) scale -= 0.12;
+            if (lines >= 4) scale -= 0.16;
+
+            if (longestLine > 18) scale -= 0.06;
+            if (longestLine > 26) scale -= 0.08;
+            if (longestLine > 36) scale -= 0.08;
+
+            if (previewHeight < 180) scale -= 0.06;
+            if (previewHeight < 150) scale -= 0.06;
+
+            const finalSize = Math.round(baseFont * scale);
+
+            return Math.max(14, Math.min(finalSize, 52));
+        }
 
         function scrollToFirstError() {
             const $form = $('#template-editor-form');
@@ -1498,10 +1534,19 @@ $sectionTypes = [
                     minHeight: previewHeight + 'px'
                 });
 
+                const previewFontSize = getHighlightedPreviewFontSize(section, previewHeight);
+                let justifyContent = 'center';
+                const align = section.settings.text_align || 'center';
+
+                if (align === 'left') justifyContent = 'flex-start';
+                if (align === 'right') justifyContent = 'flex-end';
+
                 box.find('.stage-highlighted-text').text(text).css({
-                    fontSize: Math.max(16, Math.round((section.settings.font_size || 24) * 0.82)) + 'px',
-                    textAlign: section.settings.text_align || 'center',
-                    color: section.text_color || '#111827'
+                    fontSize: previewFontSize + 'px',
+                    textAlign: align,
+                    justifyContent: justifyContent,
+                    color: section.text_color || '#111827',
+                    lineHeight: '1.15'
                 });
 
                 box.on('click', function () {

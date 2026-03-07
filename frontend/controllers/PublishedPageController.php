@@ -84,6 +84,7 @@ class PublishedPageController extends Controller
         if (empty($page->uri)) {
             $page->uri = urlencode($folder->name);
         }
+        $page->uri = strtolower($page->uri);
 
 
         if (Yii::$app->request->isPost) {

@@ -512,6 +512,7 @@ function fieldValueStyle($field) {
 </style>
 
 <script>
+document.addEventListener('DOMContentLoaded', function () {
     const galleryUrls = $('#gallery-grid .gallery-mosaic-item').map(function() {
         return $(this).data('url');
     }).get();
@@ -557,4 +558,5 @@ function fieldValueStyle($field) {
             }
         });
     });
+});
 </script>

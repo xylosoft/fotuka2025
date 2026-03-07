@@ -76,6 +76,16 @@ class PublishedPageController extends Controller
         $page->customer_id = $user->customer_id;
         $page->user_id = $user->id;
 
+        // Default values
+        if (empty($page->page_title)) {
+            $page->page_title = $folder->name;
+        }
+
+        if (empty($page->uri)) {
+            $page->uri = urlencode($folder->name);
+        }
+
+
         if (Yii::$app->request->isPost) {
             $post = Yii::$app->request->post();
             $page->load($post);

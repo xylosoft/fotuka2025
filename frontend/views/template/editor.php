@@ -69,7 +69,7 @@ $sectionTypes = [
                         </div>
 
                         <div class="theme-row">
-                            <div class="theme-row-label">Page Text</div>
+                            <div class="theme-row-label">Default Text Color</div>
                             <button type="button" class="color-swatch js-color-swatch" data-scope="theme" data-key="page_text_color">
                                 <span class="swatch-fill" style="background: <?= Html::encode($theme['page_text_color'] ?? '#111827') ?>;"></span>
                             </button>
@@ -97,12 +97,8 @@ $sectionTypes = [
 
                 <div id="section-list" class="section-list"></div>
 
-                <div class="editor-card custom-fields-card">
-                    <div class="card-title-row">
-                        <h3>Custom Fields</h3>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="add-custom-field-btn">+ Add Custom Field</button>
-                    </div>
-                    <div id="custom-field-list"></div>
+                <div class="custom-field-action-row">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="add-custom-field-btn">+ Add Custom Field</button>
                 </div>
             </div>
 
@@ -315,11 +311,14 @@ $sectionTypes = [
         display: flex;
         flex-direction: column;
         gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .custom-field-action-row {
         margin-bottom: 18px;
     }
 
-    .section-card,
-    .field-card {
+    .section-card {
         border: 1px solid #dbe3ee;
         border-radius: 14px;
         background: #fff;
@@ -332,8 +331,7 @@ $sectionTypes = [
         box-shadow: 0 0 0 3px rgba(37,99,235,.16), 0 14px 30px rgba(0,0,0,.07);
     }
 
-    .section-card-header,
-    .field-card-header {
+    .section-card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -342,15 +340,13 @@ $sectionTypes = [
         border-bottom: 1px solid #eef2f7;
     }
 
-    .section-card-title,
-    .field-card-title {
+    .section-card-title {
         font-size: 15px;
         font-weight: 700;
         color: #111827;
     }
 
-    .section-card-actions,
-    .field-card-actions {
+    .section-card-actions {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -382,13 +378,11 @@ $sectionTypes = [
         background: #fee2e2;
     }
 
-    .section-card-body,
-    .field-card-body {
+    .section-card-body {
         padding: 14px;
     }
 
-    .section-card-body.collapsed,
-    .field-card-body.collapsed {
+    .section-card-body.collapsed {
         display: none;
     }
 
@@ -403,49 +397,16 @@ $sectionTypes = [
         align-items: end;
     }
 
-    .field-grid {
-        display: grid;
-        grid-template-columns: 1.6fr .8fr .8fr auto;
-        gap: 12px;
-        align-items: end;
-    }
-
-    .section-card-grid .full,
-    .field-grid .full {
+    .section-card-grid .full {
         grid-column: 1 / -1;
     }
 
-    .section-card-grid label,
-    .field-grid label {
+    .section-card-grid label {
         display: block;
         margin-bottom: 6px;
         font-size: 12px;
         color: #475569;
         font-weight: 600;
-    }
-
-    .field-token-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 10px 12px;
-        border: 1px dashed #dbe3ee;
-        border-radius: 12px;
-        background: #fafbfc;
-        font-size: 12px;
-        color: #64748b;
-    }
-
-    .field-token-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 4px 8px;
-        border-radius: 999px;
-        background: #eef2ff;
-        color: #4338ca;
-        font-weight: 700;
-        font-size: 12px;
     }
 
     .section-color-inline {
@@ -786,14 +747,8 @@ $sectionTypes = [
         }
 
         .section-card-grid,
-        .section-card-grid.header-image-grid,
-        .field-grid {
+        .section-card-grid.header-image-grid {
             grid-template-columns: 1fr;
-        }
-
-        .field-token-row {
-            flex-direction: column;
-            align-items: flex-start;
         }
     }
 
@@ -822,7 +777,8 @@ $sectionTypes = [
             company_name: 'Company Name',
             single_image: 'Image Row',
             gallery: 'Gallery',
-            text_block: 'Text Block'
+            text_block: 'Text Block',
+            custom_field: 'Custom Field'
         };
 
         const UNIQUE_SECTION_TYPES = ['header_image', 'image_carousel', 'logo', 'company_name', 'gallery'];
@@ -838,6 +794,32 @@ $sectionTypes = [
         let sharedPicker = null;
         let activeColorTarget = null;
         let previewSortable = null;
+
+        function createCustomFieldSection(field) {
+            return {
+                section_key: uuid('section'),
+                type: 'custom_field',
+                label: 'Custom Field',
+                row_no: sections.length + 1,
+                width: 12,
+                height: '',
+                sort_order: sections.length + 1,
+                is_locked: 0,
+                collapsed: false,
+                text: '',
+                custom_field_id: '',
+                custom_field_key: field.field_key,
+                background_color: '',
+                text_color: field.text_color || '#111827',
+                image_count: 0,
+                settings: {
+                    text_mode: 'custom_field',
+                    font_size: field.font_size || 16,
+                    text_align: field.text_align || 'left',
+                    logo_width: 180
+                }
+            };
+        }
 
         function getHighlightedPreviewFontSize(section, previewHeight) {
             const baseFont = parseInt(section.settings.font_size || 24, 10);
@@ -934,7 +916,7 @@ $sectionTypes = [
             section.is_locked = 0;
             section.collapsed = !!section.collapsed;
             section.text = typeof section.text === 'string' ? section.text : '';
-            section.text_color = section.text_color || (section.type === 'header_image' ? '#111827' : '#111827');
+            section.text_color = section.text_color || '#111827';
             section.settings = section.settings || {};
             section.settings.text_mode = section.settings.text_mode || ((section.type === 'header_image' || section.type === 'text_block') ? 'static' : '');
             section.settings.text_align = section.settings.text_align || (section.type === 'text_block' ? 'left' : (section.type === 'company_name' ? 'left' : 'center'));
@@ -957,6 +939,13 @@ $sectionTypes = [
             if (section.type === 'image_carousel') {
                 section.height = parseInt(section.height || 140, 10);
                 section.image_count = parseInt(section.image_count || 5, 10);
+            }
+
+            if (section.type === 'custom_field') {
+                section.settings.text_mode = 'custom_field';
+                section.settings.font_size = parseInt(section.settings.font_size || 16, 10);
+                section.settings.text_align = section.settings.text_align || 'left';
+                section.text_color = section.text_color || '#111827';
             }
 
             if (section.type === 'single_image') {
@@ -1067,6 +1056,10 @@ $sectionTypes = [
         }).join('');
         }
 
+        function findSectionForField(fieldKey) {
+            return sections.find(section => section.type === 'custom_field' && section.custom_field_key === fieldKey);
+        }
+
         function scrollToSectionCard(sectionKey) {
             const $card = $(`#section-list .section-card[data-key="${sectionKey}"]`);
             if (!$card.length) {
@@ -1082,7 +1075,8 @@ $sectionTypes = [
 
                 const $firstInput = $card.find('textarea, input, select').filter(':visible').first();
                 if ($firstInput.length) {
-                    $firstInput.trigger('focus');
+                    $input = $firstInput;
+                    $input.trigger('focus');
                 }
 
                 setTimeout(function () {
@@ -1122,6 +1116,10 @@ $sectionTypes = [
             sections.forEach((section, index) => {
                 normalizeSection(section);
 
+            const linkedField = section.type === 'custom_field'
+                ? customFields.find(field => field.field_key === section.custom_field_key)
+        : null;
+
             const supportsText = ['header_image', 'text_block'].includes(section.type);
             const supportsTextStyle = ['header_image', 'text_block', 'company_name'].includes(section.type);
             const showHeight = ['header_image', 'image_carousel'].includes(section.type);
@@ -1144,7 +1142,7 @@ $sectionTypes = [
                 </div>
             ` : '';
 
-            const colorControlHtml = supportsTextStyle ? `
+            const colorControlHtml = (supportsTextStyle || section.type === 'custom_field') ? `
                 <div class="section-color-inline">
                     <span>Color</span>
                     <button type="button"
@@ -1158,11 +1156,14 @@ $sectionTypes = [
             ` : '';
 
             const gridClass = section.type === 'header_image' ? 'section-card-grid header-image-grid' : 'section-card-grid';
+            const sectionTitle = section.type === 'custom_field'
+                ? (linkedField && linkedField.name ? linkedField.name : 'Custom Field')
+                : typeLabel(section.type);
 
             const card = $(`
                 <div class="section-card" data-key="${section.section_key}">
                     <div class="section-card-header">
-                        <div class="section-card-title">${escapeHtml(typeLabel(section.type))}</div>
+                        <div class="section-card-title">${escapeHtml(sectionTitle)}</div>
                         <div class="section-card-actions">
                             <button type="button" class="collapse-btn toggle-section-btn">${toggleIcon}</button>
                             <button type="button" class="remove-btn-small remove-section-btn">Remove</button>
@@ -1193,7 +1194,14 @@ $sectionTypes = [
                             </div>
                             ` : ''}
 
-                            ${supportsTextStyle ? `
+                            ${section.type === 'custom_field' ? `
+                            <div>
+                                <label>Name</label>
+                                <input type="text" class="form-control section-custom-field-name" value="${escapeAttr(linkedField ? linkedField.name : '')}" placeholder="Example: Address">
+                            </div>
+                            ` : ''}
+
+                            ${(supportsTextStyle || section.type === 'custom_field') ? `
                             <div>
                                 <label>Alignment</label>
                                 <select class="form-control section-text-align">
@@ -1204,7 +1212,7 @@ $sectionTypes = [
                             </div>
                             ` : ''}
 
-                            ${supportsTextStyle ? `
+                            ${(supportsTextStyle || section.type === 'custom_field') ? `
                             <div>
                                 <label>Font Size (px)</label>
                                 <input type="number" class="form-control section-font-size" value="${escapeAttr(section.settings.font_size || 20)}" min="10" max="120">
@@ -1234,7 +1242,7 @@ $sectionTypes = [
                             </div>
                             ` : ''}
 
-                            ${(supportsText && section.settings.text_mode === 'custom_field') ? `
+                            ${(section.settings.text_mode === 'custom_field' && section.type !== 'custom_field') ? `
                             <div>
                                 <label>Custom Field</label>
                                 <select class="form-control section-custom-field-key">
@@ -1244,7 +1252,7 @@ $sectionTypes = [
                             </div>
                             ` : ''}
 
-                            ${(supportsTextStyle && section.type !== 'header_image') ? `
+                            ${((supportsTextStyle && section.type !== 'header_image') || section.type === 'custom_field') ? `
                             <div>
                                 <label>Color</label>
                                 ${colorControlHtml}
@@ -1280,9 +1288,14 @@ $sectionTypes = [
             });
 
             card.find('.remove-section-btn').on('click', function () {
+                const removedSection = sections[index];
+
+                if (removedSection.type === 'custom_field' && removedSection.custom_field_key) {
+                    customFields = customFields.filter(field => field.field_key !== removedSection.custom_field_key);
+                }
+
                 sections.splice(index, 1);
                 renderSections();
-                renderCustomFields();
             });
 
             card.find('.section-height').on('input', function () {
@@ -1314,14 +1327,46 @@ $sectionTypes = [
                 serializeState();
             });
 
+            card.find('.section-custom-field-name').on('input', function () {
+                const value = $(this).val();
+                const field = customFields.find(item => item.field_key === sections[index].custom_field_key);
+
+                if (field) {
+                    field.name = value;
+                    field.slug = slugify(value);
+                }
+
+                card.find('.section-card-title').text(value || 'Custom Field');
+                renderStage();
+                serializeState();
+            });
+
             card.find('.section-text-align').on('change', function () {
-                sections[index].settings.text_align = $(this).val();
+                const value = $(this).val();
+                sections[index].settings.text_align = value;
+
+                if (sections[index].type === 'custom_field') {
+                    const field = customFields.find(item => item.field_key === sections[index].custom_field_key);
+                    if (field) {
+                        field.text_align = value;
+                    }
+                }
+
                 renderStage();
                 serializeState();
             });
 
             card.find('.section-font-size').on('input', function () {
-                sections[index].settings.font_size = parseInt($(this).val() || 20, 10);
+                const value = parseInt($(this).val() || 20, 10);
+                sections[index].settings.font_size = value;
+
+                if (sections[index].type === 'custom_field') {
+                    const field = customFields.find(item => item.field_key === sections[index].custom_field_key);
+                    if (field) {
+                        field.font_size = value;
+                    }
+                }
+
                 renderStage();
                 serializeState();
             });
@@ -1340,115 +1385,6 @@ $sectionTypes = [
         }
 
         function renderCustomFields() {
-            hideColorPopover();
-
-            const wrap = $('#custom-field-list');
-            wrap.empty();
-
-            customFields.forEach((field, index) => {
-                normalizeCustomField(field);
-
-            const bodyClass = field.collapsed ? 'field-card-body collapsed' : 'field-card-body';
-            const toggleIcon = field.collapsed ? '▸' : '▾';
-            const tokenText = field.name ? '{{' + field.name + '}}' : '{{custom_field}}';
-
-            const card = $(`
-                <div class="field-card" data-key="${field.field_key}">
-                    <div class="field-card-header">
-                        <div class="field-card-title">${escapeHtml(field.name || 'Custom Field')}</div>
-                        <div class="field-card-actions">
-                            <button type="button" class="collapse-btn toggle-field-btn">${toggleIcon}</button>
-                            <button type="button" class="remove-btn-small remove-field-btn">Remove</button>
-                        </div>
-                    </div>
-
-                    <div class="${bodyClass}">
-                        <div class="field-grid">
-                            <div>
-                                <label>Name</label>
-                                <input type="text" class="form-control field-name" value="${escapeAttr(field.name || '')}" placeholder="Example: Address">
-                            </div>
-
-                            <div>
-                                <label>Font Size (px)</label>
-                                <input type="number" class="form-control field-font-size" value="${escapeAttr(field.font_size || 16)}" min="10" max="120">
-                            </div>
-
-                            <div>
-                                <label>Align</label>
-                                <select class="form-control field-text-align">
-                                    <option value="left" ${field.text_align === 'left' ? 'selected' : ''}>Left</option>
-                                    <option value="center" ${field.text_align === 'center' ? 'selected' : ''}>Center</option>
-                                    <option value="right" ${field.text_align === 'right' ? 'selected' : ''}>Right</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label>Color</label>
-                                <button type="button"
-                                        class="color-swatch js-color-swatch"
-                                        data-scope="field"
-                                        data-index="${index}"
-                                        data-key="text_color">
-                                    <span class="swatch-fill" style="background:${escapeAttr(field.text_color || '#111827')}"></span>
-                                </button>
-                            </div>
-
-                            <div class="full">
-                                <div class="field-token-row">
-                                    <span>Reference token for text sections</span>
-                                    <span class="field-token-pill">${escapeHtml(tokenText)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `);
-
-            card.find('.toggle-field-btn').on('click', function () {
-                customFields[index].collapsed = !customFields[index].collapsed;
-                renderCustomFields();
-            });
-
-            card.find('.field-name').on('input', function () {
-                customFields[index].name = $(this).val();
-                customFields[index].slug = slugify($(this).val());
-                renderCustomFields();
-                renderSections();
-            });
-
-            card.find('.field-font-size').on('input', function () {
-                customFields[index].font_size = parseInt($(this).val() || 16, 10);
-                serializeState();
-                renderStage();
-            });
-
-            card.find('.field-text-align').on('change', function () {
-                customFields[index].text_align = $(this).val();
-                serializeState();
-                renderStage();
-            });
-
-            card.find('.remove-field-btn').on('click', function () {
-                const removedKey = field.field_key;
-                customFields.splice(index, 1);
-
-                sections.forEach(section => {
-                    if (section.custom_field_key === removedKey) {
-                    section.custom_field_key = '';
-                    if (section.settings && section.settings.text_mode === 'custom_field') {
-                        section.settings.text_mode = 'static';
-                    }
-                }
-            });
-
-                renderCustomFields();
-                renderSections();
-            });
-
-            wrap.append(card);
-        });
-
             serializeState();
         }
 
@@ -1461,6 +1397,11 @@ $sectionTypes = [
 
             if (mode === 'custom_field') {
                 const field = customFields.find(item => item.field_key === section.custom_field_key);
+
+                if (section.type === 'custom_field') {
+                    return field && field.name ? field.name : 'Custom Field';
+                }
+
                 return field && field.name ? `{{${field.name}}}` : '{{Custom Field}}';
             }
 
@@ -1707,6 +1648,37 @@ $sectionTypes = [
                 stage.append(box);
                 return;
             }
+
+            if (section.type === 'custom_field') {
+                const field = customFields.find(item => item.field_key === section.custom_field_key);
+
+                const previewText = field && field.name ? field.name : 'Custom Field';
+                const previewFontSize = field && field.font_size ? field.font_size : (section.settings.font_size || 16);
+                const previewAlign = field && field.text_align ? field.text_align : (section.settings.text_align || 'left');
+                const previewColor = field && field.text_color ? field.text_color : (section.text_color || theme.page_text_color);
+
+                const box = $(`
+                    <div class="stage-sortable" data-key="${section.section_key}">
+                        <div class="stage-section">
+                            ${buildSectionLabel('Custom Field')}
+                            <div class="stage-text-block custom-field-preview-text"></div>
+                        </div>
+                    </div>
+                `);
+
+                box.find('.custom-field-preview-text').text(previewText).css({
+                    fontSize: previewFontSize + 'px',
+                    textAlign: previewAlign,
+                    color: previewColor
+                });
+
+                box.on('click', function () {
+                    scrollToSectionCard(section.section_key);
+                });
+
+                stage.append(box);
+                return;
+            }
         });
 
             initPreviewSortable();
@@ -1827,6 +1799,14 @@ $sectionTypes = [
                 const index = parseInt(target.index, 10);
                 if (sections[index]) {
                     sections[index][target.key] = color;
+
+                    if (sections[index].type === 'custom_field' && target.key === 'text_color') {
+                        const field = customFields.find(item => item.field_key === sections[index].custom_field_key);
+                        if (field) {
+                            field.text_color = color;
+                        }
+                    }
+
                     $(`.js-color-swatch[data-scope="section"][data-index="${index}"][data-key="${target.key}"] .swatch-fill`).css('background', color);
                     renderStage();
                     serializeState();
@@ -1838,7 +1818,12 @@ $sectionTypes = [
                 const index = parseInt(target.index, 10);
                 if (customFields[index]) {
                     customFields[index][target.key] = color;
-                    $(`.js-color-swatch[data-scope="field"][data-index="${index}"][data-key="${target.key}"] .swatch-fill`).css('background', color);
+
+                    const linkedSection = findSectionForField(customFields[index].field_key);
+                    if (linkedSection && target.key === 'text_color') {
+                        linkedSection.text_color = color;
+                    }
+
                     renderStage();
                     serializeState();
                 }
@@ -1904,9 +1889,17 @@ $sectionTypes = [
         });
 
         $('#add-custom-field-btn').on('click', function () {
-            customFields.push(createDefaultField());
-            renderCustomFields();
+            const field = createDefaultField();
+            const newSection = createCustomFieldSection(field);
+
+            customFields.push(field);
+            sections.push(newSection);
+
             renderSections();
+
+            setTimeout(function () {
+                scrollToSectionCard(newSection.section_key);
+            }, 60);
         });
 
         $('#allow-downloads-checkbox').on('change', function () {

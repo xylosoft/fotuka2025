@@ -74,8 +74,9 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                         </button>
                     </div>
 
+                    <!--
                     <i class="fa fa-ellipsis-v folder-menu-btn"></i>
-
+                    
                     <div class="folder-dropdown-menu">
                         <div class="menu-item folder-rename">
                             <span class="menu-icon">✏️</span> Rename
@@ -88,6 +89,7 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                             <span class="menu-icon">🗑️</span> Delete
                         </div>
                     </div>
+                    -->
 
                 </div>
 

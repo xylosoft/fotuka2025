@@ -332,7 +332,7 @@ header > div:last-child {
 .folder-dropdown-menu {
     display: none;
     position: absolute;
-    top: 24px;
+    top: 30px;
     right: 0;
     min-width: 140px;
     background-color: #ffffff;

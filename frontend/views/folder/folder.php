@@ -76,7 +76,7 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
 
                     <!--
                     <i class="fa fa-ellipsis-v folder-menu-btn"></i>
-                    
+
                     <div class="folder-dropdown-menu">
                         <div class="menu-item folder-rename">
                             <span class="menu-icon">✏️</span> Rename
@@ -1066,21 +1066,31 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
 
         // Make sure dialog markup exists
         if ($dlg.length === 0 || $img.length === 0 || $ph.length === 0) {
-            //console.error('Missing preview markup: #asset-preview-dialog, #assetPreviewImg, #assetPreviewPlaceholder');
             return;
         }
 
         // Normalize initial url (from card)
         initialPreviewUrl = ((initialPreviewUrl || '') + '').trim();
 
-        // Reset UI first (prevents /undefined)
+        // Reset preview area without flashing the placeholder
+        $img.off('load.preview error.preview');
         $img.attr('src', '').hide();
-        $ph.show();
+        $ph.hide();
 
-        // If we have an initial preview url, use it immediately
+        // If we have an initial preview url, only show image after it loads
         if (initialPreviewUrl && initialPreviewUrl !== 'undefined' && initialPreviewUrl !== 'null') {
-            $img.attr('src', initialPreviewUrl).show();
-            $ph.hide();
+            $img
+                .one('load.preview', function() {
+                    $ph.hide();
+                    $img.show();
+                })
+                .one('error.preview', function() {
+                    $img.hide();
+                    $ph.show();
+                })
+                .attr('src', initialPreviewUrl);
+        } else {
+            $ph.show();
         }
 
         // Open dialog immediately (fast UX)
@@ -1095,7 +1105,6 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
             return;
         }
 
-        // ✅ HERE is the AJAX call you asked for
         $.getJSON('/json/asset/' + assetId, function(res) {
             if (!res || !res.ok || !res.asset) {
                 setAssetDetailsError('Unable to load asset details');
@@ -1149,13 +1158,28 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
 
         const previewUrl = ((a.preview_url || a.previewUrl || '') + '').trim();
 
-        // Reset to placeholder by default
-        $img.attr('src', '').hide();
-        $ph.show();
+        $img.off('load.preview error.preview');
 
         if (previewUrl && previewUrl !== 'undefined' && previewUrl !== 'null') {
-            $img.attr('src', previewUrl).show();
-            $ph.hide();
+            if ($img.attr('src') !== previewUrl) {
+                $ph.hide();
+                $img.hide()
+                    .one('load.preview', function() {
+                        $ph.hide();
+                        $img.show();
+                    })
+                    .one('error.preview', function() {
+                        $img.attr('src', '').hide();
+                        $ph.show();
+                    })
+                    .attr('src', previewUrl);
+            } else {
+                $ph.hide();
+                $img.show();
+            }
+        } else {
+            $img.attr('src', '').hide();
+            $ph.show();
         }
 
         renderTags(a.tags || []);
@@ -2429,9 +2453,10 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
 
         // keyboard nav when dialog is open
         $(document).on('keydown', function (e) {
-            if (!$('#asset-preview-dialog').dialog('isOpen')) return;
-
-            if (e.key === 'Escape') $('#asset-preview-dialog').dialog('close');
+            if (e.key === 'Escape'){
+                $('#asset-preview-dialog').dialog('close');
+                closeAllContextMenus();
+            }
             if (e.key === 'ArrowLeft') goDialogPrev();
             if (e.key === 'ArrowRight') goDialogNext();
         });

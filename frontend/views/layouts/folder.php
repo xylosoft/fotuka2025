@@ -17,12 +17,9 @@ FolderAsset::register($this);
     <?php $this->head() ?>
 
     <?php
-    // Minimal: keep your existing assets
     $this->registerCssFile('@web/css/awesome.min.css');
     $this->registerCssFile('@web/jstree/themes/default/style.min.css');
     $this->registerJsFile('@web/jstree/jstree.min.js', ['depends' => [\yii\web\JqueryAsset::class]]);
-
-    // Minimal add: jQuery UI for the dialog
     $this->registerCssFile('https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css');
     $this->registerJsFile('https://code.jquery.com/ui/1.13.2/jquery-ui.min.js', [
         'depends' => [\yii\web\JqueryAsset::class],
@@ -38,36 +35,30 @@ FolderAsset::register($this);
     </div>
     <div>
         <div style="float:left">
-            <?php
-            if (Yii::$app->user->isGuest) {
-                ?>
+            <?php if (Yii::$app->user->isGuest): ?>
                 <a href="/login">Login</a>
-                <?php
-            } else {
-                ?>
-                <a href="/logout">Logout (<?=Yii::$app->user->identity->username?>)</a>
-                <?php
-            }
-            ?>
+            <?php else: ?>
+                <a href="/logout">Logout (<?= Yii::$app->user->identity->username ?>)</a>
+            <?php endif; ?>
         </div>
-        <div style="float:right;padding-right: 10px">
+        <div style="float:right;padding-right:10px">
             <a href="/settings"><i class="fa fa-cog"></i></a>
         </div>
-        <div class="user-profile" style="float:right;">
+        <div style="float:right;">
             <div class="user-menu-container">
-                <div class="user-profile">
-
-                    <?php if (Yii::$app->user->isGuest || !Yii::$app->user->identity->profile_picture){?>
+                <div class="user-profile" role="button" tabindex="0" aria-label="Open profile menu">
+                    <?php if (Yii::$app->user->isGuest || !Yii::$app->user->identity->profile_picture): ?>
                         <svg width="51" height="51" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="12" fill="#E5E7EB"/>
                             <circle cx="12" cy="9" r="4" fill="#9CA3AF"/>
                             <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" fill="#9CA3AF"/>
                         </svg>
-                    <?php }else{?>
-                        <img src="<?=Yii::$app->user->identity->profile_picture?>?v=<?=Yii::$app->user->identity->profile_update_date?>" alt="User profile" class="profile-pic">
-                    <?php } ?>
+                    <?php else: ?>
+                        <img src="<?= Yii::$app->user->identity->profile_picture ?>?v=<?= Yii::$app->user->identity->profile_update_date ?>" alt="User profile" class="profile-pic">
+                    <?php endif; ?>
                 </div>
-                <div class="user-dropdown-menu">
+
+                <div class="user-dropdown-menu" style="display:none;">
                     <div class="menu-item" id="menu-profile">
                         <span class="menu-icon">👤</span> Profile
                     </div>
@@ -75,8 +66,8 @@ FolderAsset::register($this);
                         <span class="menu-icon">⚙️</span> Settings
                     </div>
                     <div class="menu-separator"></div>
-                    <div class="menu-item" id="menu-settings">
-                        <a href="/templates">&#128196;️</span> Website Templates</a>
+                    <div class="menu-item" id="menu-templates">
+                        <span class="menu-icon">&#128196;</span> Website Templates
                     </div>
                     <div class="menu-separator"></div>
                     <div class="menu-item" id="menu-logout">
@@ -88,16 +79,8 @@ FolderAsset::register($this);
     </div>
 </header>
 
-
 <?php
 $controllerId = Yii::$app->controller->id;
-$actionId = Yii::$app->controller->action->id;
-
-/*
- * Wide workspace pages:
- * keep full width for folder / asset style screens.
- * Everything else gets a centered content container.
- */
 $isWideWorkspacePage = in_array($controllerId, ['folder', 'asset', 'site']);
 ?>
 
@@ -119,55 +102,102 @@ $isWideWorkspacePage = in_array($controllerId, ['folder', 'asset', 'site']);
         <div id="folder-error" class="modal-error" style="display:none;"></div>
     </div>
 </div>
+
 <script>
+    function showBanner(message, type = 'error') {
+        var $banner = $('#notification-banner');
+        var bgColor = '#F4B6B6';
 
-function showBanner(message, type = 'error') {
-    var $banner = $('#notification-banner');
-    var bgColor = '#F4B6B6'; // default red
+        if (type === 'success') bgColor = '#AEE8B2';
 
-    if (type === 'success') bgColor = '#AEE8B2'; // green
+        $banner.stop(true, true)
+            .css({
+                'background-color': bgColor,
+                'display': 'none'
+            })
+            .text(message)
+            .slideDown(200)
+            .delay(3000)
+            .fadeOut(600);
+    }
 
-    $banner.stop(true, true)
-        .css({
-            'background-color': bgColor,
-            'display': 'none'
-        })
-        .text(message)
-        .slideDown(200)
-        .delay(3000) // visible for 4 seconds
-        .fadeOut(600);
-}
+    window.closeAllFotukaMenus = function(options) {
+        options = options || {};
 
-document.addEventListener('DOMContentLoaded', function () {
-    const $menu = $('.user-dropdown-menu');
-
-    // Hide dropdown when clicking anywhere else
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('.user-menu-container').length) {
-            $menu.hide();
+        if (!options.keepAsset) {
+            $('#assetContextMenu').hide();
         }
-    });
+        if (!options.keepFolder) {
+            $('.folder-actions').removeClass('active');
+        }
+        if (!options.keepProfile) {
+            $('.user-dropdown-menu').hide();
+        }
+        if (!options.keepTree) {
+            $('.vakata-context').hide();
+        }
+    };
 
-    $('#menu-profile').on('click', function() {
-        window.location.href = '/profile';
-    });
+    document.addEventListener('DOMContentLoaded', function () {
+        $('.user-profile').off('click.fotukaProfile keydown.fotukaProfile');
+        $('.user-profile').on('click.fotukaProfile', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
 
-    $('#menu-settings').on('click', function() {
-        alert('Open Settings');
-    });
+            const $menu = $(this).closest('.user-menu-container').find('.user-dropdown-menu');
+            const shouldOpen = !$menu.is(':visible');
 
-    $('#menu-logout').on('click', function() {
-        window.location.href = '/logout';
-    });
+            window.closeAllFotukaMenus({ keepProfile: true });
+            $('.user-dropdown-menu').hide();
 
-    // Toggle dropdown when clicking profile image
-    $('.user-profile').on('click', function(e) {
-        e.stopPropagation();
-        $menu.toggle();
-    });
+            if (shouldOpen) {
+                $menu.show();
+            }
+        });
 
-});
+        $('.user-profile').on('keydown.fotukaProfile', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                $(this).trigger('click');
+            }
+        });
+
+        $('.user-dropdown-menu').on('click', function(e) {
+            e.stopPropagation();
+        });
+
+        $('#menu-profile').on('click', function() {
+            window.location.href = '/profile';
+        });
+
+        $('#menu-settings').on('click', function() {
+            window.location.href = '/settings';
+        });
+
+        $('#menu-templates').on('click', function() {
+            window.location.href = '/templates';
+        });
+
+        $('#menu-logout').on('click', function() {
+            window.location.href = '/logout';
+        });
+
+        $(document).off('click.fotukaMenus contextmenu.fotukaMenus')
+            .on('click.fotukaMenus contextmenu.fotukaMenus', function(e) {
+                const $target = $(e.target);
+                if ($target.closest('.user-menu-container, .folder-actions, #assetContextMenu, .vakata-context, .asset-card, .jstree-anchor, .jstree-wholerow').length) {
+                    return;
+                }
+
+                window.closeAllFotukaMenus();
+            });
+
+        $(window).off('scroll.fotukaMenus resize.fotukaMenus').on('scroll.fotukaMenus resize.fotukaMenus', function() {
+            window.closeAllFotukaMenus();
+        });
+    });
 </script>
+
 <style>
     :root {
         --app-header-height: 70px;
@@ -176,7 +206,6 @@ document.addEventListener('DOMContentLoaded', function () {
         --page-max-width: 1380px;
     }
 
-    /* Base wrapper */
     .layout-page {
         box-sizing: border-box;
         padding-left: var(--page-side-padding);
@@ -203,20 +232,17 @@ document.addEventListener('DOMContentLoaded', function () {
         overflow: hidden;
     }
 
-    /* First child inside the wide wrapper must fill all available height */
     .layout-page--wide > * {
         flex: 1 1 auto;
         min-height: 0;
-        height: auto%;
+        height: auto;
     }
 
-    /* If your folder/assets page root uses .app, make it fill the wrapper */
     .layout-page--wide .app {
         height: 100% !important;
         min-height: 0 !important;
     }
 
-    /* Let inner columns shrink correctly inside flex/grid layouts */
     .layout-page--wide .main,
     .layout-page--wide .sidebar {
         min-height: 0;

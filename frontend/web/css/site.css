@@ -115,44 +115,64 @@ a.desc:after {
     background-color: #f9fafb;
 }
 
+.user-profile {
+    width: 55px;
+    height: 55px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+}
+
 .profile-pic {
     width: 51px;
     height: 51px;
-    border-radius: 50%;
     object-fit: cover;
-}
-
-.user-menu-container {
-    position: relative;
-    display: inline-block;
+    border-radius: 9999px;
+    display: block;
 }
 
 .user-dropdown-menu {
     display: none;
     position: absolute;
+    top: calc(100% + 10px);
     right: 0;
-    top: 55px;
-    background: #fff;
+    min-width: 220px;
+    background: #ffffff;
     border: 1px solid #d1d5db;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    width: 220px;
-    z-index: 9999;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
     overflow: hidden;
-    font-family: "Roboto", Arial, sans-serif;
+    z-index: 10020;
 }
 
 .user-dropdown-menu .menu-item {
+    font-family: "Roboto", Arial, sans-serif;
+    font-size: 14px !important;
+    padding: 5px 14px;
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
-    font-size: 14px;
-    color: #111;
+    color: #111827;
     background: #fff;
-    cursor: pointer;
-    line-height: 1.4;
-    transition: background-color 0.15s ease;
+}
+
+.user-dropdown-menu .menu-item:hover {
+    background: #f3f4f6;
+}
+
+.user-dropdown-menu .menu-item a {
+    color: inherit;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding-left: 0;
 }
 
 .user-dropdown-menu .menu-item:hover {

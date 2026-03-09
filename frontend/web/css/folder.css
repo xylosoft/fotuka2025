@@ -245,71 +245,7 @@ header > div:last-child {
     color: #aaa;
 }
 
-.user-profile {
-    position: relative;
-    width: 55px;
-    height: 55px;
-    border-radius: 50%;
-    border: 1px solid #6B7280;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    background-color: #f9fafb;
-}
 
-.profile-pic {
-    width: 51px;
-    height: 51px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.user-profile:hover {
-    transform: scale(1.05);
-    transition: 0.2s ease;
-}
-
-.user-menu-container {
-    position: relative;
-    display: inline-block;
-}
-
-.user-dropdown-menu {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 55px;
-    background: #fff;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    width: 160px;
-    z-index: 9999;
-    overflow: hidden;
-    font-family: "Roboto", Arial, sans-serif;
-}
-
-.user-dropdown-menu .menu-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    font-size: 14px;
-    color: #111;
-    background: #fff;
-    cursor: pointer;
-    line-height: 1.4;
-    transition: background-color 0.15s ease;
-}
-
-.user-dropdown-menu .menu-item:hover {
-    background: #E5E7EB;
-}
-
-.dropdown-menu img[src*="googledrive"] {
-    background: transparent !important;
-}
 
 .upload-overlay.indeterminate .upload-overlay-bar-fill {
     width: 35% !important;
@@ -680,11 +616,11 @@ a {
 
 /* ===== Asset Context Menu (right click) ===== */
 .asset-context-menu{
-    background: #fff;
+    background: #ff0000;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.12);
-    width: 190px;
+    width: 210px;
     overflow: hidden;
     font-family: "Roboto", Arial, sans-serif;
 }

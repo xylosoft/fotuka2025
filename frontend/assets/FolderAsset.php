@@ -13,6 +13,7 @@ class FolderAsset extends AssetBundle
     public $baseUrl = '@web';
     public $css = [
         'css/folder.css',
+        'css/site.css',
     ];
     public $js = [
     ];

@@ -75,6 +75,10 @@ FolderAsset::register($this);
                         <span class="menu-icon">⚙️</span> Settings
                     </div>
                     <div class="menu-separator"></div>
+                    <div class="menu-item" id="menu-settings">
+                        <a href="/templates">&#128196;️</span> Website Templates</a>
+                    </div>
+                    <div class="menu-separator"></div>
                     <div class="menu-item" id="menu-logout">
                         <span class="menu-icon">🚪</span> Logout
                     </div>
@@ -203,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function () {
     .layout-page--wide > * {
         flex: 1 1 auto;
         min-height: 0;
-        height: 100%;
+        height: auto%;
     }
 
     /* If your folder/assets page root uses .app, make it fill the wrapper */

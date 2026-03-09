@@ -52,7 +52,7 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                 </div>
 
                 <div class="folder-actions">
-                    <button type="button" id="btnEnterSelection" class="action-btn">
+                    <button type="button" id="btnEnterSelection" class="action-btn" style="display:none">
                         Select Assets
                     </button>
 
@@ -1636,7 +1636,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     };
                     menu.googleImport = {
-                        label: '<span style="font-size:16px;padding-right:10px;"><img src="/images/googledrive.png" width="20"></span> Import from Google Drive',
+                        label: '<span style="font-size:16px;padding-right:10px;"><img src="/images/gdrive.png" width="20"></span> Import from Google Drive',
                         action: function() {
 
                             <?php if ($googleConnected): ?>
@@ -1656,12 +1656,15 @@ document.addEventListener('DOMContentLoaded', function () {
                             <?php endif; ?>
 
                         }
-                    };                    menu.dropboxImport = {
+                    };
+                    /*
+                    menu.dropboxImport = {
                         label: '<span style="font-size:16px;padding-right:10px;"></span> Import from Dropbox',
                         action: function() {
                             // To be implemented
                         }
                     };
+                    */
                 };
                 menu.collapseAll = {
                     label: '<span style="font-size:16px;padding-right:10px;">📂️</span> Collapse All',

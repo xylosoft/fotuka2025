@@ -8,7 +8,7 @@ $this->title = 'Templates';
 <div class="template-index-page">
     <div class="template-index-header">
         <div>
-            <h1>Templates</h1>
+            <h1>Website Templates</h1>
             <p>Create and manage your website/page templates.</p>
         </div>
         <div>

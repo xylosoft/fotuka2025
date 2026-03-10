@@ -421,14 +421,16 @@ foreach ($templates as $tpl) {
             overflow:hidden;
             cursor:grab;
             transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+            user-select:none;
+            -webkit-user-select:none;
+        }
+        .tpl-asset-card:active {
+            cursor:grabbing;
         }
         .tpl-asset-card:hover { transform:translateY(-1px); box-shadow:0 14px 26px rgba(16,35,63,.08); }
         .tpl-asset-card.is-selected { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
-        .tpl-asset-thumb img {
-            width:100%;
-            height:100%;
-            object-fit:cover;
-            display:block;
+        .tpl-asset-thumb {
+            height:110px;
             pointer-events:none;
         }
         .tpl-asset-thumb img {
@@ -436,6 +438,9 @@ foreach ($templates as $tpl) {
             height:100%;
             object-fit:cover;
             display:block;
+            pointer-events:none;
+            user-select:none;
+            -webkit-user-drag:none;
         }
         .tpl-asset-empty {
             font-size:12px;
@@ -542,6 +547,11 @@ foreach ($templates as $tpl) {
             .tpl-hero-top { flex-direction:column; }
             .tpl-hero-settings { grid-template-columns:1fr; }
             .tpl-asset-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        }
+        .tpl-public-media.is-over {
+            border-color:#2563eb;
+            background:#eef5ff;
+            box-shadow:0 0 0 4px rgba(37,99,235,.12);
         }
     </style>
 
@@ -875,28 +885,27 @@ foreach ($templates as $tpl) {
                     const assetId = card.getAttribute('data-asset-id');
                     const asset = assetById(assetId);
 
+                    card.setAttribute('draggable', 'true');
+
                     card.addEventListener('dragstart', e => {
-                        const normalized = normalizeAsset(asset);
-                        state.selectedAssetId = String(assetId);
                         state.draggingAssetId = String(assetId);
-                        state.draggingAsset = normalized;
+                        state.draggingAsset = normalizeAsset(asset);
+                        state.selectedAssetId = String(assetId);
 
                         e.dataTransfer.clearData();
                         e.dataTransfer.setData('text/plain', String(assetId));
                         e.dataTransfer.effectAllowed = 'copy';
-
-                        renderAssetGallery();
                     });
 
                     card.addEventListener('dragend', () => {
-                        setTimeout(() => {
-                        state.draggingAssetId = null;
-                        state.draggingAsset = null;
+                            setTimeout(() => {
+                            state.draggingAssetId = null;
+                            state.draggingAsset = null;
                         }, 0);
                     });
 
                     card.addEventListener('click', () => {
-                            state.selectedAssetId = assetId;
+                        state.selectedAssetId = assetId;
                         renderAssetGallery();
 
                         if (asset && (asset.preview_url || asset.thumbnail_url)) {
@@ -941,11 +950,91 @@ foreach ($templates as $tpl) {
                 });
 
                 zone.addEventListener('click', e => {
-                        if (e.target.closest('.tpl-preview-remove') || e.target.closest('.tpl-preview-thumb-remove')) return;
+                    if (e.target.closest('.tpl-preview-remove') || e.target.closest('.tpl-preview-thumb-remove')) return;
                     if (!state.selectedAssetId) return;
 
                     const asset = assetById(state.selectedAssetId);
                     if (asset) onAssign(normalizeAsset(asset));
+                });
+            }
+
+            let activePreviewDropZone = null;
+
+            function clearActivePreviewDropZone() {
+                if (activePreviewDropZone) {
+                    activePreviewDropZone.classList.remove('is-over');
+                    activePreviewDropZone = null;
+                }
+            }
+
+            function findPreviewDropZoneFromPoint(clientX, clientY) {
+                const el = document.elementFromPoint(clientX, clientY);
+                if (!el) return null;
+                return el.closest('.js-preview-drop-single, .js-preview-drop-carousel');
+            }
+
+            function getDraggedAssetFromEvent(e) {
+                const assetId =
+                    (e.dataTransfer && e.dataTransfer.getData('text/plain')) ||
+                    state.draggingAssetId ||
+                    state.selectedAssetId;
+
+                return state.draggingAsset || normalizeAsset(assetById(assetId));
+            }
+
+            function bindPreviewCanvasDnD() {
+                if (publishPreviewCanvas.dataset.dndBound === '1') return;
+                publishPreviewCanvas.dataset.dndBound = '1';
+
+                publishPreviewCanvas.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+
+                    const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY);
+
+                    if (zone !== activePreviewDropZone) {
+                        clearActivePreviewDropZone();
+                        if (zone) {
+                            zone.classList.add('is-over');
+                            activePreviewDropZone = zone;
+                        }
+                    }
+                });
+
+                publishPreviewCanvas.addEventListener('dragleave', e => {
+                    if (!publishPreviewCanvas.contains(e.relatedTarget)) {
+                        clearActivePreviewDropZone();
+                    }
+                });
+
+                publishPreviewCanvas.addEventListener('drop', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY) || activePreviewDropZone;
+                    const droppedAsset = getDraggedAssetFromEvent(e);
+
+                    clearActivePreviewDropZone();
+                    state.draggingAssetId = null;
+                    state.draggingAsset = null;
+
+                    if (!zone || !droppedAsset) return;
+
+                    const field = zone.getAttribute('data-field-name');
+                    if (!field) return;
+
+                    if (zone.classList.contains('js-preview-drop-single')) {
+                        state.values.image[field] = deepClone(droppedAsset);
+                    } else if (zone.classList.contains('js-preview-drop-carousel')) {
+                        if (!state.values.carousel[field]) state.values.carousel[field] = { items: [] };
+                        if (!Array.isArray(state.values.carousel[field].items)) state.values.carousel[field].items = [];
+                        state.values.carousel[field].items.push(deepClone(droppedAsset));
+                    }
+
+                    state.selectedAssetId = String(droppedAsset.asset_id || '');
+                    syncHidden();
+                    renderAssetGallery();
+                    renderPreview();
                 });
             }
 
@@ -1207,6 +1296,7 @@ foreach ($templates as $tpl) {
 
             function renderAll() {
                 ensureValues();
+                bindPreviewCanvasDnD();
                 renderAssetGallery();
                 renderPreview();
                 syncHidden();

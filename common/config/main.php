@@ -53,7 +53,16 @@ return [
 
                 // templates
                 //'/templates/wedding' => 'site/wedding', // sample only. To be deleted
-                
+                'templateeditor' => 'template/template-editor',
+                'templateeditor/<id:\d+>' => 'template/template-editor',
+                'publish/<id:\d+>' => 'template/publish',
+
+                'templates' => 'template/templates',
+
+                //'publish/<folder_id:\d+>/<publication_id:\d+>' => 'template/publish',
+                'pages/<uri:[A-Za-z0-9\-_]+>' => 'template/page',
+                'pages/<uri:[A-Za-z0-9\-_]+>/password' => 'template/page-password',
+
                 // User Actions
                 'profile' => 'user/profile',
 

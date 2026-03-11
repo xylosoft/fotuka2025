@@ -3,6 +3,8 @@
 namespace common\models;
 
 use yii\helpers\Html;
+use common\models\File;
+use common\models\Asset;
 
 class WebsiteTemplateRenderer
 {
@@ -106,10 +108,13 @@ class WebsiteTemplateRenderer
                 }
                 $cards = [];
                 foreach ($items as $item) {
+                    $asset = Asset::findOne($item['asset_id']);
                     $idx = count($lightboxImages);
                     $lightboxImages[] = [
                         'url' => $item['preview_url'] ?? '',
                         'title' => $item['title'] ?? $label,
+                        'width' => $asset->file->width,
+                        'height' => $asset->file->height,
                     ];
                     $cards[] = '<div class="tpl-gallery-card"><img src="' . Html::encode($item['preview_url'] ?? '') . '" alt="' . Html::encode($item['title'] ?? $label) . '" class="tpl-lightbox-trigger" data-lightbox-index="' . $idx . '"></div>';
                 }

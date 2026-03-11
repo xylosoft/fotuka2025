@@ -87,7 +87,7 @@ $this->title = 'Website Templates';
                                 <td><?= $template->isInUse() ? 'Yes' : 'No' ?></td>
                                 <td>
                                     <div class="template-actions">
-                                        <a class="btn-fotuka btn-fotuka-secondary" href="<?= Url::to(['template-editor', 'id' => $template->id]) ?>">Edit</a>
+                                        <a class="btn-fotuka btn-fotuka-secondary" href="/templateeditor/<?= $template->id ?>">Edit</a>
                                         <a class="btn-fotuka btn-fotuka-danger" href="<?= Url::to(['delete', 'id' => $template->id]) ?>" onclick="return confirm('Delete this template?');">Delete</a>
                                     </div>
                                 </td>
@@ -132,7 +132,7 @@ $this->title = 'Website Templates';
                                 <td><?= date('M j, Y g:i a', (int) $publication->updated_at) ?></td>
                                 <td>
                                     <div class="template-actions">
-                                        <a class="btn-fotuka btn-fotuka-secondary" href="<?= Url::to(['publish', 'folder_id' => $publication->folder_id, 'publication_id' => $publication->id]) ?>">Edit</a>
+                                        <a class="btn-fotuka btn-fotuka-secondary" href="/publish/<?= $publication->folder_id ?>/<?= $publication->id ?>">Edit</a>
                                         <a class="btn-fotuka btn-fotuka-danger" href="<?= Url::to(['publication-delete', 'id' => $publication->id]) ?>" onclick="return confirm('Delete this published page? The public page will no longer be available for anyone.');">Delete</a>
                                     </div>
                                 </td>

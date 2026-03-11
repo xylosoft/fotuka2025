@@ -53,11 +53,13 @@ return [
 
                 // templates
                 //'/templates/wedding' => 'site/wedding', // sample only. To be deleted
-                'templateeditor' => 'template/template-editor',
-                'templateeditor/<id:\d+>' => 'template/template-editor',
-                'publish/<id:\d+>' => 'template/publish',
-
                 'templates' => 'template/templates',
+                'templateeditor' => 'template/template-editor',
+                'templateeditor/<id:\d+>' => 'template/template-editor', // TODO: Is this needed?
+                'publish/<id:\d+>' => 'template/publish',
+                'publish/<id:\d+>/<publication_id:\d+>' => 'template/publish',
+
+
 
                 //'publish/<folder_id:\d+>/<publication_id:\d+>' => 'template/publish',
                 'pages/<uri:[A-Za-z0-9\-_]+>' => 'template/page',

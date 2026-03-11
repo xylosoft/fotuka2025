@@ -51,7 +51,7 @@ class TemplateController extends Controller
 
         $folderNames = [];
         foreach ($publications as $publication) {
-            $folderNames[$publication->id] = $this->resolveFolderNameFromId($publication->id);
+            $folderNames[$publication->id] = $this->resolveFolderNameFromId($publication->folder_id);
         }
 
         return $this->render('templates', [
@@ -74,10 +74,6 @@ class TemplateController extends Controller
         }
 
         if (Yii::$app->request->isPost) {
-            $post = Yii::$app->request->post();
-            $model->name = trim((string) ($post['WebsiteTemplate']['name'] ?? $model->name));
-            $model->definition_json = (string) ($post['WebsiteTemplate']['definition_json'] ?? '');
-
             if ($model->isNewRecord) {
                 $model->user_id = $this->currentUserId();
                 $model->customer_id = $this->currentCustomerId();
@@ -116,6 +112,7 @@ class TemplateController extends Controller
 
     public function actionPublish($id, $template_id = null, $publication_id = null)
     {
+        error_log("Action Publish");
         $this->layout = 'folder';
         $folder = $this->fetchFolder($id);
 
@@ -131,7 +128,7 @@ class TemplateController extends Controller
             $publication = $this->findPublication($publication_id);
         } else {
             $publication = WebsitePublication::findActive()
-                ->andWhere(['id' => (int) $id])
+                ->andWhere(['folder_id' => (int) $id])
                 ->one();
         }
 
@@ -144,22 +141,42 @@ class TemplateController extends Controller
         }
 
         if (Yii::$app->request->isPost) {
-            $post = Yii::$app->request->post();
+            error_log("Form Submitted");
+
+            $rawPost = Yii::$app->request->post();
+            $wpPost = Yii::$app->request->post('WebsitePublication', []);
+
+            error_log('RAW POST: ' . print_r($rawPost, true));
+            error_log('WebsitePublication POST: ' . print_r($wpPost, true));
 
             if (!$publication) {
                 $publication = new WebsitePublication();
-                $publication->id = (int) $id;
                 $publication->user_id = $this->currentUserId();
                 $publication->customer_id = $this->currentCustomerId();
+                $publication->folder_id = (int) $id;
             }
 
-            $selectedTemplateId = (int) ($post['WebsitePublication']['id'] ?? $template_id ?: ($publication->template_id ?? 0));
+            $selectedTemplateId = (int) (
+                $wpPost['template_id']
+                ?? $template_id
+                ?? $publication->template_id
+                ?? 0
+            );
 
-            if (!$publication->id || $publication->id != $selectedTemplateId) {
+            error_log("Selected Template ID: " . $selectedTemplateId);
+
+            if ($selectedTemplateId <= 0) {
+                Yii::$app->session->setFlash('error', 'Please select a template before publishing.');
+                return $this->refresh();
+            }
+
+            $templateChanged = !$publication->template_id || (int)$publication->template_id !== $selectedTemplateId;
+
+            if ($templateChanged) {
                 $template = $this->findTemplate($selectedTemplateId);
                 $definition = $template->getDefinitionArray();
-            } elseif ($publication->id) {
-                $template = $publication->template ?: $this->findTemplate($publication->id);
+            } else {
+                $template = $publication->template ?: $this->findTemplate($publication->template_id);
                 $definition = $publication->getSnapshotArray();
             }
 
@@ -173,32 +190,78 @@ class TemplateController extends Controller
                 $publication->allow_download_all = !empty($publishDefaults['allow_download_all']) ? 1 : 0;
             }
 
-            if (!$template) {
-                Yii::$app->session->setFlash('error', 'Please select a template before publishing.');
-                return $this->refresh();
+            $uri = trim((string) ($wpPost['uri'] ?? ''));
+            $pageTitle = trim((string) ($wpPost['page_title'] ?? $this->resolveFolderName($folder)));
+            $isProtected = !empty($wpPost['is_password_protected']) ? 1 : 0;
+            $allowDownloadAll = !empty($wpPost['allow_download_all']) ? 1 : 0;
+
+            // Normalize values_json
+            $rawValues = $wpPost['values_json'] ?? '{}';
+
+            if (is_array($rawValues)) {
+                $decodedValues = $rawValues;
+            } else {
+                $rawValues = trim((string) $rawValues);
+
+                if ($rawValues === '' || $rawValues === '[]') {
+                    $rawValues = '{}';
+                }
+
+                try {
+                    $decodedValues = Json::decode($rawValues, true);
+                } catch (\Throwable $e) {
+                    error_log('Invalid values_json: ' . $rawValues);
+                    error_log('values_json decode error: ' . $e->getMessage());
+                    $decodedValues = [];
+                }
             }
 
-            $uri = trim((string) ($post['WebsitePublication']['uri'] ?? ''));
-            $pageTitle = trim((string) ($post['WebsitePublication']['page_title'] ?? $this->resolveFolderName($folder)));
-            $valuesJson = (string) ($post['WebsitePublication']['values_json'] ?? '{}');
-            $isProtected = !empty($post['WebsitePublication']['is_password_protected']) ? 1 : 0;
-            $allowDownloadAll = !empty($post['WebsitePublication']['allow_download_all']) ? 1 : 0;
+            if (!is_array($decodedValues)) {
+                $decodedValues = [];
+            }
 
-            $publication->id = $template->id;
+            // Always keep the expected top-level structure
+            $decodedValues = array_merge([
+                'dynamic_text' => [],
+                'image' => [],
+                'carousel' => [],
+                'gallery' => [],
+            ], $decodedValues);
+
+            $valuesJson = Json::encode($decodedValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+            error_log('Normalized values_json: ' . $valuesJson);
+
+            $publication->folder_id = (int) $id;
+            $publication->template_id = $template->id;
             $publication->page_title = $pageTitle;
             $publication->uri = $uri ?: $this->defaultFolderSlug($folder);
             $publication->is_password_protected = $isProtected;
             $publication->allow_download_all = $allowDownloadAll;
-            $publication->plain_password = (string) ($post['WebsitePublication']['plain_password'] ?? '');
+            $publication->plain_password = (string) ($wpPost['plain_password'] ?? '');
             $publication->template_snapshot_json = Json::encode($definition, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             $publication->values_json = $valuesJson;
 
-            if ($publication->save()) {
-                Yii::$app->session->setFlash('success', 'Published page saved successfully.');
-                return $this->redirect(['templates']);
-            }
+            try {
+                if (!$publication->save()) {
+                    error_log("WebsitePublication save() returned false");
+                    error_log("WebsitePublication POST: " . print_r($wpPost, true));
+                    error_log("Publication attributes: " . print_r($publication->attributes, true));
+                    error_log("Publication dirtyAttributes: " . print_r($publication->dirtyAttributes, true));
+                    error_log("Publication errors: " . print_r($publication->getErrors(), true));
 
-            Yii::$app->session->setFlash('error', 'Please review the publishing form and try again.');
+                    Yii::$app->session->setFlash('error', 'Please review the publishing form and try again.');
+                } else {
+                    Yii::$app->session->setFlash('success', 'Folder published successfully.');
+                    return $this->redirect(['templates']);
+                }
+            } catch (\Throwable $e) {
+                error_log("WebsitePublication save exception: " . $e->getMessage());
+                error_log("File: " . $e->getFile() . ":" . $e->getLine());
+                error_log("Trace: " . $e->getTraceAsString());
+
+                Yii::$app->session->setFlash('error', 'An unexpected error occurred while publishing.');
+            }
         }
 
         $templates = WebsiteTemplate::findActive()->orderBy(['name' => SORT_ASC])->all();
@@ -246,7 +309,7 @@ class TemplateController extends Controller
             'publication' => $publication,
             'definition' => $publication->getSnapshotArray(),
             'values' => $publication->getValuesArray(),
-            'folderName' => $this->resolveFolderNameFromId($publication->id),
+            'folderName' => $this->resolveFolderNameFromId($publication->folder_id),
         ]);
     }
 

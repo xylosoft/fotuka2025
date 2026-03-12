@@ -75,6 +75,16 @@ class TemplateController extends Controller
             $model->setDefinitionArray(WebsiteTemplate::defaultDefinition());
         }
 
+
+        if ($model->name === '' || strcasecmp($model->name, 'Untitled Template') === 0) {
+            $model->addError('name', 'Please enter a name for this Template');
+            Yii::$app->session->setFlash('error', 'Please fix the highlighted problems and save again.');
+            return $this->render('editor', [
+                'model' => $model,
+                'definition' => $model->getDefinitionArray(),
+            ]);
+        }
+        
         if (Yii::$app->request->isPost) {
             if ($model->load(Yii::$app->request->post())) {
                 if ($model->isNewRecord) {

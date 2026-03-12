@@ -158,7 +158,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
         }
 
         .tpl-canvas-wrap {
-            overflow-x: auto;
+            overflow-x: hidden;
             overflow-y: hidden;
             background: #eef4fb;
             border: 1px solid #dce7f3;
@@ -586,6 +586,19 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
         .tpl-btn-insert:hover {
             background: #f4f8fd;
         }
+        .tpl-field-error {
+            display: none;
+            margin-top: 8px;
+            color: #dc2626;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .tpl-input.has-error {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.10);
+        }
     </style>
 
     <form id="templateEditorForm" method="post">
@@ -597,6 +610,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 <div class="tpl-form-row">
                     <label>Template name</label>
                     <input class="tpl-input" type="text" name="WebsiteTemplate[name]" id="templateNameInput" value="<?= Html::encode($model->name) ?>">
+                    <div id="templateNameError" class="tpl-field-error" style="display:none;">Please enter a name for this Template</div>
                 </div>
 
                 <div class="tpl-section-title">Insert elements</div>
@@ -703,6 +717,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             const canvasStage = document.getElementById('canvasStage');
             const hiddenJsonField = document.getElementById('definitionJsonField');
             const templateNameInput = document.getElementById('templateNameInput');
+            const templateNameError = document.getElementById('templateNameError');
             const previewTemplateName = document.getElementById('previewTemplateName');
             const pageCanvasWidth = document.getElementById('pageCanvasWidth');
             const textEditorModal = document.getElementById('textEditorModal');
@@ -715,6 +730,25 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             const buttonColorSwatch = document.getElementById('buttonColorSwatch');
             let backgroundOriginalColor = state.definition.page.background_color;
             let buttonOriginalColor = state.definition.page.button_color;
+
+            function normalizedTemplateName() {
+                return (templateNameInput.value || '').trim();
+            }
+
+            function isInvalidTemplateName() {
+                const value = normalizedTemplateName().toLowerCase();
+                return value === '' || value === 'untitled template';
+            }
+
+            function showTemplateNameError() {
+                templateNameInput.classList.add('has-error');
+                templateNameError.style.display = 'block';
+            }
+
+            function clearTemplateNameError() {
+                templateNameInput.classList.remove('has-error');
+                templateNameError.style.display = 'none';
+            }
 
             function enhancePickrPopup(pickr, titleText) {
                 const root = pickr.getRoot();
@@ -1044,7 +1078,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 
                 canvas.style.transform = 'scale(' + zoom + ')';
                 canvasStage.style.width = Math.round(canvasWidth * zoom) + 'px';
-                canvasStage.style.height = Math.ceil(canvasHeight * zoom) + 'px';
+                canvasStage.style.height = Math.round(canvasHeight * zoom) + 'px';
             }
 
             function syncSelectionClasses() {
@@ -1297,6 +1331,12 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             }
 
             templateNameInput.addEventListener('input', function () {
+                if (isInvalidTemplateName()) {
+                    updatePreviewTitle();
+                    return;
+                }
+
+                clearTemplateNameError();
                 updatePreviewTitle();
             });
 
@@ -1499,7 +1539,18 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 buttonPickr.hide();
             });
 
-            document.getElementById('templateEditorForm').addEventListener('submit', function () {
+            document.getElementById('templateEditorForm').addEventListener('submit', function (event) {
+                const value = normalizedTemplateName();
+
+                if (value === '' || value.toLowerCase() === 'untitled template') {
+                    event.preventDefault();
+                    showTemplateNameError();
+                    templateNameInput.focus();
+                    return;
+                }
+
+                clearTemplateNameError();
+                templateNameInput.value = value;
                 syncHiddenField();
             });
 

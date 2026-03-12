@@ -299,15 +299,15 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             display: grid;
             gap: var(--tpl-carousel-gap, 12px);
             margin: 14px auto 0;
-            grid-template-columns: repeat(3, var(--tpl-carousel-cell-size, 68px));
+            grid-template-columns: repeat(4, var(--tpl-carousel-cell-size, 68px));
             justify-content: center;
         }
-        
+
         .tpl-gallery-sample {
             display: grid;
             gap: 10px;
             margin: 14px auto 0;
-            width: 240px;
+            width: 400px;
             max-width: 100%;
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
@@ -1041,6 +1041,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                                         class="tpl-carousel-sample"
                                         style="--tpl-carousel-cell-size:${metrics.cellSize}px; --tpl-carousel-gap:${metrics.gap}px;"
                                     >
+                                        <div class="tpl-sample-cell"></div>
                                         <div class="tpl-sample-cell"></div>
                                         <div class="tpl-sample-cell"></div>
                                         <div class="tpl-sample-cell"></div>

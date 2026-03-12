@@ -652,9 +652,9 @@ $footerBarHeight = 34;         // pixels
             );
 
             const gap = Math.max(10, Math.min(14, Math.round(componentWidth / 100)));
-            const targetRowHeight = Math.max(210, Math.min(280, Math.round(componentWidth / 4.4)));
-            const widowRowHeight = Math.max(190, Math.min(240, targetRowHeight));
-            const forceBreakAt = componentWidth > 1000 ? 5 : 4;
+            const targetRowHeight = Math.max(240, Math.min(320, Math.round(componentWidth / 3.9))); // TODO: Adjust as needed
+            const widowRowHeight = Math.max(210, Math.min(280, targetRowHeight)); // TODO: Adjust as needed
+            const forceBreakAt = componentWidth > 1000 ? 4 : 3;
 
             grid.style.position = 'relative';
             grid.style.width = '100%';

@@ -1208,15 +1208,21 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                                     return;
                                 }
 
-                                component.x = Math.max(0, Math.round((component.x || 0) + (event.dx / state.zoom)));
-                                component.y = Math.max(0, Math.round((component.y || 0) + (event.dy / state.zoom)));
+                                const nextY = Math.max(0, Math.round((component.y || 0) + (event.dy / state.zoom)));
+
+                                if (component.type === 'gallery') {
+                                    component.x = 0;
+                                    component.y = nextY;
+                                } else {
+                                    component.x = Math.max(0, Math.round((component.x || 0) + (event.dx / state.zoom)));
+                                    component.y = nextY;
+                                }
 
                                 event.target.style.left = component.x + 'px';
                                 event.target.style.top = component.y + 'px';
 
                                 syncHiddenField();
-                            }
-                        }
+                            }                        }
                     });
 
                     if (element.classList.contains('tpl-can-resize')) {

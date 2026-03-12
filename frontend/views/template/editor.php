@@ -295,17 +295,28 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             width: 100%;
         }
 
-        .tpl-carousel-sample,
+        .tpl-carousel-sample {
+            display: grid;
+            gap: var(--tpl-carousel-gap, 12px);
+            margin: 14px auto 0;
+            grid-template-columns: repeat(3, var(--tpl-carousel-cell-size, 68px));
+            justify-content: center;
+        }
+        
         .tpl-gallery-sample {
             display: grid;
             gap: 10px;
-            margin-top: 14px;
-            grid-template-columns: repeat(3, 1fr);
+            margin: 14px auto 0;
+            width: 240px;
+            max-width: 100%;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         .tpl-sample-cell {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            height: auto;
             border: 2px dashed #b6cbe5;
-            height: 84px;
             border-radius: 10px;
             background: rgba(255, 255, 255, .8);
         }
@@ -659,8 +670,8 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                     <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="static_text">Static Text</button>
                     <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="dynamic_text">Dynamic Text</button>
                     <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="image">Image</button>
-                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="carousel">Carousel</button>
-                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="gallery">Gallery</button>
+                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="carousel">Image Carousel</button>
+                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="gallery">Image Gallery</button>
                 </div>
 
                 <div class="tpl-section-title">Page settings</div>
@@ -1018,21 +1029,24 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                         </div>
                     `;
                 } else if (component.type === 'carousel') {
+                    const metrics = getCarouselSampleMetrics(component.w || 360, component.h || 280);
                     content = `
-                        <div class="tpl-component-badge">Carousel</div>
-                        ${renderComponentControls(component)}
-                        <div class="tpl-component-content tpl-placeholder-carousel">
-                            <div class="inner">
-                                <div style="font-size:22px; font-weight:800;">Image Carousel</div>
-                                <div style="margin-top:6px;">${escapeHtml(component.field_name || component.label || 'carousel')}</div>
-                                <div class="tpl-carousel-sample">
-                                    <div class="tpl-sample-cell"></div>
-                                    <div class="tpl-sample-cell"></div>
-                                    <div class="tpl-sample-cell"></div>
+                            <div class="tpl-component-badge">Carousel</div>
+                            ${renderComponentControls(component)}
+                            <div class="tpl-component-content tpl-placeholder-carousel">
+                                <div class="inner">
+                                    <div style="font-size:22px; font-weight:800;">Image Carousel</div>
+                                    <div style="margin-top:6px;">${escapeHtml(component.field_name || component.label || 'carousel')}</div>
+                                    <div
+                                        class="tpl-carousel-sample"
+                                        style="--tpl-carousel-cell-size:${metrics.cellSize}px; --tpl-carousel-gap:${metrics.gap}px;"
+                                    >
+                                        <div class="tpl-sample-cell"></div>
+                                        <div class="tpl-sample-cell"></div>
+                                        <div class="tpl-sample-cell"></div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    `;
+                            </div>`;
                 } else if (component.type === 'gallery') {
                     content = `
                         <div class="tpl-component-badge">Gallery</div>
@@ -1238,6 +1252,15 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                                     event.target.style.width = component.w + 'px';
                                     event.target.style.height = component.h + 'px';
 
+                                    if (component.type === 'carousel') {
+                                        const metrics = getCarouselSampleMetrics(component.w, component.h);
+                                        const sample = event.target.querySelector('.tpl-carousel-sample');
+
+                                        if (sample) {
+                                            sample.style.setProperty('--tpl-carousel-cell-size', metrics.cellSize + 'px');
+                                            sample.style.setProperty('--tpl-carousel-gap', metrics.gap + 'px');
+                                        }
+                                    }
                                     syncHiddenField();
                                 }
                             },
@@ -1252,6 +1275,22 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                         });
                     }
                 });
+            }
+
+            function getCarouselSampleMetrics(width, height) {
+                const safeWidth = Math.max(240, parseInt(width || 360, 10));
+                const safeHeight = Math.max(180, parseInt(height || 280, 10));
+
+                const usableWidth = Math.max(120, safeWidth - 120);
+                const usableHeight = Math.max(80, safeHeight - 120);
+
+                const cellSize = Math.max(40, Math.round(Math.min(usableWidth / 3.6, usableHeight * 0.55)));
+                const gap = Math.max(8, Math.round(cellSize * 0.12));
+
+                return {
+                    cellSize: cellSize,
+                    gap: gap
+                };
             }
 
             function renderCanvas() {

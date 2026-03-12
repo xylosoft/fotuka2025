@@ -76,17 +76,35 @@ class TemplateController extends Controller
         }
 
         if (Yii::$app->request->isPost) {
-            if ($model->isNewRecord) {
-                $model->user_id = $this->currentUserId();
-                $model->customer_id = $this->currentCustomerId();
-            }
+            if ($model->load(Yii::$app->request->post())) {
+                if ($model->isNewRecord) {
+                    $model->user_id = $this->currentUserId();
+                    $model->customer_id = $this->currentCustomerId();
+                }
 
-            if ($model->save()) {
-                Yii::$app->session->setFlash('success', 'Template saved successfully.');
-                return $this->redirect(['template-editor', 'id' => $model->id]);
-            }
+                $model->name = trim((string)$model->name);
+                if ($model->name === '') {
+                    $model->name = 'Untitled Template';
+                }
 
-            Yii::$app->session->setFlash('error', 'Please fix the highlighted problems and save again.');
+                if (empty($model->definition_json)) {
+                    $model->setDefinitionArray(WebsiteTemplate::defaultDefinition());
+                }
+
+                if ($model->save()) {
+                    Yii::$app->session->setFlash('success', 'Template saved successfully.');
+                    return $this->redirect(['template-editor', 'id' => $model->id]);
+                }
+
+                error_log('WebsiteTemplate save() returned false');
+                error_log('WebsiteTemplate POST: ' . print_r(Yii::$app->request->post('WebsiteTemplate', []), true));
+                error_log('WebsiteTemplate attributes: ' . print_r($model->attributes, true));
+                error_log('WebsiteTemplate errors: ' . print_r($model->getErrors(), true));
+
+                Yii::$app->session->setFlash('error', 'Please fix the highlighted problems and save again.');
+            } else {
+                Yii::$app->session->setFlash('error', 'No template data was received.');
+            }
         }
 
         return $this->render('editor', [

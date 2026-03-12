@@ -387,7 +387,20 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
             background: #fff;
             border-radius: 22px;
             box-shadow: 0 24px 50px rgba(0, 0, 0, .24);
-            overflow: hidden;
+            overflow: visible;
+            position: relative;
+            z-index: 10000;
+        }
+
+        .tox-tinymce-aux,
+        .tox-menu,
+        .tox-collection,
+        .tox-collection__group,
+        .tox-dialog,
+        .tox-dialog-wrap,
+        .tox-silver-sink,
+        .tox-pop {
+            z-index: 10050 !important;
         }
 
         .tpl-modal-head {
@@ -423,6 +436,132 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
             font-size: 13px;
             color: #637791;
             line-height: 1.5;
+        }
+
+        .pcr-app .pcr-interaction {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pcr-app .pcr-interaction .pcr-save,
+        .pcr-app .pcr-interaction .pcr-cancel {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 0 14px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 14px;
+            cursor: pointer;
+            transition: .2s ease;
+            box-shadow: none;
+            background-image: none;
+        }
+
+        .pcr-app .pcr-interaction .pcr-save {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+        }
+
+        .pcr-app .pcr-interaction .pcr-save:hover {
+            background: #1d4ed8;
+        }
+
+        .pcr-app .pcr-interaction .pcr-cancel {
+            background: #fff;
+            color: #13355f;
+            border: 1px solid #d6e1ef;
+        }
+
+        .pcr-app .pcr-interaction .pcr-cancel:hover {
+            background: #f8fbff;
+        }
+        /* Pickr popup styled closer to your site modal */
+        .pcr-app.tpl-pickr-popup {
+            border: 1px solid #dbe6f3;
+            border-radius: 22px;
+            box-shadow: 0 24px 50px rgba(0, 0, 0, .18);
+            overflow: hidden;
+            z-index: 10050 !important;
+            background: #fff;
+        }
+
+        /* Title bar */
+        .tpl-pickr-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 18px;
+            border-bottom: 1px solid #e6edf8;
+            background: #fff;
+        }
+
+        .tpl-pickr-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+            color: #10233f;
+        }
+
+        /* Slightly calmer inner spacing */
+        .pcr-app.tpl-pickr-popup .pcr-selection,
+        .pcr-app.tpl-pickr-popup .pcr-swatches,
+        .pcr-app.tpl-pickr-popup .pcr-interaction {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        /* Buttons aligned right */
+        .pcr-app.tpl-pickr-popup .pcr-interaction {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 14px;
+        }
+
+        /* Smaller, less prominent buttons */
+        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-save,
+        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel {
+            width: auto;
+            flex: 0 0 auto;
+            min-height: 32px;
+            padding: 0 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+            box-shadow: none;
+            background-image: none;
+            cursor: pointer;
+        }
+
+        /* Save = blue */
+        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-save {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+        }
+
+        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-save:hover {
+            background: #1d4ed8;
+        }
+
+        /* Cancel = white, not red */
+        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel {
+            background: #fff !important;
+            color: #13355f !important;
+            border: 1px solid #d6e1ef !important;
+        }
+
+        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel:hover {
+            background: #f8fbff !important;
         }
     </style>
 
@@ -573,6 +712,26 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
             const buttonColorSwatch = document.getElementById('buttonColorSwatch');
             const defaultPasswordProtected = document.getElementById('defaultPasswordProtected');
             const defaultAllowDownloadAll = document.getElementById('defaultAllowDownloadAll');
+            let backgroundOriginalColor = state.definition.page.background_color;
+            let buttonOriginalColor = state.definition.page.button_color;
+
+            function enhancePickrPopup(pickr, titleText) {
+                const root = pickr.getRoot();
+
+                if (!root || !root.app) {
+                    return;
+                }
+
+                const app = root.app;
+                app.classList.add('tpl-pickr-popup');
+
+                if (!app.querySelector('.tpl-pickr-header')) {
+                    const header = document.createElement('div');
+                    header.className = 'tpl-pickr-header';
+                    header.innerHTML = '<div class="tpl-pickr-title">' + titleText + '</div>';
+                    app.prepend(header);
+                }
+            }
 
             function ensurePageDefaults() {
                 if (!state.definition.page) {
@@ -662,6 +821,7 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                 }).length + 1;
 
                 const position = getNewComponentPosition();
+                const canvasWidth = parseInt(state.definition.page.canvas_width || 1200, 10);
 
                 const base = {
                     id: uid(),
@@ -693,13 +853,15 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
 
                 if (type === 'carousel') {
                     base.field_name = slugify('carousel_' + countOfType);
-                    base.w = 720;
+                    base.x = 0;
+                    base.w = canvasWidth;
                     base.h = 280;
                 }
 
                 if (type === 'gallery') {
                     base.field_name = slugify('gallery_' + countOfType);
-                    base.w = 720;
+                    base.x = 0;
+                    base.w = canvasWidth;
                     base.h = 360;
                 }
 
@@ -964,7 +1126,9 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                                 syncHiddenField();
                             }
                         }
-                    })
+                    });
+
+                interact('.tpl-component.tpl-can-resize')
                     .resizable({
                         edges: {
                             left: true,
@@ -1033,7 +1197,7 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                 canvas.innerHTML = orderedComponents.map(function (component) {
                     return `
                         <div
-                            class="tpl-component ${state.selectedId === component.id ? 'is-selected' : ''}"
+                            class="tpl-component ${component.type !== 'gallery' ? 'tpl-can-resize' : ''} ${state.selectedId === component.id ? 'is-selected' : ''}"
                             data-component-id="${component.id}"
                             style="
                                 left:${component.x}px;
@@ -1209,18 +1373,58 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                     opacity: false,
                     hue: true,
                     interaction: {
-                        input: true,
-                        hex: true,
+                        input: false,
+                        hex: false,
                         save: true,
                         cancel: true
                     }
                 }
             });
+            enhancePickrPopup(backgroundPickr, 'Color picker');
+
+            backgroundPickr.on('show', function () {
+                backgroundOriginalColor = state.definition.page.background_color;
+            });
+
+            backgroundPickr.on('change', function (color) {
+                if (!color) {
+                    return;
+                }
+
+                const newColor = color.toHEXA().toString();
+
+                state.definition.page.background_color = newColor;
+                backgroundColorValue.textContent = newColor;
+                backgroundColorSwatch.style.background = newColor;
+                canvas.style.background = newColor;
+                syncHiddenField();
+            });
 
             backgroundPickr.on('save', function (color) {
-                state.definition.page.background_color = color.toHEXA().toString();
+                if (!color) {
+                    return;
+                }
+
+                const newColor = color.toHEXA().toString();
+
+                state.definition.page.background_color = newColor;
+                backgroundColorValue.textContent = newColor;
+                backgroundColorSwatch.style.background = newColor;
+                canvas.style.background = newColor;
+
+                syncHiddenField();
                 backgroundPickr.hide();
-                render();
+            });
+
+            backgroundPickr.on('cancel', function () {
+                state.definition.page.background_color = backgroundOriginalColor;
+                backgroundColorValue.textContent = backgroundOriginalColor;
+                backgroundColorSwatch.style.background = backgroundOriginalColor;
+                canvas.style.background = backgroundOriginalColor;
+
+                backgroundPickr.setColor(backgroundOriginalColor);
+                syncHiddenField();
+                backgroundPickr.hide();
             });
 
             const buttonPickr = Pickr.create({
@@ -1233,18 +1437,56 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                     opacity: false,
                     hue: true,
                     interaction: {
-                        input: true,
-                        hex: true,
+                        input: false,
+                        hex: false,
                         save: true,
                         cancel: true
                     }
                 }
             });
 
+            enhancePickrPopup(buttonPickr, 'Color picker');
+
+            buttonPickr.on('show', function () {
+                buttonOriginalColor = state.definition.page.button_color;
+            });
+
+            buttonPickr.on('change', function (color) {
+                if (!color) {
+                    return;
+                }
+
+                const newColor = color.toHEXA().toString();
+
+                state.definition.page.button_color = newColor;
+                buttonColorValue.textContent = newColor;
+                buttonColorSwatch.style.background = newColor;
+                syncHiddenField();
+            });
+
             buttonPickr.on('save', function (color) {
-                state.definition.page.button_color = color.toHEXA().toString();
+                if (!color) {
+                    return;
+                }
+
+                const newColor = color.toHEXA().toString();
+
+                state.definition.page.button_color = newColor;
+                buttonColorValue.textContent = newColor;
+                buttonColorSwatch.style.background = newColor;
+
+                syncHiddenField();
                 buttonPickr.hide();
-                render();
+            });
+
+            buttonPickr.on('cancel', function () {
+                state.definition.page.button_color = buttonOriginalColor;
+                buttonColorValue.textContent = buttonOriginalColor;
+                buttonColorSwatch.style.background = buttonOriginalColor;
+
+                buttonPickr.setColor(buttonOriginalColor);
+                syncHiddenField();
+                buttonPickr.hide();
             });
 
             document.getElementById('templateEditorForm').addEventListener('submit', function () {

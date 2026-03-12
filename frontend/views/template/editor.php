@@ -654,10 +654,10 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                     <div id="templateNameError" class="tpl-field-error" style="display:none;">Please enter a name for this Template</div>
                 </div>
 
-                <div class="tpl-section-title">Insert elements</div>
+                <div class="tpl-section-title">Page Elements</div>
                 <div class="tpl-button-row tpl-insert-elements-row">
                     <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="static_text">Static Text</button>
-                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="dynamic_text">Publish-Time Text</button>
+                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="dynamic_text">Dynamic Text</button>
                     <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="image">Image</button>
                     <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="carousel">Carousel</button>
                     <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="gallery">Gallery</button>
@@ -828,7 +828,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             function componentTypeLabel(type) {
                 const labels = {
                     static_text: 'Static Text',
-                    dynamic_text: 'Publish-Time Text',
+                    dynamic_text: 'Dynamic Text',
                     image: 'Image',
                     carousel: 'Carousel',
                     gallery: 'Gallery'
@@ -1000,7 +1000,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                     `;
                 } else if (component.type === 'dynamic_text') {
                     content = `
-                        <div class="tpl-component-badge">Publish-Time Text</div>
+                        <div class="tpl-component-badge">Dynamic Text</div>
                         ${renderComponentControls(component)}
                         <div class="tpl-component-content tpl-dynamic-text-preview">
                             <div class="tpl-dynamic-chip">${escapeHtml(component.field_name || 'field_name')}</div>
@@ -1136,7 +1136,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                         const id = element.getAttribute('data-component-id');
                         const component = getComponent(id);
 
-                        if (component && (component.type === 'static_text' || component.type === 'dynamic_text')) {
+                        if (component && component.type === 'static_text') {
                             selectComponent(id);
                             openTextEditor(id);
                         }

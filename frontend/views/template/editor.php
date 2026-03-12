@@ -11,22 +11,36 @@ $this->title = $model->isNewRecord ? 'New Template' : 'Edit Template';
 
 $page = $definition['page'] ?? [];
 $canvasWidth = (int) ($page['canvas_width'] ?? 1200);
-$canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
+$canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 ?>
 <div class="template-editor-page">
     <style>
         .template-editor-page {
+            box-sizing: border-box;
+            width: 100%;
             background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
-            min-height: calc(100vh - 60px);
+            min-height: calc(100vh - var(--app-header-height, 70px) - var(--page-top-gap, 18px) - 24px);
             padding: 20px;
             color: #10233f;
         }
 
+        .template-editor-page,
+        .template-editor-page * {
+            box-sizing: border-box;
+        }
+
         .tpl-editor-shell {
             display: grid;
-            grid-template-columns: 320px minmax(860px, 1fr);
+            grid-template-columns: 320px minmax(0, 1fr);
             gap: 20px;
             align-items: start;
+        }
+
+        .tpl-editor-main,
+        .tpl-canvas-wrap,
+        .tpl-preview-topbar,
+        .tpl-canvas-stage {
+            min-width: 0;
         }
 
         .tpl-editor-panel,
@@ -136,24 +150,16 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
             gap: 10px;
             background: #f7fbff;
             border: 1px solid #dce7f3;
-            padding: 12px 14px;
+            padding: 5px;
             border-radius: 14px;
-            min-width: 420px;
-            justify-content: flex-end;
-            font-weight: 700;
+            min-width: 330px;
+            justify-content: center;
             color: #5a6f8d;
         }
 
-        .tpl-url-placeholder .slug-box {
-            background: #fff;
-            border: 1px dashed #c5d5e8;
-            border-radius: 10px;
-            padding: 8px 12px;
-            color: #10233f;
-        }
-
         .tpl-canvas-wrap {
-            overflow: auto;
+            overflow-x: auto;
+            overflow-y: hidden;
             background: #eef4fb;
             border: 1px solid #dce7f3;
             border-radius: 20px;
@@ -563,6 +569,23 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
         .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel:hover {
             background: #f8fbff !important;
         }
+
+        .tpl-insert-elements-row {
+            gap: 8px;
+        }
+
+        .tpl-btn-insert {
+            min-height: 32px;
+            padding: 0 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            gap: 6px;
+        }
+
+        .tpl-btn-insert:hover {
+            background: #f4f8fd;
+        }
     </style>
 
     <form id="templateEditorForm" method="post">
@@ -577,37 +600,19 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                 </div>
 
                 <div class="tpl-section-title">Insert elements</div>
-                <div class="tpl-button-row">
-                    <button class="tpl-btn tpl-btn-secondary" type="button" data-add="static_text">Static Text</button>
-                    <button class="tpl-btn tpl-btn-secondary" type="button" data-add="dynamic_text">Publish-Time Text</button>
-                    <button class="tpl-btn tpl-btn-secondary" type="button" data-add="image">Image</button>
-                    <button class="tpl-btn tpl-btn-secondary" type="button" data-add="carousel">Carousel</button>
-                    <button class="tpl-btn tpl-btn-secondary" type="button" data-add="gallery">Gallery</button>
+                <div class="tpl-button-row tpl-insert-elements-row">
+                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="static_text">Static Text</button>
+                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="dynamic_text">Publish-Time Text</button>
+                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="image">Image</button>
+                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="carousel">Carousel</button>
+                    <button class="tpl-btn tpl-btn-secondary tpl-btn-insert" type="button" data-add="gallery">Gallery</button>
                 </div>
 
                 <div class="tpl-section-title">Page settings</div>
-                <div class="tpl-form-row">
-                    <label style="margin-bottom:10px;">Publish defaults</label>
-
-                    <label style="display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; text-transform:none; letter-spacing:normal; color:#13355f; margin-bottom:10px;">
-                        <input type="checkbox" id="defaultPasswordProtected">
-                        Password Protect
-                    </label>
-
-                    <label style="display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; text-transform:none; letter-spacing:normal; color:#13355f;">
-                        <input type="checkbox" id="defaultAllowDownloadAll">
-                        Allow Downloads
-                    </label>
-                </div>
 
                 <div class="tpl-form-row">
-                    <label>Canvas width</label>
+                    <label>Page width</label>
                     <input class="tpl-input" type="number" id="pageCanvasWidth" min="900" max="1800" step="10" value="<?= (int) ($page['canvas_width'] ?? 1200) ?>">
-                </div>
-
-                <div class="tpl-form-row">
-                    <label>Canvas minimum height</label>
-                    <input class="tpl-input" type="number" id="pageCanvasHeight" min="900" max="5000" step="10" value="<?= (int) ($page['canvas_min_height'] ?? 1500) ?>">
                 </div>
 
                 <div class="tpl-form-row">
@@ -647,8 +652,7 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                     </div>
 
                     <div class="tpl-url-placeholder">
-                        <span>https://fotuka.com/</span>
-                        <span class="slug-box">&lt;folder name&gt;</span>
+                        <span>https://fotuka.com/page/&lt;folder name&gt;</span>
                     </div>
                 </div>
 
@@ -701,7 +705,6 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
             const templateNameInput = document.getElementById('templateNameInput');
             const previewTemplateName = document.getElementById('previewTemplateName');
             const pageCanvasWidth = document.getElementById('pageCanvasWidth');
-            const pageCanvasHeight = document.getElementById('pageCanvasHeight');
             const textEditorModal = document.getElementById('textEditorModal');
             const closeTextEditor = document.getElementById('closeTextEditor');
             const cancelTextEditorBtn = document.getElementById('cancelTextEditorBtn');
@@ -710,8 +713,6 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
             const backgroundColorSwatch = document.getElementById('backgroundColorSwatch');
             const buttonColorValue = document.getElementById('buttonColorValue');
             const buttonColorSwatch = document.getElementById('buttonColorSwatch');
-            const defaultPasswordProtected = document.getElementById('defaultPasswordProtected');
-            const defaultAllowDownloadAll = document.getElementById('defaultAllowDownloadAll');
             let backgroundOriginalColor = state.definition.page.background_color;
             let buttonOriginalColor = state.definition.page.button_color;
 
@@ -738,10 +739,6 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                     state.definition.page = {};
                 }
 
-                if (!state.definition.publish_defaults) {
-                    state.definition.publish_defaults = {};
-                }
-
                 if (!Array.isArray(state.definition.components)) {
                     state.definition.components = [];
                 }
@@ -750,12 +747,6 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                 state.definition.page.canvas_min_height = parseInt(state.definition.page.canvas_min_height || 1500, 10);
                 state.definition.page.background_color = state.definition.page.background_color || '#ffffff';
                 state.definition.page.button_color = state.definition.page.button_color || '#2563eb';
-
-                state.definition.publish_defaults.is_password_protected =
-                    !!state.definition.publish_defaults.is_password_protected;
-
-                state.definition.publish_defaults.allow_download_all =
-                    !!state.definition.publish_defaults.allow_download_all;
             }
 
             function uid(prefix = 'cmp') {
@@ -1017,9 +1008,35 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                 previewTemplateName.textContent = templateNameInput.value || 'Untitled Template';
             }
 
+            function getCanvasRenderHeight() {
+                const baseMinHeight = Math.max(900, parseInt(state.definition.page.canvas_min_height || 1500, 10));
+
+                if (!Array.isArray(state.definition.components) || !state.definition.components.length) {
+                    return baseMinHeight;
+                }
+
+                const lowestBottom = state.definition.components.reduce(function (max, component) {
+                    const y = parseInt(component.y || 0, 10);
+                    const h = parseInt(component.h || 0, 10);
+                    return Math.max(max, y + h);
+                }, 0);
+
+                return Math.max(baseMinHeight, lowestBottom + 60);
+            }
+
+            function queueFitZoom() {
+                requestAnimationFrame(function () {
+                    applyFitZoom();
+
+                    requestAnimationFrame(function () {
+                        applyFitZoom();
+                    });
+                });
+            }
+
             function applyFitZoom() {
                 const canvasWidth = state.definition.page.canvas_width || 1200;
-                const canvasHeight = state.definition.page.canvas_min_height || 1500;
+                const canvasHeight = getCanvasRenderHeight();
                 const availableWidth = Math.max(300, canvasWrap.clientWidth - 48);
 
                 const zoom = Math.min(1, Math.max(0.45, availableWidth / canvasWidth));
@@ -1027,7 +1044,7 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
 
                 canvas.style.transform = 'scale(' + zoom + ')';
                 canvasStage.style.width = Math.round(canvasWidth * zoom) + 'px';
-                canvasStage.style.height = Math.round(canvasHeight * zoom) + 'px';
+                canvasStage.style.height = Math.ceil(canvasHeight * zoom) + 'px';
             }
 
             function syncSelectionClasses() {
@@ -1178,13 +1195,15 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
             function renderCanvas() {
                 ensurePageDefaults();
 
+                const renderHeight = getCanvasRenderHeight();
+
                 canvas.style.width = state.definition.page.canvas_width + 'px';
-                canvas.style.minHeight = state.definition.page.canvas_min_height + 'px';
+                canvas.style.minHeight = renderHeight + 'px';
                 canvas.style.background = state.definition.page.background_color;
 
                 if (!state.definition.components.length) {
                     canvas.innerHTML = '<div class="tpl-empty-canvas">Use the toolbar to add your first component</div>';
-                    applyFitZoom();
+                    queueFitZoom();
                     return;
                 }
 
@@ -1215,7 +1234,7 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                 bindCanvasDomEvents();
                 initInteractOnce();
                 syncSelectionClasses();
-                applyFitZoom();
+                queueFitZoom();
             }
 
             function render() {
@@ -1231,10 +1250,6 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                 buttonColorSwatch.style.background = state.definition.page.button_color;
 
                 pageCanvasWidth.value = state.definition.page.canvas_width;
-                pageCanvasHeight.value = state.definition.page.canvas_min_height;
-
-                defaultPasswordProtected.checked = !!state.definition.publish_defaults.is_password_protected;
-                defaultAllowDownloadAll.checked = !!state.definition.publish_defaults.allow_download_all;
             }
 
             function openTextEditor(componentId) {
@@ -1293,11 +1308,6 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
 
             pageCanvasWidth.addEventListener('change', function () {
                 state.definition.page.canvas_width = Math.max(900, parseInt(pageCanvasWidth.value || 1200, 10));
-                render();
-            });
-
-            pageCanvasHeight.addEventListener('change', function () {
-                state.definition.page.canvas_min_height = Math.max(900, parseInt(pageCanvasHeight.value || 1500, 10));
                 render();
             });
 
@@ -1500,17 +1510,12 @@ $canvasMinHeight = (int) ($page['canvas_min_height'] ?? 1500);
                 state.selectedId = state.definition.components[state.definition.components.length - 1].id;
             }
 
-            defaultPasswordProtected.addEventListener('change', function () {
-                state.definition.publish_defaults.is_password_protected = defaultPasswordProtected.checked;
-                syncHiddenField();
-            });
-
-            defaultAllowDownloadAll.addEventListener('change', function () {
-                state.definition.publish_defaults.allow_download_all = defaultAllowDownloadAll.checked;
-                syncHiddenField();
-            });
-
             render();
+            queueFitZoom();
+
+            window.addEventListener('load', function () {
+                queueFitZoom();
+            });
         })();
     </script>
 </div>

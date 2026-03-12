@@ -65,7 +65,7 @@ class TemplateController extends Controller
 
     public function actionTemplateEditor($id = null)
     {
-        //$this->layout = 'folder';
+        $this->layout = 'folder';
 
         if ($id) {
             $model = $this->findTemplate($id);

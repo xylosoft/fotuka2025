@@ -742,7 +742,6 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 selectedId: null,
                 zoom: 1,
                 activeTextEditorId: null,
-                interactInitialized: false
             };
 
             const canvas = document.getElementById('templateCanvas');
@@ -1171,15 +1170,16 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 });
             }
 
-            function initInteractOnce() {
-                if (state.interactInitialized) {
-                    return;
-                }
+            function initInteract() {
+                const elements = canvas.querySelectorAll('.tpl-component');
 
-                state.interactInitialized = true;
+                elements.forEach(function (element) {
+                    interact(element).unset();
 
-                interact('.tpl-component')
-                    .draggable({
+                    const interactable = interact(element);
+
+                    interactable.draggable({
+                        ignoreFrom: '.tpl-component-control',
                         listeners: {
                             start(event) {
                                 const id = event.target.getAttribute('data-component-id');
@@ -1204,51 +1204,54 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                         }
                     });
 
-                interact('.tpl-component.tpl-can-resize')
-                    .resizable({
-                        edges: {
-                            left: true,
-                            right: true,
-                            top: true,
-                            bottom: true
-                        },
-                        listeners: {
-                            start(event) {
-                                const id = event.target.getAttribute('data-component-id');
-                                selectComponent(id);
+                    if (element.classList.contains('tpl-can-resize')) {
+                        interactable.resizable({
+                            ignoreFrom: '.tpl-component-control',
+                            edges: {
+                                left: true,
+                                right: true,
+                                top: true,
+                                bottom: true
                             },
-                            move(event) {
-                                const id = event.target.getAttribute('data-component-id');
-                                const component = getComponent(id);
+                            listeners: {
+                                start(event) {
+                                    const id = event.target.getAttribute('data-component-id');
+                                    selectComponent(id);
+                                },
+                                move(event) {
+                                    const id = event.target.getAttribute('data-component-id');
+                                    const component = getComponent(id);
 
-                                if (!component || !event.rect) {
-                                    return;
+                                    if (!component || !event.rect) {
+                                        return;
+                                    }
+
+                                    const deltaRect = event.deltaRect || { left: 0, top: 0 };
+
+                                    component.x = Math.max(0, Math.round((component.x || 0) + ((deltaRect.left || 0) / state.zoom)));
+                                    component.y = Math.max(0, Math.round((component.y || 0) + ((deltaRect.top || 0) / state.zoom)));
+                                    component.w = Math.max(120, Math.round(event.rect.width / state.zoom));
+                                    component.h = Math.max(80, Math.round(event.rect.height / state.zoom));
+
+                                    event.target.style.left = component.x + 'px';
+                                    event.target.style.top = component.y + 'px';
+                                    event.target.style.width = component.w + 'px';
+                                    event.target.style.height = component.h + 'px';
+
+                                    syncHiddenField();
                                 }
-
-                                const deltaRect = event.deltaRect || { left: 0, top: 0 };
-
-                                component.x = Math.max(0, Math.round((component.x || 0) + ((deltaRect.left || 0) / state.zoom)));
-                                component.y = Math.max(0, Math.round((component.y || 0) + ((deltaRect.top || 0) / state.zoom)));
-                                component.w = Math.max(120, Math.round(event.rect.width / state.zoom));
-                                component.h = Math.max(80, Math.round(event.rect.height / state.zoom));
-
-                                event.target.style.left = component.x + 'px';
-                                event.target.style.top = component.y + 'px';
-                                event.target.style.width = component.w + 'px';
-                                event.target.style.height = component.h + 'px';
-
-                                syncHiddenField();
-                            }
-                        },
-                        modifiers: [
-                            interact.modifiers.restrictEdges({
-                                outer: 'parent'
-                            }),
-                            interact.modifiers.restrictSize({
-                                min: { width: 120, height: 80 }
-                            })
-                        ]
-                    });
+                            },
+                            modifiers: [
+                                interact.modifiers.restrictEdges({
+                                    outer: 'parent'
+                                }),
+                                interact.modifiers.restrictSize({
+                                    min: { width: 120, height: 80 }
+                                })
+                            ]
+                        });
+                    }
+                });
             }
 
             function renderCanvas() {
@@ -1291,7 +1294,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 }).join('');
 
                 bindCanvasDomEvents();
-                initInteractOnce();
+                initInteract();
                 syncSelectionClasses();
                 queueFitZoom();
             }

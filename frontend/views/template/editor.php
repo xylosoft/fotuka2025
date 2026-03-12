@@ -651,6 +651,19 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             border: 1px solid rgba(16, 35, 63, .12);
             box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
         }
+        .tpl-url-placeholder-block {
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+        }
+
+        .tpl-url-placeholder-note {
+            margin-top: 6px;
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 500;
+            text-align: center;
+        }
     </style>
 
     <form id="templateEditorForm" method="post">
@@ -709,8 +722,13 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                         </div>
                     </div>
 
-                    <div class="tpl-url-placeholder">
-                        <span>https://fotuka.com/page/&lt;folder name&gt;</span>
+                    <div class="tpl-url-placeholder-block">
+                        <div class="tpl-url-placeholder">
+                            <span>https://fotuka.com/page/&lt;Page Name&gt;</span>
+                        </div>
+                        <div class="tpl-url-placeholder-note">
+                            You will customize at publishing time
+                        </div>
                     </div>
                 </div>
 

@@ -71,12 +71,12 @@ class TemplateController extends Controller
             $model = $this->findTemplate($id);
         } else {
             $model = new WebsiteTemplate();
-            $model->name = 'Untitled Template';
+            $model->name = '';
             $model->setDefinitionArray(WebsiteTemplate::defaultDefinition());
         }
 
 
-        if ($model->name === '' || strcasecmp($model->name, 'Untitled Template') === 0) {
+        if ($model->name === '') {
             $model->addError('name', 'Please enter a name for this Template');
             Yii::$app->session->setFlash('error', 'Please fix the highlighted problems and save again.');
             return $this->render('editor', [

@@ -10,7 +10,7 @@ use yii\helpers\Json;
 $this->title = $model->isNewRecord ? 'New Template' : 'Edit Template';
 
 $page = $definition['page'] ?? [];
-$canvasWidth = (int) ($page['canvas_width'] ?? 1200);
+$canvasWidth = 1200;
 $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 ?>
 <div class="template-editor-page">
@@ -599,6 +599,47 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             border-color: #dc2626;
             box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.10);
         }
+        .tpl-color-setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+            min-height: 40px;
+        }
+
+        .tpl-color-setting-label {
+            font-size: 15px;
+            font-weight: 500;
+            color: #13355f;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .tpl-color-swatch-btn {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .tpl-color-swatch-btn:focus {
+            outline: none;
+        }
+
+        .tpl-color-swatch-btn .tpl-color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            border: 1px solid rgba(16, 35, 63, .12);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+        }
     </style>
 
     <form id="templateEditorForm" method="post">
@@ -609,7 +650,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             <div class="tpl-editor-panel">
                 <div class="tpl-form-row">
                     <label>Template name</label>
-                    <input class="tpl-input" type="text" name="WebsiteTemplate[name]" id="templateNameInput" value="<?= Html::encode($model->name) ?>">
+                    <input class="tpl-input" type="text" name="WebsiteTemplate[name]" id="templateNameInput" placeholder='Untitled Template' value="<?= Html::encode($model->name) ?>">
                     <div id="templateNameError" class="tpl-field-error" style="display:none;">Please enter a name for this Template</div>
                 </div>
 
@@ -624,23 +665,16 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 
                 <div class="tpl-section-title">Page settings</div>
 
-                <div class="tpl-form-row">
-                    <label>Page width</label>
-                    <input class="tpl-input" type="number" id="pageCanvasWidth" min="900" max="1800" step="10" value="<?= (int) ($page['canvas_width'] ?? 1200) ?>">
-                </div>
-
-                <div class="tpl-form-row">
-                    <label>Background color</label>
-                    <button type="button" id="backgroundColorBtn" class="tpl-color-preview">
-                        <span id="backgroundColorValue"><?= Html::encode($page['background_color'] ?? '#ffffff') ?></span>
+                <div class="tpl-color-setting-row">
+                    <div class="tpl-color-setting-label">Background color</div>
+                    <button type="button" id="backgroundColorBtn" class="tpl-color-swatch-btn" aria-label="Choose background color">
                         <span id="backgroundColorSwatch" class="tpl-color-swatch" style="background: <?= Html::encode($page['background_color'] ?? '#ffffff') ?>"></span>
                     </button>
                 </div>
 
-                <div class="tpl-form-row">
-                    <label>Button color</label>
-                    <button type="button" id="buttonColorBtn" class="tpl-color-preview">
-                        <span id="buttonColorValue"><?= Html::encode($page['button_color'] ?? '#2563eb') ?></span>
+                <div class="tpl-color-setting-row">
+                    <div class="tpl-color-setting-label">Button color</div>
+                    <button type="button" id="buttonColorBtn" class="tpl-color-swatch-btn" aria-label="Choose background color">
                         <span id="buttonColorSwatch" class="tpl-color-swatch" style="background: <?= Html::encode($page['button_color'] ?? '#2563eb') ?>"></span>
                     </button>
                 </div>
@@ -660,8 +694,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 <div class="tpl-preview-topbar">
                     <div class="tpl-preview-title">
                         <div>
-                            <div style="font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#657b96; font-weight:800;">Template Builder</div>
-                            <h1 id="previewTemplateName"><?= Html::encode($model->name ?: 'Untitled Template') ?></h1>
+                            <h1>Website Template Builder</h1>
                         </div>
                     </div>
 
@@ -718,15 +751,11 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             const hiddenJsonField = document.getElementById('definitionJsonField');
             const templateNameInput = document.getElementById('templateNameInput');
             const templateNameError = document.getElementById('templateNameError');
-            const previewTemplateName = document.getElementById('previewTemplateName');
-            const pageCanvasWidth = document.getElementById('pageCanvasWidth');
             const textEditorModal = document.getElementById('textEditorModal');
             const closeTextEditor = document.getElementById('closeTextEditor');
             const cancelTextEditorBtn = document.getElementById('cancelTextEditorBtn');
             const saveTextEditorBtn = document.getElementById('saveTextEditorBtn');
-            const backgroundColorValue = document.getElementById('backgroundColorValue');
             const backgroundColorSwatch = document.getElementById('backgroundColorSwatch');
-            const buttonColorValue = document.getElementById('buttonColorValue');
             const buttonColorSwatch = document.getElementById('buttonColorSwatch');
             let backgroundOriginalColor = state.definition.page.background_color;
             let buttonOriginalColor = state.definition.page.button_color;
@@ -777,7 +806,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                     state.definition.components = [];
                 }
 
-                state.definition.page.canvas_width = parseInt(state.definition.page.canvas_width || 1200, 10);
+                state.definition.page.canvas_width = 1200;
                 state.definition.page.canvas_min_height = parseInt(state.definition.page.canvas_min_height || 1500, 10);
                 state.definition.page.background_color = state.definition.page.background_color || '#ffffff';
                 state.definition.page.button_color = state.definition.page.button_color || '#2563eb';
@@ -1038,10 +1067,6 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 hiddenJsonField.value = JSON.stringify(state.definition);
             }
 
-            function updatePreviewTitle() {
-                previewTemplateName.textContent = templateNameInput.value || 'Untitled Template';
-            }
-
             function getCanvasRenderHeight() {
                 const baseMinHeight = Math.max(900, parseInt(state.definition.page.canvas_min_height || 1500, 10));
 
@@ -1273,17 +1298,11 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 
             function render() {
                 ensurePageDefaults();
-                updatePreviewTitle();
                 renderCanvas();
                 syncHiddenField();
 
-                backgroundColorValue.textContent = state.definition.page.background_color;
                 backgroundColorSwatch.style.background = state.definition.page.background_color;
-
-                buttonColorValue.textContent = state.definition.page.button_color;
                 buttonColorSwatch.style.background = state.definition.page.button_color;
-
-                pageCanvasWidth.value = state.definition.page.canvas_width;
             }
 
             function openTextEditor(componentId) {
@@ -1332,23 +1351,16 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 
             templateNameInput.addEventListener('input', function () {
                 if (isInvalidTemplateName()) {
-                    updatePreviewTitle();
                     return;
                 }
 
                 clearTemplateNameError();
-                updatePreviewTitle();
             });
 
             document.querySelectorAll('[data-add]').forEach(function (button) {
                 button.addEventListener('click', function () {
                     createComponent(button.getAttribute('data-add'));
                 });
-            });
-
-            pageCanvasWidth.addEventListener('change', function () {
-                state.definition.page.canvas_width = Math.max(900, parseInt(pageCanvasWidth.value || 1200, 10));
-                render();
             });
 
             [closeTextEditor, cancelTextEditorBtn].forEach(function (button) {
@@ -1444,7 +1456,6 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 const newColor = color.toHEXA().toString();
 
                 state.definition.page.background_color = newColor;
-                backgroundColorValue.textContent = newColor;
                 backgroundColorSwatch.style.background = newColor;
                 canvas.style.background = newColor;
                 syncHiddenField();
@@ -1458,7 +1469,6 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 const newColor = color.toHEXA().toString();
 
                 state.definition.page.background_color = newColor;
-                backgroundColorValue.textContent = newColor;
                 backgroundColorSwatch.style.background = newColor;
                 canvas.style.background = newColor;
 
@@ -1468,7 +1478,6 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 
             backgroundPickr.on('cancel', function () {
                 state.definition.page.background_color = backgroundOriginalColor;
-                backgroundColorValue.textContent = backgroundOriginalColor;
                 backgroundColorSwatch.style.background = backgroundOriginalColor;
                 canvas.style.background = backgroundOriginalColor;
 
@@ -1509,7 +1518,6 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 const newColor = color.toHEXA().toString();
 
                 state.definition.page.button_color = newColor;
-                buttonColorValue.textContent = newColor;
                 buttonColorSwatch.style.background = newColor;
                 syncHiddenField();
             });
@@ -1522,7 +1530,6 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 const newColor = color.toHEXA().toString();
 
                 state.definition.page.button_color = newColor;
-                buttonColorValue.textContent = newColor;
                 buttonColorSwatch.style.background = newColor;
 
                 syncHiddenField();
@@ -1531,7 +1538,6 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 
             buttonPickr.on('cancel', function () {
                 state.definition.page.button_color = buttonOriginalColor;
-                buttonColorValue.textContent = buttonOriginalColor;
                 buttonColorSwatch.style.background = buttonOriginalColor;
 
                 buttonPickr.setColor(buttonOriginalColor);

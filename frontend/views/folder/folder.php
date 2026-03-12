@@ -1666,7 +1666,30 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                     var isNumericId = !isNaN(parseInt(node.id)) && isFinite(node.id);
                     var menu = {};
 
+
+                    menu.collapseAll = {
+                        label: '<span style="font-size:16px;padding-right:10px;">📂️</span> Collapse All',
+                        separator_before: false,
+                        action: function() {
+                            var selectedNode = tree.get_selected(true)[0];
+                            tree.close_all(selectedNode);
+                            tree.open_node(selectedNode);
+                            tree.deselect_all();
+                            tree.select_node(selectedNode);
+                        }
+                    };
                     if (isNumericId) {
+                        menu.collapseAll = {
+                            label: '<span style="font-size:16px;padding-right:10px;">📂️</span> Collapse All',
+                            separator_before: false,
+                            action: function() {
+                                var selectedNode = tree.get_selected(true)[0];
+                                tree.close_all(selectedNode);
+                                tree.open_node(selectedNode);
+                                tree.deselect_all();
+                                tree.select_node(selectedNode);
+                            }
+                        };
                         menu.renameItem = {
                             label: '<span style="font-size:16px;padding-right:10px;">✏️</span> Rename',
                             action: function() { tree.edit(node); } // opens inline rename input
@@ -1713,18 +1736,16 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                             }
                         };
                         */
+                        menu.publish = {
+                            label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Publish Folder',
+                            action: function() {
+                                const tree = $('#folderTree').jstree(true);
+                                const selectedId = (tree.get_selected() || [])[0];
+                                window.location.href = '/publish/' + selectedId;
+                            }
+                        };
+
                     };
-                    menu.collapseAll = {
-                        label: '<span style="font-size:16px;padding-right:10px;">📂️</span> Collapse All',
-                        separator_before: false,
-                        action: function() {
-                            var selectedNode = tree.get_selected(true)[0];
-                            tree.close_all(selectedNode);
-                            tree.open_node(selectedNode);
-                            tree.deselect_all();
-                            tree.select_node(selectedNode);
-                        }
-                    }
                     return menu;
                 }
             },

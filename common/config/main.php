@@ -52,7 +52,7 @@ return [
                 'asset/createtag/' => 'asset/create-tag',
 
                 // templates
-                //'/templates/wedding' => 'site/wedding', // sample only. To be deleted
+                '/templates/wedding' => 'site/wedding', // sample only. To be deleted
                 'templates' => 'template/templates',
                 'templateeditor' => 'template/template-editor',
                 'templateeditor/<id:\d+>' => 'template/template-editor', // TODO: Is this needed?

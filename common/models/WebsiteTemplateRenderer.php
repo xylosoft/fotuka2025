@@ -116,7 +116,9 @@ class WebsiteTemplateRenderer
                         'width' => $asset->file->width,
                         'height' => $asset->file->height,
                     ];
-                    $cards[] = '<div class="tpl-gallery-card"><img src="' . Html::encode($item['preview_url'] ?? '') . '" alt="' . Html::encode($item['title'] ?? $label) . '" class="tpl-lightbox-trigger" data-lightbox-index="' . $idx . '"></div>';
+                    $cards[] = '<div class="tpl-gallery-card">
+                        <img src="' . Html::encode($item['preview_url'] ?? '') . '" alt="' . Html::encode($item['title'] ?? $label) . '" class="tpl-lightbox-trigger" data-lightbox-index="' . $idx . '" width="' . (int)($asset->file->width ?? 0) . '" height="' . (int)($asset->file->height ?? 0) . '" >
+                    </div>';
                 }
                 return '<div class="tpl-public-component tpl-public-gallery" style="' . $style . '">' .
                     '<div class="tpl-gallery-grid">' . implode('', $cards) . '</div>' .

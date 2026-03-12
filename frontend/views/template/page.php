@@ -34,6 +34,7 @@ $downloadAllUrl = Url::to(['/folder/download-all', 'id' => $publication->folder_
 $carouselAutoScrollSpeed = 55; // pixels per second
 $carouselImageGap = 0;         // pixels between carousel images
 $footerBarHeight = 34;         // pixels
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,8 +49,19 @@ $footerBarHeight = 34;         // pixels
             --button-text: #ffffff;
             --footer-h: <?= (int) $footerBarHeight ?>px;
             --carousel-gap: <?= (int) $carouselImageGap ?>px;
+
             --ink: #10233f;
             --muted: #617997;
+
+            --shadow: 0 18px 60px rgba(2,6,23,0.10);
+            --shadow-soft: 0 10px 28px rgba(2,6,23,0.08);
+
+            --wedding-btn-bg: rgba(255,255,255,0.90);
+            --wedding-btn-border: rgba(15,23,42,0.18);
+            --wedding-btn-text: #334155;
+            --wedding-top-bg: rgba(243,244,246,0.65);
+            --wedding-overlay-bg: rgba(2,6,23,0.84);
+            --wedding-body-bg: #0B1220;
         }
 
         * { box-sizing: border-box; }
@@ -121,11 +133,21 @@ $footerBarHeight = 34;         // pixels
             background: var(--page-bg);
         }
 
-        .tpl-public-component { position: absolute; }
+        .tpl-public-component {
+            position: absolute;
+        }
 
-        .tpl-public-text { overflow: hidden; }
-        .tpl-public-text p:first-child { margin-top: 0; }
-        .tpl-public-text p:last-child { margin-bottom: 0; }
+        .tpl-public-text {
+            overflow: hidden;
+        }
+
+        .tpl-public-text p:first-child {
+            margin-top: 0;
+        }
+
+        .tpl-public-text p:last-child {
+            margin-bottom: 0;
+        }
 
         .tpl-public-empty {
             border: 2px dashed #bfd1e5;
@@ -153,6 +175,10 @@ $footerBarHeight = 34;         // pixels
             cursor: default;
         }
 
+        /* =====================================
+           GALLERY — self-contained justified rows
+           ===================================== */
+
         .tpl-public-gallery {
             width: 100%;
             height: auto !important;
@@ -161,104 +187,20 @@ $footerBarHeight = 34;         // pixels
         }
 
         .tpl-gallery-grid {
+            position: relative;
             width: 100%;
-            height: auto !important;
+            min-height: 1px;
             background: transparent !important;
-        }
-
-        .tpl-gallery-mosaic {
-            display: flex;
-            flex-direction: column;
-            gap: var(--gallery-gap, 14px);
-            width: 100%;
-        }
-
-        .tpl-gallery-row {
-            width: 100%;
-            display: grid;
-            gap: var(--gallery-gap, 14px);
-            align-items: stretch;
-        }
-
-        .tpl-gallery-row.row-three {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            grid-auto-rows: var(--gallery-row-md, 300px);
-        }
-
-        .tpl-gallery-row.row-two {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-auto-rows: var(--gallery-row-lg, 340px);
-        }
-
-        .tpl-gallery-row.row-hero-left {
-            grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
-            grid-template-rows: repeat(2, var(--gallery-row-sm, 190px));
-        }
-        .tpl-gallery-row.row-hero-left > .tpl-gallery-card:nth-child(1) { grid-column: 1; grid-row: 1 / span 2; }
-        .tpl-gallery-row.row-hero-left > .tpl-gallery-card:nth-child(2) { grid-column: 2; grid-row: 1; }
-        .tpl-gallery-row.row-hero-left > .tpl-gallery-card:nth-child(3) { grid-column: 2; grid-row: 2; }
-
-        .tpl-gallery-row.row-hero-right {
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr);
-            grid-template-rows: repeat(2, var(--gallery-row-sm, 190px));
-        }
-        .tpl-gallery-row.row-hero-right > .tpl-gallery-card:nth-child(1) { grid-column: 1; grid-row: 1; }
-        .tpl-gallery-row.row-hero-right > .tpl-gallery-card:nth-child(2) { grid-column: 1; grid-row: 2; }
-        .tpl-gallery-row.row-hero-right > .tpl-gallery-card:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; }
-
-        .tpl-gallery-row.row-portrait-left {
-            grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
-            grid-template-rows: repeat(2, var(--gallery-row-sm, 190px));
-        }
-        .tpl-gallery-row.row-portrait-left > .tpl-gallery-card:nth-child(1) { grid-column: 1; grid-row: 1 / span 2; }
-        .tpl-gallery-row.row-portrait-left > .tpl-gallery-card:nth-child(2) { grid-column: 2; grid-row: 1; }
-        .tpl-gallery-row.row-portrait-left > .tpl-gallery-card:nth-child(3) { grid-column: 2; grid-row: 2; }
-
-        .tpl-gallery-row.row-portrait-right {
-            grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
-            grid-template-rows: repeat(2, var(--gallery-row-sm, 190px));
-        }
-        .tpl-gallery-row.row-portrait-right > .tpl-gallery-card:nth-child(1) { grid-column: 1; grid-row: 1; }
-        .tpl-gallery-row.row-portrait-right > .tpl-gallery-card:nth-child(2) { grid-column: 1; grid-row: 2; }
-        .tpl-gallery-row.row-portrait-right > .tpl-gallery-card:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; }
-
-        .tpl-gallery-row.row-center-hero {
-            grid-template-columns: minmax(0, .95fr) minmax(0, 1.15fr) minmax(0, .95fr);
-            grid-template-rows: repeat(2, var(--gallery-row-sm, 190px));
-        }
-        .tpl-gallery-row.row-center-hero > .tpl-gallery-card:nth-child(1) { grid-column: 1; grid-row: 1; }
-        .tpl-gallery-row.row-center-hero > .tpl-gallery-card:nth-child(2) { grid-column: 1; grid-row: 2; }
-        .tpl-gallery-row.row-center-hero > .tpl-gallery-card:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; }
-        .tpl-gallery-row.row-center-hero > .tpl-gallery-card:nth-child(4) { grid-column: 3; grid-row: 1; }
-        .tpl-gallery-row.row-center-hero > .tpl-gallery-card:nth-child(5) { grid-column: 3; grid-row: 2; }
-
-        .tpl-gallery-row.row-four-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-template-rows: repeat(2, var(--gallery-row-sm, 190px));
-        }
-
-        .tpl-gallery-row.row-single-wide {
-            grid-template-columns: minmax(0, 1fr);
-            grid-auto-rows: var(--gallery-row-xl, 360px);
-        }
-
-        .tpl-gallery-row.row-single-portrait {
-            grid-template-columns: minmax(0, 40%);
-            grid-auto-rows: var(--gallery-row-xl, 360px);
-        }
-
-        .tpl-gallery-row.row-single-square {
-            grid-template-columns: minmax(260px, 34%);
-            grid-auto-rows: var(--gallery-row-lg, 340px);
         }
 
         .tpl-gallery-card {
-            position: relative;
+            position: absolute;
             overflow: hidden;
             border-radius: 18px;
-            background: transparent !important;
-            border: 0 !important;
-            box-shadow: none !important;
+            border: 1px solid rgba(15,23,42,0.10);
+            box-shadow: var(--shadow-soft);
+            background: #E5E7EB;
+            line-height: 0;
         }
 
         .tpl-gallery-card img {
@@ -268,9 +210,33 @@ $footerBarHeight = 34;         // pixels
             object-fit: cover;
             object-position: center center;
             border-radius: 18px;
-            background: transparent !important;
+            transform: none;
+            filter: saturate(1.03) contrast(1.02);
+            transition: transform 0.25s ease;
             cursor: pointer;
         }
+
+        .tpl-gallery-card:hover img {
+            transform: scale(1.03);
+        }
+
+        .tpl-gallery-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 55%, rgba(2,6,23,0.22) 100%);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+
+        .tpl-gallery-card:hover::after {
+            opacity: 1;
+        }
+
+        /* =====================================
+           CAROUSEL
+           ===================================== */
 
         .tpl-public-carousel {
             width: 100%;
@@ -281,7 +247,9 @@ $footerBarHeight = 34;         // pixels
             border-radius: 0;
         }
 
-        .tpl-carousel-arrow { display: none !important; }
+        .tpl-carousel-arrow {
+            display: none !important;
+        }
 
         .tpl-carousel-viewport {
             width: 100%;
@@ -324,6 +292,10 @@ $footerBarHeight = 34;         // pixels
             cursor: default;
         }
 
+        /* =====================================
+           FOOTER
+           ===================================== */
+
         .pub-footer {
             position: fixed;
             left: 0;
@@ -359,69 +331,87 @@ $footerBarHeight = 34;         // pixels
             font-weight: inherit;
         }
 
-        .pub-lightbox {
+        /* =====================================
+           LIGHTBOX — wedding.php style
+           ===================================== */
+
+        .lightbox {
             position: fixed;
             inset: 0;
             z-index: 9999;
             display: none;
             align-items: center;
             justify-content: center;
-            background: rgba(6,16,29,.86);
-            padding: 40px;
+            background: var(--wedding-overlay-bg);
+            padding: 24px;
         }
 
-        .pub-lightbox.is-open { display: flex; }
+        .lightbox.open {
+            display: flex;
+        }
 
-        .pub-lightbox-dialog {
-            position: relative;
-            width: min(1120px, 94vw);
-            height: min(82vh, 820px);
-            border-radius: 24px;
+        .lb-panel {
+            width: min(1120px, 96vw);
+            max-height: 92vh;
+            border-radius: 18px;
             overflow: hidden;
-            background: #09121f;
-            border: 1px solid rgba(255,255,255,.08);
-            box-shadow: 0 26px 70px rgba(0,0,0,.42);
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(255,255,255,0.20);
+            box-shadow: var(--shadow);
+            display: grid;
+            grid-template-rows: auto 1fr;
         }
 
-        .pub-lightbox-dialog img {
+        .lb-top {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 12px 12px;
+            border-bottom: 1px solid rgba(15,23,42,0.10);
+            background: var(--wedding-top-bg);
+        }
+
+        .lb-spacer {
+            flex: 1 1 auto;
+        }
+
+        .lb-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .lb-btn {
+            height: 28px;
+            padding: 0 10px;
+            border-radius: 10px;
+            border: 1px solid var(--wedding-btn-border);
+            background: var(--wedding-btn-bg);
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 12px;
+            color: var(--wedding-btn-text);
+        }
+
+        .lb-btn:hover {
+            background: rgba(255,255,255,1);
+        }
+
+        .lb-body {
+            background: var(--wedding-body-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .lb-body img {
             width: 100%;
             height: 100%;
+            max-height: 78vh;
             object-fit: contain;
             display: block;
-            background: #09121f;
-        }
-
-        .pub-lightbox-btn {
-            position: absolute;
-            top: 18px;
-            width: 46px;
-            height: 46px;
-            border: none;
-            border-radius: 999px;
-            background: rgba(255,255,255,.14);
-            color: #fff;
-            font-size: 22px;
-            font-weight: 800;
-            cursor: pointer;
-        }
-
-        .pub-lightbox-btn.close { right: 18px; }
-        .pub-lightbox-btn.prev { top: 50%; left: 18px; transform: translateY(-50%); }
-        .pub-lightbox-btn.next { top: 50%; right: 18px; transform: translateY(-50%); }
-
-        .pub-lightbox-caption {
-            position: absolute;
-            left: 20px;
-            right: 82px;
-            bottom: 18px;
-            background: rgba(255,255,255,.12);
-            color: #fff;
-            border-radius: 14px;
-            padding: 12px 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-weight: 700;
         }
 
         @media (max-width: 1320px) {
@@ -429,19 +419,25 @@ $footerBarHeight = 34;         // pixels
                 padding: 70px 12px 8px;
                 overflow-x: auto;
             }
-            .pub-canvas-wrap { max-width: none; }
-            .pub-floating-actions { top: 14px; right: 12px; }
+
+            .pub-canvas-wrap {
+                max-width: none;
+            }
+
+            .pub-floating-actions {
+                top: 14px;
+                right: 12px;
+            }
         }
 
         @media (max-width: 700px) {
-            .pub-lightbox { padding: 16px; }
-            .pub-lightbox-dialog {
-                width: 100%;
-                height: min(78vh, 680px);
-                border-radius: 20px;
+            .lightbox {
+                padding: 16px;
             }
-            .pub-lightbox-btn { width: 42px; height: 42px; }
-            .pub-footer-inner { justify-content: center; }
+
+            .pub-footer-inner {
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -468,13 +464,19 @@ $footerBarHeight = 34;         // pixels
     </div>
 </div>
 
-<div id="pubLightbox" class="pub-lightbox" aria-hidden="true">
-    <div class="pub-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Gallery preview">
-        <button type="button" class="pub-lightbox-btn close" id="pubLightboxClose" aria-label="Close">✕</button>
-        <button type="button" class="pub-lightbox-btn prev" id="pubLightboxPrev" aria-label="Previous">‹</button>
-        <button type="button" class="pub-lightbox-btn next" id="pubLightboxNext" aria-label="Next">›</button>
-        <img id="pubLightboxImage" src="" alt="">
-        <div id="pubLightboxCaption" class="pub-lightbox-caption"></div>
+<div class="lightbox" id="lightbox" aria-hidden="true">
+    <div class="lb-panel" role="dialog" aria-modal="true" aria-label="Image preview">
+        <div class="lb-top">
+            <div class="lb-spacer"></div>
+            <div class="lb-actions">
+                <button class="lb-btn" type="button" id="lbPrev">← Prev</button>
+                <button class="lb-btn" type="button" id="lbNext">Next →</button>
+                <button class="lb-btn" type="button" id="lbClose">✕ Close</button>
+            </div>
+        </div>
+        <div class="lb-body">
+            <img id="lbImg" src="" alt="">
+        </div>
     </div>
 </div>
 
@@ -486,33 +488,25 @@ $footerBarHeight = 34;         // pixels
         const carouselGap = <?= json_encode((int) $carouselImageGap) ?>;
         const baseCanvasHeight = <?= json_encode((int) $canvasHeight) ?>;
 
-        const lightbox = document.getElementById('pubLightbox');
-        const imageEl = document.getElementById('pubLightboxImage');
-        const captionEl = document.getElementById('pubLightboxCaption');
-        const closeBtn = document.getElementById('pubLightboxClose');
-        const prevBtn = document.getElementById('pubLightboxPrev');
-        const nextBtn = document.getElementById('pubLightboxNext');
+        const lightbox = document.getElementById('lightbox');
+        const lbImg = document.getElementById('lbImg');
+        const btnPrev = document.getElementById('lbPrev');
+        const btnNext = document.getElementById('lbNext');
+        const btnClose = document.getElementById('lbClose');
 
         let activeLightboxIndexes = [];
         let lightboxCursor = 0;
 
-        function shuffle(list) {
-            const cloned = list.slice();
-            for (let i = cloned.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                const tmp = cloned[i];
-                cloned[i] = cloned[j];
-                cloned[j] = tmp;
-            }
-            return cloned;
-        }
-
         function getNumericStyle(el, prop, fallback) {
             const inline = parseFloat(el.style[prop]);
-            if (Number.isFinite(inline)) return inline;
+            if (Number.isFinite(inline)) {
+                return inline;
+            }
 
             const computed = parseFloat(window.getComputedStyle(el)[prop]);
-            if (Number.isFinite(computed)) return computed;
+            if (Number.isFinite(computed)) {
+                return computed;
+            }
 
             return fallback;
         }
@@ -528,290 +522,257 @@ $footerBarHeight = 34;         // pixels
             return value;
         }
 
-        function getLightboxMeta(index) {
+        function getGalleryTriggerIndex(node) {
+            if (!node) {
+                return -1;
+            }
+
+            const img = node.matches('img') ? node : node.querySelector('img');
+            if (!img) {
+                return -1;
+            }
+
+            const parsed = parseInt(img.getAttribute('data-lightbox-index') || '-1', 10);
+            return Number.isFinite(parsed) ? parsed : -1;
+        }
+
+        function getLightboxItem(index, fallbackSrc) {
             const item = lightboxItems[index] || null;
-            return item || { url: '', title: '', width: 0, height: 0 };
+
+            if (item && item.url) {
+                return item;
+            }
+
+            return {
+                url: fallbackSrc || '',
+                title: '',
+                width: 0,
+                height: 0
+            };
         }
 
-        function renderLightbox() {
+        function renderLightbox(fallbackSrc) {
             const globalIndex = activeLightboxIndexes[lightboxCursor];
-            const item = getLightboxMeta(globalIndex);
-            if (!item || !item.url) return;
+            const item = getLightboxItem(globalIndex, fallbackSrc);
 
-            imageEl.src = item.url || '';
-            imageEl.alt = item.title || '';
-            captionEl.textContent = item.title || '';
+            if (!item || !item.url) {
+                return;
+            }
+
+            lbImg.src = item.url || '';
+            lbImg.alt = item.title || '';
         }
 
-        function openLightbox(indexes, clickedIndex) {
-            if (!indexes.length) return;
+        function openLightbox(indexes, clickedIndex, fallbackSrc) {
+            if (!indexes.length) {
+                return;
+            }
 
             activeLightboxIndexes = indexes.slice();
             lightboxCursor = Math.max(0, indexes.indexOf(clickedIndex));
-            renderLightbox();
-            lightbox.classList.add('is-open');
+            renderLightbox(fallbackSrc);
+
+            lightbox.classList.add('open');
             lightbox.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
         }
 
         function closeLightbox() {
-            lightbox.classList.remove('is-open');
+            lightbox.classList.remove('open');
             lightbox.setAttribute('aria-hidden', 'true');
-            imageEl.src = '';
-            imageEl.alt = '';
-            captionEl.textContent = '';
+            lbImg.src = '';
+            lbImg.alt = '';
             activeLightboxIndexes = [];
             lightboxCursor = 0;
             document.body.style.overflow = '';
         }
 
-        function prevLightbox() {
-            if (!activeLightboxIndexes.length) return;
-            lightboxCursor = (lightboxCursor - 1 + activeLightboxIndexes.length) % activeLightboxIndexes.length;
-            renderLightbox();
-        }
-
         function nextLightbox() {
-            if (!activeLightboxIndexes.length) return;
+            if (!activeLightboxIndexes.length) {
+                return;
+            }
+
             lightboxCursor = (lightboxCursor + 1) % activeLightboxIndexes.length;
             renderLightbox();
         }
 
-        function getGalleryTriggerIndex(img) {
-            const parsed = parseInt(img.getAttribute('data-lightbox-index') || '-1', 10);
-            return Number.isFinite(parsed) ? parsed : -1;
+        function prevLightbox() {
+            if (!activeLightboxIndexes.length) {
+                return;
+            }
+
+            lightboxCursor = (lightboxCursor - 1 + activeLightboxIndexes.length) % activeLightboxIndexes.length;
+            renderLightbox();
         }
 
-        function getImageRatio(img) {
-            const lightboxIndex = getGalleryTriggerIndex(img);
-            const meta = getLightboxMeta(lightboxIndex);
-            const width = parseFloat(meta.width || 0);
-            const height = parseFloat(meta.height || 0);
-
-            if (width > 0 && height > 0) {
-                return width / height;
+        function getCardRatio(card) {
+            const img = card.querySelector('img');
+            if (!img) {
+                return 4 / 3;
             }
 
-            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                return img.naturalWidth / img.naturalHeight;
+            let width = parseFloat(img.getAttribute('width') || '0');
+            let height = parseFloat(img.getAttribute('height') || '0');
+
+            if (!(width > 0 && height > 0)) {
+                const idx = getGalleryTriggerIndex(img);
+                const meta = lightboxItems[idx] || null;
+                width = parseFloat(meta && meta.width ? meta.width : 0);
+                height = parseFloat(meta && meta.height ? meta.height : 0);
             }
 
-            return 1.15;
+            if (!(width > 0 && height > 0) && img.naturalWidth > 0 && img.naturalHeight > 0) {
+                width = img.naturalWidth;
+                height = img.naturalHeight;
+            }
+
+            if (!(width > 0 && height > 0)) {
+                return 4 / 3;
+            }
+
+            return width / height;
         }
 
-        function ensureGalleryState(galleryEl) {
-            if (galleryEl._galleryState) {
-                return galleryEl._galleryState;
-            }
+        function layoutJustifiedGallery(galleryEl) {
+            const component = galleryEl.classList.contains('tpl-public-component')
+                ? galleryEl
+                : (galleryEl.closest('.tpl-public-component') || galleryEl);
 
             const grid = galleryEl.querySelector('.tpl-gallery-grid') || galleryEl;
             const cards = Array.from(grid.querySelectorAll('.tpl-gallery-card'));
-            const state = {
-                grid: grid,
-                cards: cards,
-                plan: null
-            };
 
-            galleryEl._galleryState = state;
-            return state;
-        }
-
-        function chooseChunkCounts(total) {
-            const counts = [5, 4, 3, 2, 1];
-            const memo = {};
-
-            function canSolve(remaining) {
-                if (remaining === 0) return true;
-                if (remaining < 0) return false;
-                if (memo.hasOwnProperty(remaining)) return memo[remaining];
-
-                for (let i = 0; i < counts.length; i++) {
-                    const count = counts[i];
-                    if (count > remaining) continue;
-                    if (remaining - count === 1 && remaining !== 1) continue;
-                    if (canSolve(remaining - count)) {
-                        memo[remaining] = true;
-                        return true;
-                    }
-                }
-
-                memo[remaining] = false;
-                return false;
+            if (!cards.length) {
+                grid.style.height = '0px';
+                return 0;
             }
 
-            function solve(remaining) {
-                if (remaining === 0) return [];
+            const componentWidth = Math.max(
+                320,
+                Math.round(component.clientWidth || getNumericStyle(component, 'width', galleryEl.clientWidth || 1200))
+            );
 
-                const valid = shuffle(counts.filter(function (count) {
-                    if (count > remaining) return false;
-                    if (remaining - count === 1 && remaining !== 1) return false;
-                    return canSolve(remaining - count);
-                }));
+            const gap = Math.max(10, Math.min(14, Math.round(componentWidth / 100)));
+            const targetRowHeight = Math.max(210, Math.min(280, Math.round(componentWidth / 4.4)));
+            const widowRowHeight = Math.max(190, Math.min(240, targetRowHeight));
+            const forceBreakAt = componentWidth > 1000 ? 5 : 4;
 
-                for (let i = 0; i < valid.length; i++) {
-                    const count = valid[i];
-                    const tail = solve(remaining - count);
-                    if (tail) {
-                        return [count].concat(tail);
-                    }
-                }
+            grid.style.position = 'relative';
+            grid.style.width = '100%';
 
-                return null;
-            }
-
-            return solve(total) || Array.from({ length: total }, function () { return 1; });
-        }
-
-        function sortByRatio(items, direction) {
-            const factor = direction === 'asc' ? 1 : -1;
-            return items.slice().sort(function (a, b) {
-                return factor * (a.ratio - b.ratio);
-            });
-        }
-
-        function chooseRow(chunk) {
-            const count = chunk.length;
-            const portraits = sortByRatio(chunk.filter(function (item) { return item.ratio < 0.92; }), 'asc');
-            const landscapes = sortByRatio(chunk.filter(function (item) { return item.ratio > 1.28; }), 'desc');
-            const balanced = chunk.slice().sort(function (a, b) {
-                return Math.abs(a.ratio - 1) - Math.abs(b.ratio - 1);
-            });
-
-            if (count === 5) {
-                const hero = balanced[0] || chunk[0];
-                const others = chunk.filter(function (item) { return item !== hero; });
-                return {
-                    cls: 'row-center-hero',
-                    items: [others[0], others[1], hero, others[2], others[3]]
-                };
-            }
-
-            if (count === 4) {
-                return {
-                    cls: 'row-four-grid',
-                    items: chunk.slice()
-                };
-            }
-
-            if (count === 3) {
-                if (portraits.length && Math.random() < 0.5) {
-                    const hero = portraits[0];
-                    const others = chunk.filter(function (item) { return item !== hero; });
-                    if (Math.random() < 0.5) {
-                        return { cls: 'row-portrait-left', items: [hero, others[0], others[1]] };
-                    }
-                    return { cls: 'row-portrait-right', items: [others[0], others[1], hero] };
-                }
-
-                if (landscapes.length && Math.random() < 0.78) {
-                    const hero = landscapes[0];
-                    const others = chunk.filter(function (item) { return item !== hero; });
-                    if (Math.random() < 0.5) {
-                        return { cls: 'row-hero-left', items: [hero, others[0], others[1]] };
-                    }
-                    return { cls: 'row-hero-right', items: [others[0], others[1], hero] };
-                }
-
-                return {
-                    cls: 'row-three',
-                    items: chunk.slice()
-                };
-            }
-
-            if (count === 2) {
-                return {
-                    cls: 'row-two',
-                    items: chunk.slice()
-                };
-            }
-
-            const single = chunk[0];
-            if (single.ratio < 0.9) {
-                return { cls: 'row-single-portrait', items: [single] };
-            }
-            if (single.ratio > 1.25) {
-                return { cls: 'row-single-wide', items: [single] };
-            }
-            return { cls: 'row-single-square', items: [single] };
-        }
-
-        function buildGalleryPlan(cards) {
             const items = cards.map(function (card) {
-                const img = card.querySelector('img');
                 return {
                     card: card,
-                    img: img,
-                    ratio: img ? getImageRatio(img) : 1.15
+                    ratio: getCardRatio(card)
                 };
             });
 
-            const counts = chooseChunkCounts(items.length);
             const rows = [];
-            let cursor = 0;
+            let currentRow = [];
+            let ratioSum = 0;
 
-            counts.forEach(function (count) {
-                const chunk = items.slice(cursor, cursor + count);
-                if (chunk.length) {
-                    rows.push(chooseRow(chunk));
+            function finalizeRow(isLast) {
+                if (!currentRow.length) {
+                    return;
                 }
-                cursor += count;
-            });
 
-            return rows;
-        }
+                const rowGap = gap * (currentRow.length - 1);
+                let rowHeight;
+                let justify = !isLast;
 
-        function buildGalleryMosaic(galleryEl, forceRandom) {
-            const state = ensureGalleryState(galleryEl);
-            if (!state.cards.length) return;
+                if (!justify && currentRow.length >= 3) {
+                    justify = true;
+                }
 
-            const component = galleryEl.classList.contains('tpl-public-component')
-                ? galleryEl
-                : galleryEl.closest('.tpl-public-component');
-            const componentWidth = getNumericStyle(component, 'width', galleryEl.clientWidth || 1200);
+                if (justify) {
+                    rowHeight = (componentWidth - rowGap) / ratioSum;
+                } else {
+                    rowHeight = widowRowHeight;
+                }
 
-            const gap = Math.max(10, Math.min(16, Math.round(componentWidth / 95)));
-            const threeColWidth = Math.max(220, Math.round((componentWidth - (gap * 2)) / 3));
-            const twoColWidth = Math.max(280, Math.round((componentWidth - gap) / 2));
-            const rowMd = Math.max(240, Math.min(330, threeColWidth));
-            const rowSm = Math.max(170, Math.min(220, Math.round((rowMd - gap) / 2)));
-            const rowLg = Math.max(280, Math.min(380, Math.round(twoColWidth * 0.82)));
-            const rowXl = Math.max(300, Math.min(420, Math.round(componentWidth * 0.34)));
+                rowHeight = Math.max(160, Math.min(360, rowHeight));
 
-            galleryEl.style.setProperty('--gallery-gap', gap + 'px');
-            galleryEl.style.setProperty('--gallery-row-sm', rowSm + 'px');
-            galleryEl.style.setProperty('--gallery-row-md', rowMd + 'px');
-            galleryEl.style.setProperty('--gallery-row-lg', rowLg + 'px');
-            galleryEl.style.setProperty('--gallery-row-xl', rowXl + 'px');
-
-            if (forceRandom || !state.plan) {
-                state.plan = buildGalleryPlan(state.cards);
-            }
-
-            state.grid.innerHTML = '';
-            state.grid.className = 'tpl-gallery-grid tpl-gallery-mosaic';
-
-            state.plan.forEach(function (rowPlan) {
-                const row = document.createElement('div');
-                row.className = 'tpl-gallery-row ' + rowPlan.cls;
-
-                rowPlan.items.forEach(function (item) {
-                    row.appendChild(item.card);
+                rows.push({
+                    items: currentRow.slice(),
+                    ratioSum: ratioSum,
+                    height: rowHeight,
+                    justify: justify
                 });
 
-                state.grid.appendChild(row);
+                currentRow = [];
+                ratioSum = 0;
+            }
+
+            items.forEach(function (item) {
+                currentRow.push(item);
+                ratioSum += item.ratio;
+
+                const projectedWidth = (ratioSum * targetRowHeight) + (gap * (currentRow.length - 1));
+
+                if (projectedWidth >= componentWidth && currentRow.length >= 2) {
+                    finalizeRow(false);
+                } else if (currentRow.length >= forceBreakAt) {
+                    finalizeRow(false);
+                }
             });
+
+            finalizeRow(true);
+
+            let top = 0;
+
+            rows.forEach(function (row) {
+                const availableWidth = componentWidth - (gap * (row.items.length - 1));
+                let left = 0;
+
+                row.items.forEach(function (entry, index) {
+                    let width;
+
+                    if (row.justify) {
+                        if (index === row.items.length - 1) {
+                            width = componentWidth - left;
+                        } else {
+                            width = Math.round((entry.ratio / row.ratioSum) * availableWidth);
+                        }
+                    } else {
+                        width = Math.round(entry.ratio * row.height);
+                    }
+
+                    width = Math.max(80, width);
+
+                    entry.card.style.left = left + 'px';
+                    entry.card.style.top = top + 'px';
+                    entry.card.style.width = width + 'px';
+                    entry.card.style.height = Math.round(row.height) + 'px';
+
+                    left += width + gap;
+                });
+
+                top += Math.round(row.height) + gap;
+            });
+
+            const totalHeight = Math.max(0, top - gap);
+            grid.style.height = totalHeight + 'px';
+
+            return totalHeight;
         }
 
         function bindGalleryLightboxes() {
             const galleries = Array.from(canvas.querySelectorAll('.tpl-public-gallery'));
 
             galleries.forEach(function (galleryEl) {
-                if (galleryEl.dataset.lightboxBound === '1') return;
+                if (galleryEl.dataset.lightboxBound === '1') {
+                    return;
+                }
+
                 galleryEl.dataset.lightboxBound = '1';
 
                 galleryEl.addEventListener('click', function (event) {
-                    const trigger = event.target.closest('.tpl-lightbox-trigger');
+                    const trigger = event.target.closest('.tpl-lightbox-trigger, .tpl-gallery-card, .tpl-gallery-card img');
                     if (!trigger || !galleryEl.contains(trigger)) {
+                        return;
+                    }
+
+                    const img = trigger.matches('img') ? trigger : trigger.querySelector('img');
+                    if (!img) {
                         return;
                     }
 
@@ -820,20 +781,25 @@ $footerBarHeight = 34;         // pixels
 
                     const triggers = Array.from(galleryEl.querySelectorAll('.tpl-lightbox-trigger'));
                     const indexes = triggers
-                        .map(function (img) { return getGalleryTriggerIndex(img); })
-                        .filter(function (index) { return index >= 0 && lightboxItems[index]; });
-                    const clickedIndex = getGalleryTriggerIndex(trigger);
+                        .map(function (node) {
+                            return getGalleryTriggerIndex(node);
+                        })
+                        .filter(function (index) {
+                            return index >= 0;
+                        });
+
+                    const clickedIndex = getGalleryTriggerIndex(img);
 
                     if (!indexes.length || clickedIndex < 0) {
                         return;
                     }
 
-                    openLightbox(indexes, clickedIndex);
+                    openLightbox(indexes, clickedIndex, img.currentSrc || img.getAttribute('src') || '');
                 });
             });
         }
 
-        function prepareLayout(forceRandomGalleryLayout) {
+        function prepareLayout() {
             const components = Array.from(canvas.querySelectorAll('.tpl-public-component')).map(function (el) {
                 const originalTop = getOriginalMetric(el, 'data-original-top', 'top', el.offsetTop || 0);
                 const originalHeight = getOriginalMetric(el, 'data-original-height', 'height', el.offsetHeight || 0);
@@ -850,19 +816,21 @@ $footerBarHeight = 34;         // pixels
             });
 
             components.forEach(function (item) {
-                if (!item.gallery) return;
+                if (!item.gallery) {
+                    return;
+                }
 
-                buildGalleryMosaic(item.gallery, forceRandomGalleryLayout);
                 item.gallery.style.height = 'auto';
                 item.el.style.height = 'auto';
 
-                const measuredHeight = Math.ceil(item.gallery.getBoundingClientRect().height);
-                item.newHeight = measuredHeight;
-                item.gallery.style.height = measuredHeight + 'px';
-                item.el.style.height = measuredHeight + 'px';
+                const measuredHeight = layoutJustifiedGallery(item.gallery);
+
+                item.newHeight = Math.max(1, Math.ceil(measuredHeight));
+                item.gallery.style.height = item.newHeight + 'px';
+                item.el.style.height = item.newHeight + 'px';
             });
 
-            const shifts = components
+            const galleryShifts = components
                 .filter(function (item) { return item.gallery; })
                 .map(function (item) {
                     return {
@@ -875,7 +843,8 @@ $footerBarHeight = 34;         // pixels
 
             components.forEach(function (item) {
                 let shift = 0;
-                shifts.forEach(function (galleryShift) {
+
+                galleryShifts.forEach(function (galleryShift) {
                     if (item.originalTop >= galleryShift.end) {
                         shift += galleryShift.delta;
                     }
@@ -883,6 +852,7 @@ $footerBarHeight = 34;         // pixels
 
                 const nextTop = item.originalTop + shift;
                 const nextHeight = item.gallery ? item.newHeight : item.originalHeight;
+
                 item.el.style.top = Math.round(nextTop) + 'px';
 
                 if (!item.gallery) {
@@ -899,10 +869,15 @@ $footerBarHeight = 34;         // pixels
             document.querySelectorAll('.tpl-public-carousel').forEach(function (carousel) {
                 const viewport = carousel.querySelector('.tpl-carousel-viewport');
                 const track = carousel.querySelector('.tpl-carousel-track');
-                if (!viewport || !track || carousel.dataset.carouselReady === '1') return;
+
+                if (!viewport || !track || carousel.dataset.carouselReady === '1') {
+                    return;
+                }
 
                 const originalSlides = Array.from(track.querySelectorAll('.tpl-carousel-slide'));
-                if (!originalSlides.length) return;
+                if (!originalSlides.length) {
+                    return;
+                }
 
                 carousel.dataset.carouselReady = '1';
                 carousel.style.setProperty('--carousel-gap', carouselGap + 'px');
@@ -910,6 +885,7 @@ $footerBarHeight = 34;         // pixels
                 const clones = originalSlides.map(function (slide) {
                     return slide.cloneNode(true);
                 });
+
                 clones.forEach(function (clone) {
                     track.appendChild(clone);
                 });
@@ -925,8 +901,12 @@ $footerBarHeight = 34;         // pixels
 
                     for (let i = 0; i < originalCount; i++) {
                         const child = children[i];
-                        if (!child) continue;
+                        if (!child) {
+                            continue;
+                        }
+
                         width += child.getBoundingClientRect().width;
+
                         if (i < originalCount - 1) {
                             width += carouselGap;
                         }
@@ -940,6 +920,7 @@ $footerBarHeight = 34;         // pixels
                 });
 
                 resizeObserver.observe(viewport);
+
                 Array.from(track.children).forEach(function (child) {
                     resizeObserver.observe(child);
                 });
@@ -947,17 +928,22 @@ $footerBarHeight = 34;         // pixels
                 measureLoopWidth();
 
                 function step(timestamp) {
-                    if (!document.body.contains(carousel)) return;
+                    if (!document.body.contains(carousel)) {
+                        return;
+                    }
 
                     if (lastTimestamp === null) {
                         lastTimestamp = timestamp;
                     }
 
                     let delta = (timestamp - lastTimestamp) / 1000;
-                    if (delta > 0.05) delta = 0.05;
+                    if (delta > 0.05) {
+                        delta = 0.05;
+                    }
                     lastTimestamp = timestamp;
 
                     offset += carouselScrollSpeed * delta;
+
                     if (offset >= loopWidth) {
                         offset -= loopWidth;
                     }
@@ -971,31 +957,32 @@ $footerBarHeight = 34;         // pixels
         }
 
         function waitForGalleryImages(callback) {
-            const galleryImages = Array.from(canvas.querySelectorAll('.tpl-public-gallery img'));
-            if (!galleryImages.length) {
+            const images = Array.from(canvas.querySelectorAll('.tpl-public-gallery img'));
+
+            if (!images.length) {
                 callback();
                 return;
             }
 
             let pending = 0;
-            let done = false;
+            let finished = false;
 
-            function finishOne() {
+            function done() {
                 pending -= 1;
-                if (pending <= 0 && !done) {
-                    done = true;
+                if (pending <= 0 && !finished) {
+                    finished = true;
                     callback();
                 }
             }
 
-            galleryImages.forEach(function (img) {
+            images.forEach(function (img) {
                 if (img.complete && img.naturalWidth > 0) {
                     return;
                 }
 
                 pending += 1;
-                img.addEventListener('load', finishOne, { once: true });
-                img.addEventListener('error', finishOne, { once: true });
+                img.addEventListener('load', done, { once: true });
+                img.addEventListener('error', done, { once: true });
             });
 
             if (pending === 0) {
@@ -1004,24 +991,26 @@ $footerBarHeight = 34;         // pixels
             }
 
             window.setTimeout(function () {
-                if (!done) {
-                    done = true;
+                if (!finished) {
+                    finished = true;
                     callback();
                 }
             }, 1800);
         }
 
-        function boot(forceRandom) {
+        function boot() {
             bindGalleryLightboxes();
+            prepareLayout();
+            initCarousels();
+
             waitForGalleryImages(function () {
-                prepareLayout(forceRandom);
-                initCarousels();
+                prepareLayout();
             });
         }
 
-        closeBtn.addEventListener('click', closeLightbox);
-        prevBtn.addEventListener('click', prevLightbox);
-        nextBtn.addEventListener('click', nextLightbox);
+        btnNext.addEventListener('click', nextLightbox);
+        btnPrev.addEventListener('click', prevLightbox);
+        btnClose.addEventListener('click', closeLightbox);
 
         lightbox.addEventListener('click', function (event) {
             if (event.target === lightbox) {
@@ -1030,34 +1019,44 @@ $footerBarHeight = 34;         // pixels
         });
 
         document.addEventListener('keydown', function (event) {
-            if (!lightbox.classList.contains('is-open')) return;
+            if (!lightbox.classList.contains('open')) {
+                return;
+            }
 
-            if (event.key === 'Escape') closeLightbox();
-            if (event.key === 'ArrowLeft') prevLightbox();
-            if (event.key === 'ArrowRight') nextLightbox();
+            if (event.key === 'Escape') {
+                closeLightbox();
+            }
+
+            if (event.key === 'ArrowRight') {
+                nextLightbox();
+            }
+
+            if (event.key === 'ArrowLeft') {
+                prevLightbox();
+            }
         });
 
         const debouncedResize = (function () {
             let timer = null;
+
             return function () {
                 window.clearTimeout(timer);
                 timer = window.setTimeout(function () {
-                    prepareLayout(false);
+                    prepareLayout();
                 }, 120);
             };
         })();
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function () {
-                boot(true);
-            });
+            document.addEventListener('DOMContentLoaded', boot);
         } else {
-            boot(true);
+            boot();
         }
 
         window.addEventListener('load', function () {
-            prepareLayout(false);
+            prepareLayout();
         });
+
         window.addEventListener('resize', debouncedResize);
     })();
 </script>

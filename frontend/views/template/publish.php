@@ -1,1071 +1,1566 @@
 <?php
 
-use common\models\WebsiteTemplateRenderer;
+use common\models\WebsiteTemplate;
 use yii\helpers\Html;
+use yii\helpers\Json;
 use yii\helpers\Url;
 
 /** @var yii\web\View $this */
-/** @var common\models\WebsitePublication $publication */
-/** @var array $definition */
-/** @var array $values */
+/** @var array|null $folder */
 /** @var string $folderName */
+/** @var string $folderDefaultSlug */
+/** @var common\models\WebsitePublication $publication */
+/** @var common\models\WebsiteTemplate|null $template */
+/** @var array|null $definition */
+/** @var common\models\WebsiteTemplate[] $templates */
+/** @var array $assets */
 
-$this->title = $publication->page_title ?: $folderName;
+$this->title = 'Publish Folder';
 
-$page = $definition['page'] ?? [];
-$canvasWidth = (int) ($page['canvas_width'] ?? 1200);
-$canvasHeight = (int) ($page['canvas_min_height'] ?? 1500);
-$backgroundColor = $page['background_color'] ?? '#ffffff';
-$buttonColor = $page['button_color'] ?? '#2563eb';
-$components = $definition['components'] ?? [];
+$initialDefinition = $definition ?: ($template ? $template->getDefinitionArray() : WebsiteTemplate::defaultDefinition());
+$initialValues = (!$publication->isNewRecord && $publication->values_json)
+    ? $publication->getValuesArray()
+    : new \stdClass();$initialTemplateId = !$publication->isNewRecord ? (int) $publication->template_id : (int) ($template->id ?? 0);
 
-usort($components, function ($a, $b) {
-    return (int) ($a['z'] ?? 0) <=> (int) ($b['z'] ?? 0);
-});
-
-$lightboxImages = [];
-$renderedComponents = [];
-foreach ($components as $component) {
-    $renderedComponents[] = WebsiteTemplateRenderer::renderComponent($component, $values, $lightboxImages);
+$templateMap = [];
+foreach ($templates as $tpl) {
+    $templateMap[$tpl->id] = [
+        'id' => (int) $tpl->id,
+        'name' => $tpl->name,
+        'definition' => $tpl->getDefinitionArray(),
+    ];
 }
-
-$downloadAllUrl = Url::to(['/folder/download-all', 'id' => $publication->folder_id]);
-
-$carouselAutoScrollSpeed = 55; // pixels per second
-$carouselImageGap = 0;         // pixels between carousel images
-$footerBarHeight = 34;         // pixels
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= Html::encode($this->title) ?></title>
+<div class="tpl-publish-page">
     <style>
-        :root {
-            --page-bg: <?= Html::encode($backgroundColor) ?>;
-            --button-bg: <?= Html::encode($buttonColor) ?>;
-            --button-text: #ffffff;
-            --footer-h: <?= (int) $footerBarHeight ?>px;
-            --carousel-gap: <?= (int) $carouselImageGap ?>px;
-            --ink: #10233f;
-            --muted: #617997;
+        html, body { background:linear-gradient(180deg,#f4f8fc 0%,#eef4fb 100%); }
+        .tpl-publish-page {
+            color:#10233f;
+            background:linear-gradient(180deg,#f4f8fc 0%,#eef4fb 100%);
+            min-height:100vh;
+            width:auto;
+            margin:0;
+            padding:24px 0 40px;
         }
 
-        * { box-sizing: border-box; }
+        .tpl-publish-shell {
+            max-width:1380px; /* try 1320px, 1380px, or 1440px */
+            margin:0 auto;
+            padding:0 24px;
+        }
+        .flash-wrap { margin-bottom:18px; }
+        .flash-wrap .alert { border:none; border-radius:14px; padding:14px 16px; margin-bottom:12px; }
 
-        html, body {
-            min-height: 100%;
+        .tpl-back-link {
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            margin-bottom:12px;
+            color:#355a86;
+            font-size:13px;
+            font-weight:800;
+            text-decoration:none;
+        }
+        .tpl-back-link:hover { color:#1d4ed8; text-decoration:none; }
+
+        .tpl-card {
+            background:#fff;
+            border:1px solid #dbe6f3;
+            border-radius:22px;
+            box-shadow:0 16px 40px rgba(17,40,74,.06);
+            overflow:hidden;
         }
 
-        body {
-            margin: 0;
-            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: var(--page-bg);
-            color: var(--ink);
-            overflow-x: hidden;
+        .tpl-publish-hero {
+            margin-bottom:20px;
+            padding:22px 24px 20px;
+        }
+        .tpl-hero-top {
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:20px;
+            margin-bottom:18px;
+        }
+        .tpl-hero-copy h1 { margin:0 0 8px; font-size:30px; font-weight:800; }
+        .tpl-hero-copy p { margin:0; color:#5d718f; line-height:1.55; max-width:980px; }
+
+        .tpl-hero-settings {
+            display:grid;
+            grid-template-columns:minmax(220px,280px) minmax(180px,240px) minmax(280px,1fr) auto;
+            gap:12px;
+            align-items:end;
+        }
+        .tpl-form-row { margin:0; }
+        .tpl-form-row label {
+            display:block;
+            margin-bottom:6px;
+            font-size:12px;
+            font-weight:800;
+            letter-spacing:.02em;
+            color:#25476f;
+            text-transform:uppercase;
+        }
+        .tpl-input,
+        .tpl-select {
+            width:100%;
+            border:1px solid #cfdded;
+            border-radius:12px;
+            min-height:42px;
+            padding:8px 12px;
+            font-size:14px;
+            color:#10233f;
+            background:#fff;
+            outline:none;
+            box-shadow:inset 0 1px 2px rgba(16,35,63,.03);
+        }
+        .tpl-input:focus,
+        .tpl-select:focus {
+            border-color:#2563eb;
+            box-shadow:0 0 0 4px rgba(37,99,235,.12);
+        }
+        .tpl-inline-url {
+            display:grid;
+            grid-template-columns:auto 1fr;
+            gap:10px;
+            align-items:center;
+        }
+        .tpl-inline-url .tpl-domain {
+            padding:10px 12px;
+            border:1px solid #cfdded;
+            border-radius:12px;
+            background:#f7fbff;
+            color:#25476f;
+            font-weight:700;
+            white-space:nowrap;
+            min-height:42px;
+            display:flex;
+            align-items:center;
+        }
+        .tpl-check-inline {
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            min-height:42px;
+            padding:9px 12px;
+            border:1px solid #dbe6f3;
+            border-radius:12px;
+            background:#f9fbfe;
+            color:#17345c;
+            font-size:13px;
+            font-weight:700;
+            justify-self:start;
+            width:auto;
+            max-width:320px;
+        }
+        .tpl-check-inline input { margin:0; }
+        .tpl-password-row {
+            min-width:180px;
+            max-width:260px;
+        }
+        .tpl-hero-actions {
+            display:flex;
+            justify-content:flex-end;
+            align-items:end;
+        }
+        .btn-fotuka {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:8px;
+            background:#2563eb;
+            color:#fff;
+            border:none;
+            border-radius:12px;
+            padding:11px 18px;
+            min-height:42px;
+            font-weight:800;
+            text-decoration:none;
+            box-shadow:0 14px 26px rgba(37,99,235,.18);
+            cursor:pointer;
+        }
+        .btn-fotuka:hover { color:#fff; text-decoration:none; background:#1d4ed8; }
+        .btn-fotuka-secondary { background:#fff; color:#15355e; border:1px solid #d5e2f1; box-shadow:none; }
+        .btn-fotuka-secondary:hover { background:#f7fbff; }
+        .btn-fotuka-danger { background:#fff4f4; color:#b42318; border:1px solid #fecaca; box-shadow:none; }
+        .tpl-pill {
+            display:inline-flex;
+            align-items:center;
+            padding:6px 10px;
+            border-radius:999px;
+            background:#eff6ff;
+            color:#1d4ed8;
+            font-size:12px;
+            font-weight:800;
+        }
+        .tpl-muted { color:#6a7d98; }
+
+        .tpl-publish-grid {
+            display:grid;
+            grid-template-columns:minmax(0,1fr) 420px;
+            gap:20px;
+            align-items:start;
         }
 
-        a {
-            color: inherit;
+        .tpl-card-header { padding:18px 22px 12px; border-bottom:1px solid #ebf1f8; }
+        .tpl-card-header h2 { margin:0; font-size:20px; font-weight:800; }
+        .tpl-card-header p { margin:6px 0 0; color:#69809f; line-height:1.5; }
+        .tpl-card-body { padding:18px 22px 22px; }
+
+        .tpl-preview-card { position:sticky; top:20px; }
+        .tpl-preview-stage {
+            overflow:hidden;
+            padding:18px;
+            background:linear-gradient(180deg,#eff4fb 0%,#e8eff8 100%);
+        }
+        .tpl-preview-canvas-wrap {
+            width:100%;
+            display:flex;
+            justify-content:center;
+            align-items:flex-start;
+            overflow:hidden;
+        }
+        .tpl-preview-canvas-scale { transform-origin:top center; }
+        .tpl-preview-canvas {
+            position:relative;
+            background:#fff;
+            border:1px solid #dbe6f3;
+            border-radius:18px;
+            overflow:hidden;
+            box-shadow:0 20px 44px rgba(17,40,74,.08);
         }
 
-        .pub-shell {
-            min-height: 100vh;
-            background: var(--page-bg);
-            padding-bottom: calc(var(--footer-h) + 12px);
-        }
-
-        .pub-floating-actions {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            z-index: 60;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .pub-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            min-height: 42px;
-            padding: 0 18px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 800;
-            text-decoration: none;
-            border: none;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .pub-btn-primary {
-            background: var(--button-bg);
-            color: var(--button-text);
-            box-shadow: 0 18px 30px rgba(16,35,63,.15);
-        }
-
-        .pub-stage {
-            padding: 18px 24px 10px;
-        }
-
-        .pub-canvas-wrap {
-            max-width: calc(<?= (int) $canvasWidth ?>px + 120px);
-            margin: 0 auto;
-        }
-
-        .pub-canvas {
-            position: relative;
-            width: <?= (int) $canvasWidth ?>px;
-            min-height: <?= (int) $canvasHeight ?>px;
-            height: <?= (int) $canvasHeight ?>px;
-            margin: 0 auto;
-            background: var(--page-bg);
-        }
-
-        .tpl-public-component {
-            position: absolute;
-        }
-
+        .tpl-public-item { position:absolute; overflow:hidden; }
+        .tpl-public-static,
         .tpl-public-text {
-            overflow: hidden;
+            background:transparent;
+            border-radius:14px;
+            cursor:pointer;
+        }
+        .tpl-public-text {
+            cursor:pointer;
+            outline:2px dashed transparent;
+            outline-offset:-6px;
+            transition:outline-color .15s ease, background .15s ease;
+        }
+        .tpl-public-text:hover {
+            outline-color:#9bb9df;
+            background:rgba(255,255,255,.55);
+        }
+        .tpl-preview-text-inner {
+            width:100%;
+            height:100%;
+            overflow:auto;
+            padding:6px;
+            pointer-events:none;
+        }
+        .tpl-preview-edit-tag {
+            position:absolute;
+            top:10px;
+            right:10px;
+            z-index:3;
+            padding:4px 8px;
+            border-radius:999px;
+            background:rgba(37,99,235,.12);
+            color:#1d4ed8;
+            font-size:11px;
+            font-weight:800;
+            pointer-events:none;
         }
 
-        .tpl-public-text p:first-child {
-            margin-top: 0;
-        }
-
-        .tpl-public-text p:last-child {
-            margin-bottom: 0;
-        }
-
-        .tpl-public-empty {
-            border: 2px dashed #bfd1e5;
-            border-radius: 16px;
-            background: rgba(255,255,255,.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 16px;
-        }
-
-        .tpl-empty-inner {
-            color: #67809f;
-            font-weight: 700;
-            line-height: 1.5;
-        }
-
-        .tpl-public-image img {
-            width: 100%;
-            height: 100%;
-            display: block;
-            object-fit: cover;
-            border-radius: 18px;
-            cursor: default;
-        }
-
+        .tpl-public-media,
         .tpl-public-gallery {
-            width: 100%;
-            height: auto !important;
-            overflow: visible !important;
-            background: transparent !important;
+            border:2px dashed #bdd0e7;
+            border-radius:16px;
+            background:#f8fbff;
+            overflow:hidden;
+        }
+        .tpl-public-media.is-filled,
+        .tpl-public-gallery.is-filled {
+            border-style:solid;
+            border-color:#dbe6f3;
+            background:#fff;
+        }
+        .tpl-public-media.is-over {
+            border-color:#2563eb;
+            background:#eef5ff;
+            box-shadow:0 0 0 4px rgba(37,99,235,.12);
+        }
+        .tpl-public-media img,
+        .tpl-public-gallery img {
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            display:block;
+        }
+        .tpl-public-placeholder {
+            width:100%;
+            height:100%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            text-align:center;
+            color:#6c819d;
+            padding:16px;
+            font-weight:700;
+            line-height:1.5;
+        }
+        .tpl-public-placeholder small { display:block; margin-top:6px; font-size:12px; font-weight:700; }
+        .tpl-preview-hint {
+            position:absolute;
+            left:10px;
+            right:10px;
+            bottom:10px;
+            z-index:3;
+            padding:7px 10px;
+            border-radius:10px;
+            background:rgba(15,23,42,.66);
+            color:#fff;
+            font-size:11px;
+            font-weight:800;
+            line-height:1.35;
+            text-align:center;
+        }
+        .tpl-preview-remove {
+            position:absolute;
+            top:10px;
+            right:10px;
+            z-index:4;
+            width:28px;
+            height:28px;
+            border:none;
+            border-radius:999px;
+            background:rgba(180,35,24,.92);
+            color:#fff;
+            font-size:16px;
+            font-weight:800;
+            line-height:1;
+            cursor:pointer;
+            box-shadow:0 8px 16px rgba(0,0,0,.15);
         }
 
-        .tpl-gallery-grid {
-            width: 100%;
-            height: auto !important;
-            display: block;
-            background: transparent !important;
+        .tpl-preview-carousel-grid,
+        .tpl-preview-gallery-grid {
+            width:100%;
+            height:100%;
+            display:grid;
+            grid-template-columns:repeat(3,minmax(0,1fr));
+            gap:8px;
+            padding:8px;
+            overflow:auto;
+            align-content:start;
+        }
+        .tpl-preview-carousel-grid {
+            padding-bottom:34px;
+        }
+        .tpl-preview-thumb {
+            position:relative;
+            border-radius:10px;
+            overflow:hidden;
+            min-height:78px;
+            background:#edf3fb;
+        }
+        .tpl-preview-thumb img {
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            display:block;
+        }
+        .tpl-preview-thumb-remove {
+            position:absolute;
+            top:5px;
+            right:5px;
+            z-index:2;
+            width:20px;
+            height:20px;
+            border:none;
+            border-radius:999px;
+            background:rgba(180,35,24,.92);
+            color:#fff;
+            font-size:12px;
+            font-weight:800;
+            line-height:1;
+            cursor:pointer;
+        }
+        .tpl-preview-count {
+            position:absolute;
+            top:10px;
+            left:10px;
+            z-index:3;
+            padding:4px 8px;
+            border-radius:999px;
+            background:rgba(37,99,235,.12);
+            color:#1d4ed8;
+            font-size:11px;
+            font-weight:800;
+        }
+        .tpl-preview-gallery-note {
+            position:absolute;
+            left:10px;
+            right:10px;
+            bottom:10px;
+            z-index:3;
+            padding:7px 10px;
+            border-radius:10px;
+            background:rgba(15,23,42,.66);
+            color:#fff;
+            font-size:11px;
+            font-weight:800;
+            text-align:center;
+            line-height:1.35;
         }
 
-        .tpl-gallery-mosaic {
-            display: flex;
-            flex-direction: column;
-            gap: var(--gallery-gap, 14px);
-            width: 100%;
+        .tpl-asset-list {
+            display:grid;
+            grid-template-columns:repeat(3,minmax(0,1fr));
+            gap:10px;
+        }
+        .tpl-asset-card {
+            border:1px solid #dbe6f3;
+            border-radius:14px;
+            background:#fff;
+            overflow:hidden;
+            cursor:grab;
+            transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+            user-select:none;
+            -webkit-user-select:none;
+        }
+        .tpl-asset-card:active {
+            cursor:grabbing;
+        }
+        .tpl-asset-card:hover { transform:translateY(-1px); box-shadow:0 14px 26px rgba(16,35,63,.08); }
+        .tpl-asset-card.is-selected { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+        .tpl-asset-thumb {
+            height:110px;
+            pointer-events:none;
+        }
+        .tpl-asset-thumb img {
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            display:block;
+            pointer-events:none;
+            user-select:none;
+            -webkit-user-drag:none;
+        }
+        .tpl-asset-empty {
+            font-size:12px;
+            color:#6e83a0;
+            padding:12px;
+            text-align:center;
+            line-height:1.35;
+        }
+        .tpl-lightbox {
+            position:fixed;
+            inset:0;
+            background:rgba(6,16,29,.84);
+            z-index:9999;
+            display:none;
+            align-items:center;
+            justify-content:center;
+            padding:42px;
+        }
+        .tpl-lightbox.is-open { display:flex; }
+        .tpl-lightbox-dialog {
+            position:relative;
+            width:min(1100px,92vw);
+            height:min(80vh,780px);
+            border-radius:24px;
+            background:#09121f;
+            box-shadow:0 24px 70px rgba(0,0,0,.35);
+            overflow:hidden;
+        }
+        .tpl-lightbox-dialog img {
+            width:100%;
+            height:100%;
+            object-fit:contain;
+            display:block;
+            background:#09121f;
+        }
+        .tpl-lightbox-btn {
+            position:absolute;
+            top:18px;
+            width:44px;
+            height:44px;
+            border:none;
+            border-radius:999px;
+            background:rgba(255,255,255,.13);
+            color:#fff;
+            font-size:20px;
+            font-weight:800;
+            cursor:pointer;
+            backdrop-filter:blur(10px);
+        }
+        .tpl-lightbox-btn.close { right:18px; }
+        .tpl-lightbox-btn.prev { top:50%; left:18px; transform:translateY(-50%); }
+        .tpl-lightbox-btn.next { top:50%; right:18px; transform:translateY(-50%); }
+        .tpl-lightbox-caption {
+            position:absolute;
+            left:22px;
+            right:82px;
+            bottom:18px;
+            padding:12px 14px;
+            border-radius:14px;
+            background:rgba(255,255,255,.12);
+            color:#fff;
+            font-weight:700;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
         }
 
-        .tpl-gallery-block {
-            width: 100%;
-            display: grid;
-            grid-template-columns: repeat(12, minmax(0, 1fr));
-            grid-auto-rows: var(--gallery-unit, 84px);
-            gap: var(--gallery-gap, 14px);
+        .tpl-empty-state {
+            padding:22px;
+            border:1px dashed #c8d7ea;
+            border-radius:18px;
+            text-align:center;
+            color:#6b819d;
+            background:#fafcff;
+        }
+        .tpl-public-media > img,
+        .tpl-public-media > .tpl-public-placeholder,
+        .tpl-public-media > .tpl-preview-hint,
+        .tpl-public-media > .tpl-preview-count,
+        .tpl-public-media > .tpl-preview-carousel-grid,
+        .tpl-public-gallery > .tpl-public-placeholder,
+        .tpl-public-gallery > .tpl-preview-gallery-grid,
+        .tpl-public-gallery > .tpl-preview-gallery-note {
+            pointer-events:none;
         }
 
-        .tpl-gallery-card {
-            position: relative;
-            min-width: 0;
-            min-height: 0;
-            overflow: hidden;
-            border-radius: 16px;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            cursor: pointer;
+        .tpl-preview-remove,
+        .tpl-preview-thumb-remove {
+            pointer-events:auto;
         }
 
-        .tpl-gallery-card a {
-            display: block;
-            width: 100%;
-            height: 100%;
+        @media (max-width:1400px) {
+            .tpl-publish-grid { grid-template-columns:minmax(0,1fr) 380px; }
+            .tpl-hero-settings { grid-template-columns:repeat(2,minmax(240px,1fr)); }
+            .tpl-hero-actions { justify-content:flex-start; }
         }
-
-        .tpl-gallery-card img {
-            width: 100%;
-            height: 100%;
-            display: block;
-            object-fit: cover;
-            border-radius: 16px;
-            background: transparent !important;
+        @media (max-width:1180px) {
+            .tpl-publish-grid { grid-template-columns:1fr; }
+            .tpl-preview-card { position:relative; top:0; }
         }
-
-        .tpl-public-carousel {
-            width: 100%;
-            height: 100%;
-            display: block;
-            overflow: hidden;
-            background: transparent;
-            border-radius: 0;
+        @media (max-width:900px) {
+            .tpl-publish-shell { padding:0 16px; }
+            .tpl-publish-hero { padding:18px; }
+            .tpl-hero-top { flex-direction:column; }
+            .tpl-hero-settings { grid-template-columns:1fr; }
+            .tpl-asset-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
-
-        .tpl-carousel-arrow {
-            display: none !important;
-        }
-
-        .tpl-carousel-viewport {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: transparent;
-            border-radius: 0;
-        }
-
-        .tpl-carousel-track {
-            height: 100%;
-            display: flex;
-            align-items: stretch;
-            gap: var(--carousel-gap);
-            will-change: transform;
-            transform: translateX(0);
-        }
-
-        .tpl-carousel-slide {
-            flex: 0 0 auto;
-            width: auto !important;
-            height: 100%;
-            min-width: 0;
-            display: flex;
-            align-items: stretch;
-            justify-content: center;
-            overflow: hidden;
-            background: transparent;
-            border-radius: 0;
-        }
-
-        .tpl-carousel-slide img {
-            width: auto;
-            height: 100%;
-            max-width: none;
-            display: block;
-            object-fit: cover;
-            border-radius: 0;
-            background: transparent;
-            cursor: default;
-        }
-
-        .pub-footer {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 70;
-            height: var(--footer-h);
-            display: flex;
-            align-items: center;
-            backdrop-filter: blur(16px);
-            background: rgba(255,255,255,.78);
-            border-top: 1px solid rgba(208,220,237,.95);
-        }
-
-        .pub-footer-inner {
-            width: min(calc(<?= (int) $canvasWidth ?>px + 120px), 100%);
-            margin: 0 auto;
-            padding: 0 24px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-        }
-
-        .pub-footer-note {
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--muted);
-            white-space: nowrap;
-        }
-
-        .pub-footer-note a {
-            text-decoration: none;
-            font-weight: inherit;
-        }
-
-        .pub-lightbox {
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            background: rgba(6,16,29,.86);
-            padding: 40px;
-        }
-
-        .pub-lightbox.is-open {
-            display: flex;
-        }
-
-        .pub-lightbox-dialog {
-            position: relative;
-            width: min(1120px, 94vw);
-            height: min(82vh, 820px);
-            border-radius: 24px;
-            overflow: hidden;
-            background: #09121f;
-            border: 1px solid rgba(255,255,255,.08);
-            box-shadow: 0 26px 70px rgba(0,0,0,.42);
-        }
-
-        .pub-lightbox-dialog img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-            background: #09121f;
-        }
-
-        .pub-lightbox-btn {
-            position: absolute;
-            top: 18px;
-            width: 46px;
-            height: 46px;
-            border: none;
-            border-radius: 999px;
-            background: rgba(255,255,255,.14);
-            color: #fff;
-            font-size: 22px;
-            font-weight: 800;
-            cursor: pointer;
-        }
-
-        .pub-lightbox-btn.close {
-            right: 18px;
-        }
-
-        .pub-lightbox-btn.prev {
-            top: 50%;
-            left: 18px;
-            transform: translateY(-50%);
-        }
-
-        .pub-lightbox-btn.next {
-            top: 50%;
-            right: 18px;
-            transform: translateY(-50%);
-        }
-
-        .pub-lightbox-caption {
-            position: absolute;
-            left: 20px;
-            right: 82px;
-            bottom: 18px;
-            background: rgba(255,255,255,.12);
-            color: #fff;
-            border-radius: 14px;
-            padding: 12px 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-weight: 700;
-        }
-
-        @media (max-width: 1320px) {
-            .pub-stage {
-                padding: 70px 12px 8px;
-                overflow-x: auto;
-            }
-
-            .pub-canvas-wrap {
-                max-width: none;
-            }
-
-            .pub-floating-actions {
-                top: 14px;
-                right: 12px;
-            }
-        }
-
-        @media (max-width: 700px) {
-            .pub-lightbox {
-                padding: 16px;
-            }
-
-            .pub-lightbox-dialog {
-                width: 100%;
-                height: min(78vh, 680px);
-                border-radius: 20px;
-            }
-
-            .pub-lightbox-btn {
-                width: 42px;
-                height: 42px;
-            }
-
-            .pub-footer-inner {
-                justify-content: center;
-            }
+        .tpl-public-media.is-over {
+            border-color:#2563eb;
+            background:#eef5ff;
+            box-shadow:0 0 0 4px rgba(37,99,235,.12);
         }
     </style>
-</head>
-<body>
-<div class="pub-shell">
-    <?php if ((int) $publication->allow_download_all === 1): ?>
-        <div class="pub-floating-actions">
-            <a class="pub-btn pub-btn-primary" href="<?= Html::encode($downloadAllUrl) ?>">Download All</a>
-        </div>
-    <?php endif; ?>
 
-    <div class="pub-stage">
-        <div class="pub-canvas-wrap">
-            <div class="pub-canvas" id="pubCanvas">
-                <?= implode("\n", $renderedComponents) ?>
+    <div class="tpl-publish-shell">
+        <div class="flash-wrap">
+            <?php foreach (Yii::$app->session->getAllFlashes() as $type => $message): ?>
+                <div class="alert alert-<?= Html::encode($type) ?>"><?= Html::encode($message) ?></div>
+            <?php endforeach; ?>
+        </div>
+
+        <form method="post" id="publishForm" action="<?= Url::to(['publish', 'id' => (int)($folder['id'] ?? Yii::$app->request->get('id'))]) ?>">
+            <?= Html::hiddenInput(Yii::$app->request->csrfParam, Yii::$app->request->getCsrfToken()) ?>
+            <?= Html::hiddenInput('WebsitePublication[values_json]', $publication->values_json ?: Json::encode($initialValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), ['id' => 'publicationValuesJson']) ?>
+
+            <div class="tpl-card tpl-publish-hero">
+                <a class="tpl-back-link" href="/folders">← Back to Folders</a>
+
+                <div class="tpl-hero-top">
+                    <div class="tpl-hero-copy">
+                        <h1>Publish “<?= Html::encode($folderName) ?>”</h1>
+                        <p>Select the template, adjust the publish settings, drag images from the asset rail into the live preview, and double-click any editable text block to make final WYSIWYG changes before publishing.</p>
+                    </div>
+                </div>
+
+                <div class="tpl-hero-settings">
+                    <div class="tpl-form-row">
+                        <label for="publicationTemplateId">Template</label>
+                        <select class="tpl-select" id="publicationTemplateId" name="WebsitePublication[template_id]">
+                            <option value="">Select a template…</option>
+                            <?php foreach ($templates as $tpl): ?>
+                                <option value="<?= (int) $tpl->id ?>" <?= $initialTemplateId === (int) $tpl->id ? 'selected' : '' ?>><?= Html::encode($tpl->name) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="tpl-form-row">
+                        <label for="publicationPageTitle">Page Title</label>
+                        <input class="tpl-input" type="text" id="publicationPageTitle" name="WebsitePublication[page_title]" value="<?= Html::encode($publication->page_title ?: $folderName) ?>" maxlength="255">
+                    </div>
+
+                    <div class="tpl-form-row">
+                        <label for="publicationUri">Public URI</label>
+                        <div class="tpl-inline-url">
+                            <div class="tpl-domain">https://fotuka.com/</div>
+                            <input class="tpl-input" type="text" id="publicationUri" name="WebsitePublication[uri]" value="<?= Html::encode($publication->uri ?: $folderDefaultSlug) ?>" maxlength="255" placeholder="<?= Html::encode($folderDefaultSlug) ?>">
+                        </div>
+                    </div>
+
+                    <div class="tpl-hero-actions">
+                        <button type="submit" class="btn-fotuka">Publish Folder</button>
+                    </div>
+
+                    <label class="tpl-check-inline">
+                        <input type="checkbox" id="publicationProtected" name="WebsitePublication[is_password_protected]" value="1" <?= (int) $publication->is_password_protected === 1 ? 'checked' : '' ?>>
+                        <span>Password protect this page</span>
+                    </label>
+
+                    <div class="tpl-form-row tpl-password-row" id="passwordRow" style="<?= (int) $publication->is_password_protected === 1 ? '' : 'display:none;' ?>">
+                        <label for="publicationPassword">Password</label>
+                        <input class="tpl-input" type="text" id="publicationPassword" name="WebsitePublication[plain_password]" value="" placeholder="<?= $publication->isNewRecord ? 'Enter a password' : 'Leave blank to keep current password' ?>">
+                    </div>
+
+                    <label class="tpl-check-inline">
+                        <input type="checkbox" name="WebsitePublication[allow_download_all]" value="1" <?= (int) $publication->allow_download_all === 1 ? 'checked' : '' ?>>
+                        <span>Show “Download All” button</span>
+                    </label>
+
+                    <div></div>
+                </div>
+            </div>
+
+            <div class="tpl-publish-grid">
+                <div class="tpl-main-col">
+                    <div class="tpl-card tpl-preview-card">
+                        <div class="tpl-card-header">
+                            <h2>Live Preview</h2>
+                            <p>Drop onto image or carousel areas to assign assets. Double-click editable text blocks to open the WYSIWYG editor.</p>
+                        </div>
+                        <div class="tpl-preview-stage" id="previewStage">
+                            <div id="previewCanvasWrap" class="tpl-preview-canvas-wrap">
+                                <div id="previewScale" class="tpl-preview-canvas-scale">
+                                    <div id="publishPreviewCanvas" class="tpl-preview-canvas"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tpl-right-col">
+                    <div class="tpl-card">
+                        <div class="tpl-card-header">
+                            <h2>Folder Assets</h2>
+                            <p>Three-column thumbnail browser. Drag any thumbnail into the preview, or click a thumbnail to preview it larger and keep it selected for click-to-assign.</p>
+                        </div>
+                        <div class="tpl-card-body">
+                            <div id="assetGallery" class="tpl-asset-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="publishTextModal" class="tpl-lightbox" style="background:rgba(10,18,31,.68);">
+        <div class="tpl-lightbox-dialog" style="background:#fff; height:min(86vh,860px); width:min(1100px,96vw);">
+            <button type="button" class="tpl-lightbox-btn close" id="closeTextModal" style="color:#16355c; background:rgba(11,38,73,.08);">✕</button>
+            <div style="padding:24px 26px 18px; border-bottom:1px solid #e7eef8;">
+                <div class="tpl-pill" id="textModalType">Publish-Time Text</div>
+                <h2 id="textModalTitle" style="margin:12px 0 0; font-size:28px; font-weight:800; color:#14345c;"></h2>
+                <p id="textModalSubtitle" class="tpl-muted" style="margin:8px 0 0;"></p>
+            </div>
+            <div style="padding:20px 26px 24px; height:calc(100% - 120px); display:flex; flex-direction:column; gap:16px;">
+                <textarea id="publishRichTextEditor"></textarea>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn-fotuka btn-fotuka-secondary" id="cancelTextModal">Cancel</button>
+                    <button type="button" class="btn-fotuka" id="saveTextModal">Save Text</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="pub-footer">
-    <div class="pub-footer-inner">
-        <div class="pub-footer-note">Powered by <a href="/">Fotuka</a>.</div>
+    <div id="assetLightbox" class="tpl-lightbox">
+        <div class="tpl-lightbox-dialog">
+            <button type="button" class="tpl-lightbox-btn close" id="lightboxClose">✕</button>
+            <button type="button" class="tpl-lightbox-btn prev" id="lightboxPrev">‹</button>
+            <button type="button" class="tpl-lightbox-btn next" id="lightboxNext">›</button>
+            <img id="lightboxImage" src="" alt="">
+            <div id="lightboxCaption" class="tpl-lightbox-caption"></div>
+        </div>
     </div>
-</div>
 
-<div id="pubLightbox" class="pub-lightbox" aria-hidden="true">
-    <div class="pub-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Gallery preview">
-        <button type="button" class="pub-lightbox-btn close" id="pubLightboxClose" aria-label="Close">✕</button>
-        <button type="button" class="pub-lightbox-btn prev" id="pubLightboxPrev" aria-label="Previous">‹</button>
-        <button type="button" class="pub-lightbox-btn next" id="pubLightboxNext" aria-label="Next">›</button>
-        <img id="pubLightboxImage" src="" alt="">
-        <div id="pubLightboxCaption" class="pub-lightbox-caption"></div>
-    </div>
-</div>
+    <script src="https://cdn.tiny.cloud/1/cbcqlkpvavpfb1f48f22qrybc82x9c8rv604z1jupes12uub/tinymce/6/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
 
-<script>
-    (function () {
-        const canvas = document.getElementById('pubCanvas');
-        const carouselScrollSpeed = <?= json_encode((float) $carouselAutoScrollSpeed) ?>;
-        const carouselGap = <?= json_encode((int) $carouselImageGap) ?>;
-        const baseCanvasHeight = <?= json_encode((int) $canvasHeight) ?>;
-
-        const lightbox = document.getElementById('pubLightbox');
-        const imageEl = document.getElementById('pubLightboxImage');
-        const captionEl = document.getElementById('pubLightboxCaption');
-        const closeBtn = document.getElementById('pubLightboxClose');
-        const prevBtn = document.getElementById('pubLightboxPrev');
-        const nextBtn = document.getElementById('pubLightboxNext');
-
-        let activeGalleryItems = [];
-        let lightboxIndex = 0;
-
-        function shuffle(array) {
-            const cloned = array.slice();
-            for (let i = cloned.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [cloned[i], cloned[j]] = [cloned[j], cloned[i]];
-            }
-            return cloned;
+    <script>
+        function dndLog(label, data) {
+            console.log('[PUBLISH DND] ' + label, data);
         }
 
-        function getNumericStyle(el, prop, fallback) {
-            const inline = parseFloat(el.style[prop]);
-            if (Number.isFinite(inline)) return inline;
-
-            const computed = parseFloat(window.getComputedStyle(el)[prop]);
-            if (Number.isFinite(computed)) return computed;
-
-            return fallback;
-        }
-
-        function getOriginalMetric(el, key, prop, fallback) {
-            const attr = el.getAttribute(key);
-            if (attr !== null && attr !== '') {
-                const parsed = parseFloat(attr);
-                if (Number.isFinite(parsed)) return parsed;
-            }
-
-            const value = getNumericStyle(el, prop, fallback);
-            el.setAttribute(key, String(value));
-            return value;
-        }
-
-        function getCardImage(card) {
-            return card.querySelector('img');
-        }
-
-        function getCardRatio(card) {
-            const img = getCardImage(card);
-            const cardWidth = parseFloat(card.getAttribute('data-width') || '0');
-            const cardHeight = parseFloat(card.getAttribute('data-height') || '0');
-            if (cardWidth > 0 && cardHeight > 0) {
-                return cardWidth / cardHeight;
-            }
-
-            if (img) {
-                const imgWidth = parseFloat(img.getAttribute('data-width') || '0');
-                const imgHeight = parseFloat(img.getAttribute('data-height') || '0');
-                if (imgWidth > 0 && imgHeight > 0) {
-                    return imgWidth / imgHeight;
-                }
-
-                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                    return img.naturalWidth / img.naturalHeight;
-                }
-            }
-
-            return 1.18;
-        }
-
-        function sortByRatio(items, direction) {
-            return items.slice().sort(function (a, b) {
-                return direction === 'asc' ? a.ratio - b.ratio : b.ratio - a.ratio;
-            });
-        }
-
-        function createBlock(nodes, spans) {
-            return {
-                nodes: nodes,
-                spans: spans
+        (function () {
+            const templates = <?= Json::htmlEncode($templateMap) ?>;
+            const assets = <?= Json::htmlEncode(array_values($assets)) ?>;
+            const initialDefinition = <?= Json::htmlEncode($initialDefinition) ?>;
+            const state = {
+                selectedTemplateId: <?= Json::htmlEncode((string) $initialTemplateId) ?>,
+                values: <?= Json::htmlEncode($initialValues) ?>,
+                selectedAssetId: null,
+                draggingAssetId: null,
+                draggingAsset: null,
+                previewScale: 1,
+                textEditorField: null,
+                lightboxItems: assets.filter(a => (a.preview_url || a.thumbnail_url)),
+                lightboxIndex: 0
             };
-        }
+            const templateSelect = document.getElementById('publicationTemplateId');
+            const valuesJsonInput = document.getElementById('publicationValuesJson');
+            const assetGallery = document.getElementById('assetGallery');
+            const publishPreviewCanvas = document.getElementById('publishPreviewCanvas');
+            const previewScale = document.getElementById('previewScale');
+            const previewStage = document.getElementById('previewStage');
+            const previewCanvasWrap = document.getElementById('previewCanvasWrap');
+            const protectedCheckbox = document.getElementById('publicationProtected');
+            const passwordRow = document.getElementById('passwordRow');
+            const textModal = document.getElementById('publishTextModal');
+            const closeTextModal = document.getElementById('closeTextModal');
+            const cancelTextModal = document.getElementById('cancelTextModal');
+            const saveTextModal = document.getElementById('saveTextModal');
+            const textModalTitle = document.getElementById('textModalTitle');
+            const textModalSubtitle = document.getElementById('textModalSubtitle');
+            const lightbox = document.getElementById('assetLightbox');
+            const lightboxImage = document.getElementById('lightboxImage');
+            const lightboxCaption = document.getElementById('lightboxCaption');
+            const lightboxClose = document.getElementById('lightboxClose');
+            const lightboxPrev = document.getElementById('lightboxPrev');
+            const lightboxNext = document.getElementById('lightboxNext');
 
-        function buildThreeBlock(chunk) {
-            const portraits = sortByRatio(chunk.filter(function (item) { return item.ratio < 0.92; }), 'asc');
-            const landscapes = sortByRatio(chunk.filter(function (item) { return item.ratio > 1.28; }), 'desc');
-            const random = Math.random();
+            function escapeHtml(value) {
+                return String(value ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+            }
 
-            if (portraits.length && random < 0.42) {
-                const hero = portraits[0];
-                const others = chunk.filter(function (item) { return item !== hero; });
-                if (Math.random() < 0.5) {
-                    return createBlock(
-                        [hero.node, others[0].node, others[1].node],
-                        [{ c: 4, r: 6 }, { c: 8, r: 3 }, { c: 8, r: 3 }]
-                    );
+            function slugify(value) {
+                return String(value || '')
+                    .toLowerCase()
+                    .trim()
+                    .replace(/[^a-z0-9-_]+/g, '-')
+                    .replace(/-+/g, '-')
+                    .replace(/^-|-$/g, '');
+            }
+
+            function deepClone(obj) {
+                return JSON.parse(JSON.stringify(obj));
+            }
+
+            function getSelectedTemplate() {
+                return templates[state.selectedTemplateId] || null;
+            }
+
+            function getDefinition() {
+                const tpl = getSelectedTemplate();
+
+                if (tpl && tpl.definition) {
+                    state.definition = deepClone(tpl.definition);
+                    return state.definition;
                 }
-                return createBlock(
-                    [others[0].node, others[1].node, hero.node],
-                    [{ c: 8, r: 3 }, { c: 8, r: 3 }, { c: 4, r: 6 }]
-                );
-            }
 
-            if (landscapes.length && random < 0.84) {
-                const hero = landscapes[0];
-                const others = chunk.filter(function (item) { return item !== hero; });
-                if (Math.random() < 0.5) {
-                    return createBlock(
-                        [hero.node, others[0].node, others[1].node],
-                        [{ c: 8, r: 6 }, { c: 4, r: 3 }, { c: 4, r: 3 }]
-                    );
+                if (state.definition && Array.isArray(state.definition.components)) {
+                    return deepClone(state.definition);
                 }
-                return createBlock(
-                    [others[0].node, others[1].node, hero.node],
-                    [{ c: 4, r: 3 }, { c: 4, r: 3 }, { c: 8, r: 6 }]
-                );
-            }
 
-            return createBlock(
-                chunk.map(function (item) { return item.node; }),
-                [{ c: 4, r: 3 }, { c: 4, r: 3 }, { c: 4, r: 3 }]
-            );
-        }
-
-        function buildFiveBlock(chunk) {
-            const sortedForHero = sortByRatio(chunk, 'asc');
-            const hero = sortedForHero[Math.min(1, sortedForHero.length - 1)] || chunk[0];
-            const others = chunk.filter(function (item) { return item !== hero; });
-
-            if (Math.random() < 0.5) {
-                return createBlock(
-                    [others[0].node, hero.node, others[1].node, others[2].node, others[3].node],
-                    [{ c: 3, r: 3 }, { c: 6, r: 6 }, { c: 3, r: 3 }, { c: 3, r: 3 }, { c: 3, r: 3 }]
-                );
-            }
-
-            return createBlock(
-                [others[0].node, others[1].node, hero.node, others[2].node, others[3].node],
-                [{ c: 4, r: 3 }, { c: 4, r: 3 }, { c: 4, r: 6 }, { c: 4, r: 3 }, { c: 4, r: 3 }]
-            );
-        }
-
-        function buildTwoBlock(chunk) {
-            if (chunk[0].ratio < 0.9 || chunk[1].ratio < 0.9) {
-                return createBlock(
-                    [chunk[0].node, chunk[1].node],
-                    [{ c: 6, r: 5 }, { c: 6, r: 5 }]
-                );
-            }
-
-            return createBlock(
-                [chunk[0].node, chunk[1].node],
-                [{ c: 6, r: 4 }, { c: 6, r: 4 }]
-            );
-        }
-
-        function buildOneBlock(chunk) {
-            const ratio = chunk[0].ratio;
-            if (ratio < 0.92) {
-                return createBlock([chunk[0].node], [{ c: 4, r: 6 }]);
-            }
-            if (ratio > 1.3) {
-                return createBlock([chunk[0].node], [{ c: 8, r: 4 }]);
-            }
-            return createBlock([chunk[0].node], [{ c: 5, r: 4 }]);
-        }
-
-        function chooseChunkSize(remaining) {
-            if (remaining >= 10 && Math.random() < 0.28) return 5;
-            if (remaining === 9 && Math.random() < 0.25) return 5;
-            if (remaining === 8 && Math.random() < 0.5) return 5;
-            if (remaining === 7) return 5;
-            if (remaining === 6) return 3;
-            if (remaining === 5) return 5;
-            if (remaining === 4) return 2;
-            if (remaining === 3) return 3;
-            if (remaining === 2) return 2;
-            return 1;
-        }
-
-        function buildGalleryPlan(cards) {
-            const items = cards.map(function (card) {
                 return {
-                    node: card,
-                    ratio: getCardRatio(card)
+                    page: {
+                        canvas_width: 1200,
+                        canvas_min_height: 1400,
+                        background_color: '#ffffff',
+                        button_color: '#2563eb'
+                    },
+                    components: []
+                };
+            }
+
+            function componentField(component) {
+                return component.field_name || slugify(component.label || component.type || 'field');
+            }
+
+            function componentLabel(component) {
+                return component.label || component.field_name || component.type;
+            }
+
+            function isLikelyImage(asset) {
+                const type = String(asset.file_type || asset.mime_type || '').toLowerCase();
+                if (!type) return !!(asset.preview_url || asset.thumbnail_url);
+                return type.indexOf('image/') === 0;
+            }
+
+            function getAssetKey(asset) {
+                if (!asset) return '';
+                return String(asset.asset_id ?? asset.id ?? '');
+            }
+
+            function normalizeAsset(asset) {
+                if (!asset) return null;
+
+                const key = asset.asset_id ?? asset.id ?? null;
+
+                return {
+                    asset_id: key,
+                    title: asset.title || asset.filename || ('Asset #' + (key || '')),
+                    filename: asset.filename || '',
+                    preview_url: asset.preview_url || asset.thumbnail_url || '',
+                    thumbnail_url: asset.thumbnail_url || asset.preview_url || '',
+                    file_type: asset.file_type || asset.mime_type || ''
+                };
+            }
+
+            function assetById(assetId) {
+                return assets.find(a => String(a.asset_id ?? a.id ?? '') === String(assetId)) || null;
+            }
+
+            function galleryAssets() {
+                return assets
+                    .filter(isLikelyImage)
+                    .map(normalizeAsset)
+                    .filter(Boolean)
+                    .filter(a => a.preview_url || a.thumbnail_url);
+            }
+
+            function ensureValues() {
+                if (!state.values || typeof state.values !== 'object' || Array.isArray(state.values)) {
+                    state.values = {};
+                }
+
+                if (!state.values.dynamic_text || typeof state.values.dynamic_text !== 'object' || Array.isArray(state.values.dynamic_text)) {
+                    state.values.dynamic_text = {};
+                }
+
+                if (!state.values.image || typeof state.values.image !== 'object' || Array.isArray(state.values.image)) {
+                    state.values.image = {};
+                }
+
+                if (!state.values.carousel || typeof state.values.carousel !== 'object' || Array.isArray(state.values.carousel)) {
+                    state.values.carousel = {};
+                }
+
+                if (!state.values.gallery || typeof state.values.gallery !== 'object' || Array.isArray(state.values.gallery)) {
+                    state.values.gallery = {};
+                }
+
+                syncAutoGalleryValues();
+            }
+
+            function syncAutoGalleryValues() {
+                const definition = getDefinition();
+                const galleryComponents = Array.isArray(definition.components)
+                    ? definition.components.filter(c => c.type === 'gallery')
+            : [];
+                const items = galleryAssets();
+                galleryComponents.forEach(component => {
+                    const field = componentField(component);
+                state.values.gallery[field] = {
+                    auto_folder_gallery: 1,
+                    items: items
                 };
             });
-
-            const blocks = [];
-            let cursor = 0;
-
-            while (cursor < items.length) {
-                const remaining = items.length - cursor;
-                const chunkSize = Math.min(chooseChunkSize(remaining), remaining);
-                const chunk = items.slice(cursor, cursor + chunkSize);
-
-                if (chunk.length === 5) {
-                    blocks.push(buildFiveBlock(chunk));
-                } else if (chunk.length === 3) {
-                    blocks.push(buildThreeBlock(chunk));
-                } else if (chunk.length === 2) {
-                    blocks.push(buildTwoBlock(chunk));
-                } else {
-                    blocks.push(buildOneBlock(chunk));
-                }
-
-                cursor += chunk.length;
             }
 
-            return blocks;
-        }
-
-        function ensureGalleryCards(galleryRoot) {
-            if (galleryRoot._galleryCards) {
-                return galleryRoot._galleryCards;
+            function syncHidden() {
+                valuesJsonInput.value = JSON.stringify(state.values);
             }
 
-            const sourceRoot = galleryRoot.querySelector('.tpl-gallery-grid') || galleryRoot;
-            galleryRoot._layoutRoot = sourceRoot;
-
-            let cards = Array.from(sourceRoot.querySelectorAll('.tpl-gallery-card'));
-
-            if (!cards.length) {
-                const images = Array.from(sourceRoot.querySelectorAll('img'));
-                cards = images.map(function (img) {
-                    const card = document.createElement('div');
-                    card.className = 'tpl-gallery-card';
-                    const parent = img.parentElement;
-                    if (parent && parent.tagName && parent.tagName.toLowerCase() === 'a') {
-                        parent.parentElement.insertBefore(card, parent);
-                        card.appendChild(parent);
-                    } else if (parent) {
-                        parent.insertBefore(card, img);
-                        card.appendChild(img);
-                    }
-                    return card;
-                });
-            }
-
-            galleryRoot._galleryCards = cards;
-            return cards;
-        }
-
-        function bindGalleryLightbox(galleryRoot) {
-            if (galleryRoot.dataset.galleryLightboxBound === '1') {
-                return;
-            }
-
-            galleryRoot.dataset.galleryLightboxBound = '1';
-
-            galleryRoot.addEventListener('click', function (event) {
-                const card = event.target.closest('.tpl-gallery-card');
-                if (!card || !galleryRoot.contains(card)) {
-                    return;
-                }
-
-                event.preventDefault();
-                event.stopPropagation();
-
-                const displayCards = galleryRoot._displayCards || [];
-                const index = displayCards.indexOf(card);
-                if (index < 0) {
-                    return;
-                }
-
-                const items = displayCards.map(function (displayCard, idx) {
-                    const img = getCardImage(displayCard);
-                    const anchor = displayCard.querySelector('a[href]');
-                    const url =
-                        displayCard.getAttribute('data-fullsrc') ||
-                        (img ? (img.getAttribute('data-fullsrc') || img.getAttribute('data-lightbox-url') || '') : '') ||
-                        (anchor ? anchor.getAttribute('href') : '') ||
-                        (img ? (img.currentSrc || img.getAttribute('src') || '') : '');
-
-                    const title =
-                        displayCard.getAttribute('data-title') ||
-                        (img ? (img.getAttribute('alt') || img.getAttribute('title') || '') : '') ||
-                        ('Image ' + (idx + 1));
-
-                    return {
-                        url: url,
-                        title: title
-                    };
-                }).filter(function (item) {
-                    return !!item.url;
-                });
-
-                if (!items.length) {
-                    return;
-                }
-
-                activeGalleryItems = items;
-                lightboxIndex = Math.min(index, items.length - 1);
+            function openLightboxByAssetId(assetId) {
+                const index = state.lightboxItems.findIndex(item => String(item.asset_id) === String(assetId));
+                if (index === -1) return;
+                state.lightboxIndex = index;
                 renderLightbox();
                 lightbox.classList.add('is-open');
-                lightbox.setAttribute('aria-hidden', 'false');
-                document.body.style.overflow = 'hidden';
-            });
-        }
-
-        function buildGalleryMosaic(galleryRoot, forceRandom) {
-            const cards = ensureGalleryCards(galleryRoot);
-            if (!cards.length) {
-                return;
             }
 
-            const layoutRoot = galleryRoot._layoutRoot || galleryRoot;
-            const component = galleryRoot.closest('.tpl-public-component');
-            const componentWidth = getNumericStyle(component, 'width', galleryRoot.clientWidth || 1200);
-            const gap = Math.max(10, Math.min(18, Math.round(componentWidth / 85)));
-            const unit = Math.max(58, Math.min(88, Math.round((componentWidth - (11 * gap)) / 12)));
-
-            galleryRoot.style.setProperty('--gallery-gap', gap + 'px');
-            galleryRoot.style.setProperty('--gallery-unit', unit + 'px');
-
-            if (forceRandom || !galleryRoot._galleryPlan) {
-                galleryRoot._galleryPlan = buildGalleryPlan(cards);
+            function renderLightbox() {
+                const item = state.lightboxItems[state.lightboxIndex];
+                if (!item) return;
+                lightboxImage.src = item.preview_url || item.thumbnail_url || '';
+                lightboxCaption.textContent = item.title || item.filename || '';
             }
 
-            layoutRoot.innerHTML = '';
-            layoutRoot.className = 'tpl-gallery-mosaic';
-
-            const displayCards = [];
-
-            galleryRoot._galleryPlan.forEach(function (blockPlan) {
-                const block = document.createElement('div');
-                block.className = 'tpl-gallery-block';
-
-                blockPlan.nodes.forEach(function (node, index) {
-                    const span = blockPlan.spans[index] || { c: 4, r: 3 };
-                    node.style.gridColumn = 'span ' + span.c;
-                    node.style.gridRow = 'span ' + span.r;
-                    block.appendChild(node);
-                    displayCards.push(node);
-                });
-
-                layoutRoot.appendChild(block);
-            });
-
-            galleryRoot._displayCards = displayCards;
-            bindGalleryLightbox(galleryRoot);
-        }
-
-        function renderLightbox() {
-            const item = activeGalleryItems[lightboxIndex];
-            if (!item) return;
-
-            imageEl.src = item.url || '';
-            imageEl.alt = item.title || '';
-            captionEl.textContent = item.title || '';
-        }
-
-        function closeLightbox() {
-            lightbox.classList.remove('is-open');
-            lightbox.setAttribute('aria-hidden', 'true');
-            imageEl.src = '';
-            imageEl.alt = '';
-            captionEl.textContent = '';
-            document.body.style.overflow = '';
-        }
-
-        function prevLightbox() {
-            if (!activeGalleryItems.length) return;
-            lightboxIndex = (lightboxIndex - 1 + activeGalleryItems.length) % activeGalleryItems.length;
-            renderLightbox();
-        }
-
-        function nextLightbox() {
-            if (!activeGalleryItems.length) return;
-            lightboxIndex = (lightboxIndex + 1) % activeGalleryItems.length;
-            renderLightbox();
-        }
-
-        function prepareGalleries(forceRandom) {
-            const components = Array.from(canvas.querySelectorAll('.tpl-public-component')).map(function (el) {
-                const originalTop = getOriginalMetric(el, 'data-original-top', 'top', el.offsetTop || 0);
-                const originalHeight = getOriginalMetric(el, 'data-original-height', 'height', el.offsetHeight || 0);
-                return {
-                    el: el,
-                    originalTop: originalTop,
-                    originalHeight: originalHeight,
-                    originalBottom: originalTop + originalHeight,
-                    newHeight: originalHeight,
-                    gallery: el.classList.contains('tpl-public-gallery') ? el : el.querySelector('.tpl-public-gallery')
-                };
-            });
-
-            components.forEach(function (item) {
-                if (!item.gallery) return;
-
-                buildGalleryMosaic(item.gallery, forceRandom);
-
-                item.gallery.style.height = 'auto';
-                item.el.style.height = 'auto';
-
-                const measuredHeight = Math.ceil(item.gallery.getBoundingClientRect().height);
-                item.newHeight = measuredHeight;
-                item.gallery.style.height = measuredHeight + 'px';
-                item.el.style.height = measuredHeight + 'px';
-            });
-
-            const galleryShifts = components
-                .filter(function (item) { return item.gallery; })
-                .map(function (item) {
-                    return {
-                        end: item.originalBottom,
-                        delta: item.newHeight - item.originalHeight
-                    };
-                });
-
-            let maxBottom = 0;
-
-            components.forEach(function (item) {
-                let shift = 0;
-
-                galleryShifts.forEach(function (galleryShift) {
-                    if (item.originalTop >= galleryShift.end) {
-                        shift += galleryShift.delta;
-                    }
-                });
-
-                const nextTop = item.originalTop + shift;
-                const nextHeight = item.gallery ? item.newHeight : item.originalHeight;
-
-                item.el.style.top = Math.round(nextTop) + 'px';
-                if (!item.gallery) {
-                    item.el.style.height = Math.round(nextHeight) + 'px';
-                }
-
-                maxBottom = Math.max(maxBottom, nextTop + nextHeight);
-            });
-
-            canvas.style.height = Math.max(baseCanvasHeight, Math.ceil(maxBottom)) + 'px';
-        }
-
-        function initCarousels() {
-            document.querySelectorAll('.tpl-public-carousel').forEach(function (carousel) {
-                const viewport = carousel.querySelector('.tpl-carousel-viewport');
-                const track = carousel.querySelector('.tpl-carousel-track');
-                if (!viewport || !track || carousel.dataset.carouselReady === '1') return;
-
-                const originalSlides = Array.from(track.querySelectorAll('.tpl-carousel-slide'));
-                if (!originalSlides.length) return;
-
-                carousel.dataset.carouselReady = '1';
-                carousel.style.setProperty('--carousel-gap', carouselGap + 'px');
-
-                const clones = originalSlides.map(function (slide) {
-                    return slide.cloneNode(true);
-                });
-                clones.forEach(function (clone) {
-                    track.appendChild(clone);
-                });
-
-                const originalCount = originalSlides.length;
-                let offset = 0;
-                let lastTimestamp = null;
-                let loopWidth = 1;
-
-                function measureLoopWidth() {
-                    const children = Array.from(track.children);
-                    let width = 0;
-
-                    for (let i = 0; i < originalCount; i++) {
-                        const child = children[i];
-                        if (!child) continue;
-                        width += child.getBoundingClientRect().width;
-                        if (i < originalCount - 1) {
-                            width += carouselGap;
-                        }
-                    }
-
-                    loopWidth = Math.max(1, width);
-                }
-
-                const resizeObserver = new ResizeObserver(function () {
-                    measureLoopWidth();
-                });
-
-                resizeObserver.observe(viewport);
-                Array.from(track.children).forEach(function (child) {
-                    resizeObserver.observe(child);
-                });
-
-                measureLoopWidth();
-
-                function step(timestamp) {
-                    if (!document.body.contains(carousel)) return;
-
-                    if (lastTimestamp === null) {
-                        lastTimestamp = timestamp;
-                    }
-
-                    let delta = (timestamp - lastTimestamp) / 1000;
-                    if (delta > 0.05) delta = 0.05;
-                    lastTimestamp = timestamp;
-
-                    offset += carouselScrollSpeed * delta;
-                    if (offset >= loopWidth) {
-                        offset -= loopWidth;
-                    }
-
-                    track.style.transform = 'translateX(-' + offset + 'px)';
-                    carousel._rafId = window.requestAnimationFrame(step);
-                }
-
-                carousel._rafId = window.requestAnimationFrame(step);
-            });
-        }
-
-        function waitForGalleryImages(callback) {
-            const images = Array.from(canvas.querySelectorAll('.tpl-public-gallery img'));
-            if (!images.length) {
-                callback();
-                return;
+            function closeLightbox() {
+                lightbox.classList.remove('is-open');
             }
 
-            let pending = 0;
-            let resolved = false;
-
-            function done() {
-                pending -= 1;
-                if (pending <= 0 && !resolved) {
-                    resolved = true;
-                    callback();
-                }
+            function previousLightbox() {
+                if (!state.lightboxItems.length) return;
+                state.lightboxIndex = (state.lightboxIndex - 1 + state.lightboxItems.length) % state.lightboxItems.length;
+                renderLightbox();
             }
 
-            images.forEach(function (img) {
-                if (img.complete && img.naturalWidth > 0) {
+            function nextLightbox() {
+                if (!state.lightboxItems.length) return;
+                state.lightboxIndex = (state.lightboxIndex + 1) % state.lightboxItems.length;
+                renderLightbox();
+            }
+
+            function assetCardMarkup(asset) {
+                const thumbUrl = asset.thumbnail_url || asset.preview_url || '';
+                const assetKey = getAssetKey(asset);
+
+                return `
+                    <div class="tpl-asset-card ${String(state.selectedAssetId) === assetKey ? 'is-selected' : ''}" data-asset-id="${escapeHtml(assetKey)}" draggable="true">
+                        <div class="tpl-asset-thumb">
+                            ${thumbUrl ? `<img src="${escapeHtml(thumbUrl)}" alt="" draggable="false">` : `<div class="tpl-asset-empty">Thumbnail not available</div>`}
+                        </div>
+                    </div>`;
+            }
+
+            function renderAssetGallery() {
+                if (!assets.length) {
+                    assetGallery.innerHTML = '<div class="tpl-empty-state" style="grid-column:1 / -1;">No assets were found for this folder.</div>';
                     return;
                 }
-                pending += 1;
-                img.addEventListener('load', done, { once: true });
-                img.addEventListener('error', done, { once: true });
-            });
 
-            if (pending === 0) {
-                callback();
-                return;
+                assetGallery.innerHTML = assets.map(assetCardMarkup).join('');
+
+                assetGallery.querySelectorAll('.tpl-asset-card').forEach(card => {
+                    const assetId = card.getAttribute('data-asset-id');
+                    const asset = assetById(assetId);
+                    console.log('CARD CHECK', { assetId, asset });
+
+                    card.setAttribute('draggable', 'true');
+
+                    card.addEventListener('dragstart', e => {
+                        state.draggingAssetId = String(assetId);
+                        state.draggingAsset = normalizeAsset(asset);
+                        state.selectedAssetId = String(assetId);
+
+                        e.dataTransfer.clearData();
+                        e.dataTransfer.setData('text/plain', String(assetId));
+                        e.dataTransfer.effectAllowed = 'copy';
+
+                        dndLog('dragstart', {
+                            assetId: String(assetId),
+                            asset: asset,
+                            normalized: normalizeAsset(asset),
+                            dataTransferText: e.dataTransfer.getData('text/plain')
+                        });
+                    });
+
+                    card.addEventListener('dragend', () => {
+                        dndLog('dragend', {
+                            draggingAssetId: state.draggingAssetId,
+                            draggingAsset: state.draggingAsset,
+                            selectedAssetId: state.selectedAssetId
+                        });
+
+                        setTimeout(() => {
+                            state.draggingAssetId = null;
+                            state.draggingAsset = null;
+                        }, 0);
+                    });
+
+                    card.addEventListener('click', () => {
+                        state.selectedAssetId = assetId;
+                        renderAssetGallery();
+
+                        if (asset && (asset.preview_url || asset.thumbnail_url)) {
+                            openLightboxByAssetId(assetId);
+                        }
+                    });
+                });
             }
 
-            window.setTimeout(function () {
-                if (!resolved) {
-                    resolved = true;
-                    callback();
+            function attachAssetDropZone(zone, onAssign) {
+                zone.addEventListener('dragenter', e => {
+                    e.preventDefault();
+                    zone.classList.add('is-over');
+
+                    dndLog('ZONE dragenter', {
+                        field: zone.getAttribute('data-field-name'),
+                        zoneClass: zone.className,
+                        targetClass: e.target && e.target.className
+                    });
+                });
+
+                zone.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                    zone.classList.add('is-over');
+
+                    dndLog('ZONE dragover', {
+                        field: zone.getAttribute('data-field-name'),
+                        zoneClass: zone.className,
+                        dataTransferText: e.dataTransfer.getData('text/plain'),
+                        draggingAssetId: state.draggingAssetId,
+                        draggingAsset: state.draggingAsset,
+                        selectedAssetId: state.selectedAssetId
+                    });
+                });
+
+                zone.addEventListener('dragleave', e => {
+                        if (!zone.contains(e.relatedTarget)) {
+                        zone.classList.remove('is-over');
+                    }
+                });
+
+                zone.addEventListener('drop', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    zone.classList.remove('is-over');
+
+                    const rawDataTransfer = e.dataTransfer.getData('text/plain');
+                    const assetId = rawDataTransfer || state.draggingAssetId || state.selectedAssetId;
+                    const assetFromId = assetById(assetId);
+                    const droppedAsset = state.draggingAsset || normalizeAsset(assetFromId);
+
+                    dndLog('ZONE drop BEFORE assign', {
+                        field: zone.getAttribute('data-field-name'),
+                        rawDataTransfer: rawDataTransfer,
+                        resolvedAssetId: assetId,
+                        assetFromId: assetFromId,
+                        droppedAsset: droppedAsset,
+                        targetClass: e.target && e.target.className,
+                        currentTargetClass: e.currentTarget && e.currentTarget.className
+                    });
+
+                    state.draggingAssetId = null;
+                    state.draggingAsset = null;
+
+                    if (!droppedAsset) {
+                        dndLog('ZONE drop ABORT no droppedAsset', {
+                            field: zone.getAttribute('data-field-name')
+                        });
+                        return;
+                    }
+
+                    onAssign(droppedAsset);
+
+                    dndLog('ZONE drop AFTER assign callback', {
+                        field: zone.getAttribute('data-field-name'),
+                        imageValues: state.values.image,
+                        carouselValues: state.values.carousel
+                    });
+                });
+
+                zone.addEventListener('click', e => {
+                    if (e.target.closest('.tpl-preview-remove') || e.target.closest('.tpl-preview-thumb-remove')) return;
+                     if (!state.selectedAssetId) return;
+
+                    const asset = assetById(state.selectedAssetId);
+                    dndLog('ZONE click assign', {
+                        field: zone.getAttribute('data-field-name'),
+                        selectedAssetId: state.selectedAssetId,
+                        asset: asset
+                    });
+                    if (asset) onAssign(normalizeAsset(asset));
+                });
+            }
+
+            let activePreviewDropZone = null;
+
+            function clearActivePreviewDropZone() {
+                if (activePreviewDropZone) {
+                    activePreviewDropZone.classList.remove('is-over');
+                    activePreviewDropZone = null;
                 }
-            }, 1800);
-        }
-
-        function boot(forceRandomGalleryLayout) {
-            waitForGalleryImages(function () {
-                prepareGalleries(forceRandomGalleryLayout);
-                initCarousels();
-            });
-        }
-
-        closeBtn.addEventListener('click', closeLightbox);
-        prevBtn.addEventListener('click', prevLightbox);
-        nextBtn.addEventListener('click', nextLightbox);
-
-        lightbox.addEventListener('click', function (event) {
-            if (event.target === lightbox) {
-                closeLightbox();
             }
-        });
 
-        document.addEventListener('keydown', function (event) {
-            if (!lightbox.classList.contains('is-open')) return;
+            function findPreviewDropZoneFromPoint(clientX, clientY) {
+                const el = document.elementFromPoint(clientX, clientY);
+                if (!el) return null;
+                return el.closest('.js-preview-drop-single, .js-preview-drop-carousel');
+            }
 
-            if (event.key === 'Escape') closeLightbox();
-            if (event.key === 'ArrowLeft') prevLightbox();
-            if (event.key === 'ArrowRight') nextLightbox();
-        });
+            function getDraggedAssetFromEvent(e) {
+                const assetId =
+                    (e.dataTransfer && e.dataTransfer.getData('text/plain')) ||
+                    state.draggingAssetId ||
+                    state.selectedAssetId;
 
-        const debouncedResize = (function () {
-            let timer = null;
-            return function () {
-                window.clearTimeout(timer);
-                timer = window.setTimeout(function () {
-                    prepareGalleries(false);
-                }, 120);
-            };
-        })();
+                return state.draggingAsset || normalizeAsset(assetById(assetId));
+            }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function () {
-                boot(true);
+            function bindPreviewCanvasDnD() {
+                if (publishPreviewCanvas.dataset.dndBound === '1') return;
+                publishPreviewCanvas.dataset.dndBound = '1';
+
+                publishPreviewCanvas.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+
+                    const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY);
+
+                    dndLog('CANVAS dragover', {
+                        clientX: e.clientX,
+                        clientY: e.clientY,
+                        foundZoneField: zone ? zone.getAttribute('data-field-name') : null,
+                        foundZoneClass: zone ? zone.className : null,
+                        draggingAssetId: state.draggingAssetId,
+                        draggingAsset: state.draggingAsset,
+                        selectedAssetId: state.selectedAssetId
+                    });
+
+                    if (zone !== activePreviewDropZone) {
+                        clearActivePreviewDropZone();
+                        if (zone) {
+                            zone.classList.add('is-over');
+                            activePreviewDropZone = zone;
+                        }
+                    }
+                });
+
+                publishPreviewCanvas.addEventListener('dragleave', e => {
+                    if (!publishPreviewCanvas.contains(e.relatedTarget)) {
+                        clearActivePreviewDropZone();
+                    }
+                });
+
+                publishPreviewCanvas.addEventListener('drop', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY) || activePreviewDropZone;
+                    const droppedAsset = getDraggedAssetFromEvent(e);
+
+                    dndLog('CANVAS drop BEFORE assign', {
+                        clientX: e.clientX,
+                        clientY: e.clientY,
+                        zoneField: zone ? zone.getAttribute('data-field-name') : null,
+                        zoneClass: zone ? zone.className : null,
+                        droppedAsset: droppedAsset,
+                        draggingAssetId: state.draggingAssetId,
+                        draggingAsset: state.draggingAsset,
+                        selectedAssetId: state.selectedAssetId
+                    });
+
+                    clearActivePreviewDropZone();
+                    state.draggingAssetId = null;
+                    state.draggingAsset = null;
+
+                    if (!zone || !droppedAsset) {
+                        dndLog('CANVAS drop ABORT', {
+                            zoneExists: !!zone,
+                            droppedAssetExists: !!droppedAsset
+                        });
+                        return;
+                    }
+
+                    const field = zone.getAttribute('data-field-name');
+                    if (!field) {
+                        dndLog('CANVAS drop ABORT no field', {});
+                        return;
+                    }
+
+                    if (zone.classList.contains('js-preview-drop-single')) {
+                        state.values.image[field] = deepClone(droppedAsset);
+                    } else if (zone.classList.contains('js-preview-drop-carousel')) {
+                        if (!state.values.carousel[field]) state.values.carousel[field] = { items: [] };
+                        if (!Array.isArray(state.values.carousel[field].items)) state.values.carousel[field].items = [];
+                        state.values.carousel[field].items.push(deepClone(droppedAsset));
+                    }
+
+                    dndLog('CANVAS drop AFTER assign BEFORE render', {
+                        field: field,
+                        imageValues: state.values.image,
+                        carouselValues: state.values.carousel
+                    });
+
+                    state.selectedAssetId = String(droppedAsset.asset_id || '');
+                    syncHidden();
+                    renderAssetGallery();
+                    renderPreview();
+
+                    dndLog('CANVAS drop AFTER render', {
+                        field: field,
+                        hiddenJson: valuesJsonInput.value,
+                        previewHtmlSnippet: publishPreviewCanvas.innerHTML.slice(0, 400)
+                    });
+                });
+
+            }
+
+            function previewBoxStyle(component) {
+                return `left:${Math.round(component.x || 0)}px;top:${Math.round(component.y || 0)}px;width:${Math.round(component.w || 300)}px;height:${Math.round(component.h || 180)}px;z-index:${Math.round(component.z || 1)};`;
+            }
+
+            function previewStaticTextMarkup(component) {
+                return `<div class="tpl-public-item tpl-public-static" style="${previewBoxStyle(component)}">${component.html || '<p></p>'}</div>`;
+            }
+
+            function previewDynamicTextMarkup(component) {
+                const field = componentField(component);
+                const html = state.values.dynamic_text[field]?.html || component.default_html || '<p></p>';
+
+                return `
+                    <div class="tpl-public-item tpl-public-text js-preview-edit-text" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}" title="Double-click to edit">
+                        <div class="tpl-preview-edit-tag">Double-click to edit</div>
+                        <div class="tpl-preview-text-inner">${html}</div>
+                    </div>
+                `;
+            }
+
+            function previewImageMarkup(component) {
+                const field = componentField(component);
+                const asset = state.values.image[field] || null;
+                const imageUrl = asset ? (asset.preview_url || asset.thumbnail_url || '') : '';
+
+                if (imageUrl) {
+                    return `
+                        <div class="tpl-public-item tpl-public-media is-filled js-preview-drop-single" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}">
+                            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(asset.title || field)}">
+                            <button type="button" class="tpl-preview-remove js-preview-clear-single" data-field-name="${escapeHtml(field)}" title="Clear image">×</button>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="tpl-public-item tpl-public-media js-preview-drop-single" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}">
+                        <div class="tpl-public-placeholder">
+                            <div>
+                                Drop one image here
+                                <small>${escapeHtml(componentLabel(component))}</small>
+                            </div>
+                        </div>
+                        <div class="tpl-preview-hint">Drag from Folder Assets, or click here after selecting a thumbnail.</div>
+                    </div>
+                `;
+            }
+
+            function previewCarouselMarkup(component) {
+                const field = componentField(component);
+                const bucket = state.values.carousel[field] || { items: [] };
+                const items = Array.isArray(bucket.items) ? bucket.items.filter(Boolean) : [];
+
+                if (!items.length) {
+                    return `
+                        <div class="tpl-public-item tpl-public-media js-preview-drop-carousel" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}">
+                            <div class="tpl-public-placeholder">
+                                <div>
+                                    Drop images here to build the carousel
+                                    <small>${escapeHtml(componentLabel(component))}</small>
+                                </div>
+                            </div>
+                            <div class="tpl-preview-hint">Each drop adds another slide to the carousel.</div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="tpl-public-item tpl-public-media is-filled js-preview-drop-carousel" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}">
+                        <div class="tpl-preview-count">${items.length} image${items.length === 1 ? '' : 's'}</div>
+                        <div class="tpl-preview-carousel-grid">
+                            ${items.map((item, index) => `
+                                <div class="tpl-preview-thumb">
+                                    <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="${escapeHtml(item.title || '')}">
+                                    <button type="button" class="tpl-preview-thumb-remove js-preview-remove-carousel" data-field-name="${escapeHtml(field)}" data-item-index="${index}" title="Remove image">×</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="tpl-preview-hint">Drop more images here to append them.</div>
+                    </div>
+                `;
+            }
+
+            function previewGalleryMarkup(component) {
+                const field = componentField(component);
+                const items = Array.isArray(state.values.gallery[field]?.items) ? state.values.gallery[field].items.filter(Boolean) : [];
+
+                if (!items.length) {
+                    return `
+                        <div class="tpl-public-item tpl-public-gallery" style="${previewBoxStyle(component)}">
+                            <div class="tpl-public-placeholder">
+                                <div>
+                                    All folder images will be included in this gallery.
+                                    <small>${escapeHtml(componentLabel(component))}</small>
+                                </div>
+                            </div>
+                            <div class="tpl-preview-gallery-note">Gallery is automatic for this folder.</div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="tpl-public-item tpl-public-gallery is-filled" style="${previewBoxStyle(component)}">
+                        <div class="tpl-preview-gallery-grid">
+                            ${items.map(item => `
+                                <div class="tpl-preview-thumb">
+                                    <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="${escapeHtml(item.title || '')}">
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="tpl-preview-gallery-note">Gallery automatically includes all ${items.length} folder image${items.length === 1 ? '' : 's'}.</div>
+                    </div>
+                `;
+            }
+
+            function previewComponentMarkup(component) {
+                if (component.type === 'static_text') return previewStaticTextMarkup(component);
+                if (component.type === 'dynamic_text') return previewDynamicTextMarkup(component);
+                if (component.type === 'image') return previewImageMarkup(component);
+                if (component.type === 'carousel') return previewCarouselMarkup(component);
+                if (component.type === 'gallery') return previewGalleryMarkup(component);
+                return '';
+            }
+
+            function bindPreviewInteractions() {
+                publishPreviewCanvas.querySelectorAll('.js-preview-edit-text').forEach(node => {
+                    node.addEventListener('click', e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const field = node.getAttribute('data-field-name');
+
+                        dndLog('TEXT click', {
+                            field: field,
+                            className: node.className
+                        });
+
+                        openTextEditor(field);
+                    });
+                });
+
+                publishPreviewCanvas.querySelectorAll('.js-preview-drop-single').forEach(zone => {
+                    attachAssetDropZone(zone, asset => {
+                        const field = zone.getAttribute('data-field-name');
+
+                        dndLog('ASSIGN single BEFORE', {
+                            field: field,
+                            asset: asset,
+                            existingValue: state.values.image[field] || null
+                        });
+
+                        state.values.image[field] = deepClone(asset);
+                        state.selectedAssetId = String(asset.asset_id || '');
+                        syncHidden();
+
+                        dndLog('ASSIGN single AFTER syncHidden', {
+                            field: field,
+                            savedValue: state.values.image[field],
+                            hiddenJson: valuesJsonInput.value
+                        });
+
+                        renderAssetGallery();
+                        renderPreview();
+
+                        dndLog('ASSIGN single AFTER render', {
+                            field: field,
+                            previewHtmlSnippet: publishPreviewCanvas.innerHTML.slice(0, 400)
+                        });
+                    });
+                });
+
+                publishPreviewCanvas.querySelectorAll('.js-preview-clear-single').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        delete state.values.image[btn.getAttribute('data-field-name')];
+                        syncHidden();
+                        renderPreview();
+                    });
+                });
+
+                publishPreviewCanvas.querySelectorAll('.js-preview-drop-carousel').forEach(zone => {
+                    attachAssetDropZone(zone, asset => {
+                        const field = zone.getAttribute('data-field-name');
+
+                        dndLog('ASSIGN carousel BEFORE', {
+                            field: field,
+                            asset: asset,
+                            existingBucket: state.values.carousel[field] || null
+                        });
+
+                        if (!state.values.carousel[field]) state.values.carousel[field] = { items: [] };
+                        if (!Array.isArray(state.values.carousel[field].items)) state.values.carousel[field].items = [];
+
+                        state.values.carousel[field].items.push(deepClone(asset));
+                        state.selectedAssetId = String(asset.asset_id || '');
+                        syncHidden();
+
+                        dndLog('ASSIGN carousel AFTER syncHidden', {
+                            field: field,
+                            savedBucket: state.values.carousel[field],
+                            hiddenJson: valuesJsonInput.value
+                        });
+
+                        renderAssetGallery();
+                        renderPreview();
+
+                        dndLog('ASSIGN carousel AFTER render', {
+                            field: field,
+                            previewHtmlSnippet: publishPreviewCanvas.innerHTML.slice(0, 400)
+                        });
+                    });
+                });
+
+                publishPreviewCanvas.querySelectorAll('.js-preview-remove-carousel').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const field = btn.getAttribute('data-field-name');
+                        const index = parseInt(btn.getAttribute('data-item-index'), 10);
+
+                        if (
+                            state.values.carousel[field] &&
+                            Array.isArray(state.values.carousel[field].items) &&
+                            index >= 0
+                        ) {
+                            state.values.carousel[field].items.splice(index, 1);
+                        }
+
+                        syncHidden();
+                        renderPreview();
+                    });
+                });
+            }
+
+            function renderPreview() {
+                ensureValues();
+
+                const definition = getDefinition();
+                const page = definition.page || {};
+                const components = Array.isArray(definition.components) ? definition.components.slice().sort((a, b) => (a.z || 0) - (b.z || 0)): [];
+                const canvasWidth = Math.max(900, parseInt(page.canvas_width || 1200, 10));
+                const canvasHeight = Math.max(900, parseInt(page.canvas_min_height || 1400, 10));
+
+                publishPreviewCanvas.style.width = canvasWidth + 'px';
+                publishPreviewCanvas.style.height = canvasHeight + 'px';
+                publishPreviewCanvas.style.background = page.background_color || '#ffffff';
+
+                dndLog('renderPreview START', {
+                    imageValues: state.values.image,
+                    carouselValues: state.values.carousel,
+                    components: components.map(c => ({
+                        type: c.type,
+                        field: componentField(c),
+                        x: c.x,
+                        y: c.y,
+                        w: c.w,
+                        h: c.h
+                    }))
+                });
+                publishPreviewCanvas.innerHTML = components.length
+                    ? components.map(previewComponentMarkup).join('')
+                    : '<div style="padding:40px;text-align:center;color:#6b819d;font-weight:700;">No template components found for this preview.</div>';
+
+                previewScale.style.width = canvasWidth + 'px';
+                previewScale.style.height = canvasHeight + 'px';
+
+                const stageWidth = Math.max(320, previewStage.clientWidth - 36);
+                const preferredScale = 0.72;
+                const scale = Math.min(1, preferredScale, stageWidth / canvasWidth);
+                previewScale.style.transform = `scale(${scale})`;
+                previewCanvasWrap.style.height = Math.max(240, canvasHeight * scale) + 'px';
+
+                bindPreviewInteractions();
+                dndLog('renderPreview END', {
+                    singleZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-single').length,
+                    carouselZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-carousel').length,
+                    imageTagsInSingleZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-single img').length,
+                    imageTagsInCarouselZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-carousel img').length
+                });
+            }
+
+            function openTextEditor(fieldName) {
+                dndLog('openTextEditor', {
+                    fieldName: fieldName,
+                    dynamicValue: state.values.dynamic_text[fieldName] || null
+                });
+
+                ensureValues();
+                state.textEditorField = fieldName;
+
+                const definition = getDefinition();
+                const component = (definition.components || []).find(c => c.type === 'dynamic_text' && componentField(c) === fieldName);
+
+                textModalTitle.textContent = componentLabel(component || { field_name: fieldName, type: 'dynamic_text' });
+                textModalSubtitle.textContent = 'Field name: ' + fieldName;
+
+                textModal.classList.add('is-open');
+
+                const initialHtml = state.values.dynamic_text[fieldName]?.html || component?.default_html || '<p></p>';
+
+                const existingEditor = tinymce.get('publishRichTextEditor');
+                if (existingEditor) {
+                    existingEditor.remove();
+                }
+
+                const textarea = document.getElementById('publishRichTextEditor');
+                textarea.value = initialHtml;
+
+                setTimeout(() => {
+                    tinymce.init({
+                        target: textarea,
+                        height: 500,
+                        menubar: false,
+                        inline: false,
+                        plugins: 'link lists code table autoresize',
+                        toolbar: 'undo redo | blocks fontsize bold italic forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link table | code'
+                    });
+                }, 0);
+            }
+
+            function closeTextEditor() {
+                state.textEditorField = null;
+                textModal.classList.remove('is-open');
+                tinymce.get('publishRichTextEditor')?.remove();
+            }
+
+            function renderAll() {
+                ensureValues();
+                bindPreviewCanvasDnD();
+                renderAssetGallery();
+                renderPreview();
+                syncHidden();
+            }
+
+            templateSelect.addEventListener('change', () => {
+                state.selectedTemplateId = templateSelect.value;
+
+                const tpl = getSelectedTemplate();
+                if (tpl && tpl.definition) {
+                    state.definition = deepClone(tpl.definition);
+                }
+
+                renderAll();
             });
-        } else {
-            boot(true);
-        }
 
-        window.addEventListener('load', function () {
-            prepareGalleries(false);
-        });
-        window.addEventListener('resize', debouncedResize);
-    })();
-</script>
-</body>
-</html>
+            protectedCheckbox.addEventListener('change', () => {
+                passwordRow.style.display = protectedCheckbox.checked ? '' : 'none';
+            });
+
+            closeTextModal.addEventListener('click', closeTextEditor);
+            cancelTextModal.addEventListener('click', closeTextEditor);
+
+            saveTextModal.addEventListener('click', () => {
+                const editor = tinymce.get('publishRichTextEditor');
+                if (!editor || !state.textEditorField) return;
+
+                ensureValues();
+                state.values.dynamic_text[state.textEditorField] = { html: editor.getContent() };
+
+                closeTextEditor();
+                syncHidden();
+                renderPreview();
+            });
+
+            textModal.addEventListener('click', e => {
+                if (e.target === textModal) closeTextEditor();
+            });
+
+            lightboxClose.addEventListener('click', closeLightbox);
+            lightboxPrev.addEventListener('click', previousLightbox);
+            lightboxNext.addEventListener('click', nextLightbox);
+
+            lightbox.addEventListener('click', e => {
+                if (e.target === lightbox) closeLightbox();
+            });
+
+            document.addEventListener('keydown', e => {
+                if (textModal.classList.contains('is-open') && e.key === 'Escape') {
+                    closeTextEditor();
+                    return;
+                }
+
+                if (!lightbox.classList.contains('is-open')) return;
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft') previousLightbox();
+                if (e.key === 'ArrowRight') nextLightbox();
+            });
+
+            window.addEventListener('resize', renderPreview);
+
+            ensureValues();
+            renderAll();
+        })();
+    </script>
+</div>

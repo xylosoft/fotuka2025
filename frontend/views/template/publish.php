@@ -339,19 +339,18 @@ foreach ($templates as $tpl) {
             border-radius:999px;
             background:rgba(37,99,235,.12);
             color:#1d4ed8;
-            font-size:11px;
+            font-size:18px;
             font-weight:800;
         }
 
         .tpl-preview-carousel-grid {
             width:100%;
-            height:100%;
             display:grid;
             grid-template-columns:repeat(6,minmax(0,1fr));
             gap:8px;
-            padding:8px 8px 40px;
-            overflow:auto;
+            padding:50px 8px 8px;
             align-content:start;
+            box-sizing:border-box;
         }
 
         .tpl-preview-thumb {
@@ -541,6 +540,43 @@ foreach ($templates as $tpl) {
             background:#eef5ff;
             box-shadow:0 0 0 4px rgba(37,99,235,.12);
         }
+        .tpl-toast-stack {
+            position:fixed;
+            inset:0;
+            z-index:12000;
+            pointer-events:none;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:24px;
+        }
+
+        .tpl-toast {
+            min-width:320px;
+            max-width:min(680px, calc(100vw - 40px));
+            padding:16px 20px;
+            border-radius:16px;
+            box-shadow:0 24px 50px rgba(15,23,42,.24);
+            font-size:16px;
+            font-weight:800;
+            line-height:1.45;
+            text-align:center;
+            opacity:0;
+            transform:translateY(8px) scale(.98);
+            transition:opacity .18s ease, transform .18s ease;
+        }
+
+        .tpl-toast.is-visible {
+            opacity:1;
+            transform:translateY(0) scale(1);
+        }
+
+        .tpl-toast--error {
+            background:#ffe6e6;
+            color:#a61b1b;
+            border:1px solid #dde3ea;
+        }
+
     </style>
 
     <div class="tpl-publish-shell">
@@ -673,10 +709,6 @@ foreach ($templates as $tpl) {
     <script src="https://cdn.tiny.cloud/1/cbcqlkpvavpfb1f48f22qrybc82x9c8rv604z1jupes12uub/tinymce/6/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
 
     <script>
-        function dndLog(label, data) {
-            console.log('[PUBLISH DND] ' + label, data);
-        }
-
         (function () {
             const templates = <?= Json::htmlEncode($templateMap) ?>;
             const assets = <?= Json::htmlEncode(array_values($assets)) ?>;
@@ -1017,22 +1049,9 @@ foreach ($templates as $tpl) {
                         e.dataTransfer.clearData();
                         e.dataTransfer.setData('text/plain', String(assetId));
                         e.dataTransfer.effectAllowed = 'copy';
-
-                        dndLog('dragstart', {
-                            assetId: String(assetId),
-                            asset: asset,
-                            normalized: normalizeAsset(asset),
-                            dataTransferText: e.dataTransfer.getData('text/plain')
-                        });
                     });
 
                     card.addEventListener('dragend', () => {
-                        dndLog('dragend', {
-                            draggingAssetId: state.draggingAssetId,
-                            draggingAsset: state.draggingAsset,
-                            selectedAssetId: state.selectedAssetId
-                        });
-
                         setTimeout(() => {
                             state.draggingAssetId = null;
                             state.draggingAsset = null;
@@ -1054,27 +1073,12 @@ foreach ($templates as $tpl) {
                 zone.addEventListener('dragenter', e => {
                     e.preventDefault();
                     zone.classList.add('is-over');
-
-                    dndLog('ZONE dragenter', {
-                        componentId: zone.getAttribute('data-component-id'),
-                        zoneClass: zone.className,
-                        targetClass: e.target && e.target.className
-                    });
                 });
 
                 zone.addEventListener('dragover', e => {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'copy';
                     zone.classList.add('is-over');
-
-                    dndLog('ZONE dragover', {
-                        componentId: zone.getAttribute('data-component-id'),
-                        zoneClass: zone.className,
-                        dataTransferText: e.dataTransfer.getData('text/plain'),
-                        draggingAssetId: state.draggingAssetId,
-                        draggingAsset: state.draggingAsset,
-                        selectedAssetId: state.selectedAssetId
-                    });
                 });
 
                 zone.addEventListener('dragleave', e => {
@@ -1093,32 +1097,14 @@ foreach ($templates as $tpl) {
                     const assetFromId = assetById(assetId);
                     const droppedAsset = state.draggingAsset || normalizeAsset(assetFromId);
 
-                    dndLog('ZONE drop BEFORE assign', {
-                        componentId: zone.getAttribute('data-component-id'),
-                        rawDataTransfer: rawDataTransfer,
-                        resolvedAssetId: assetId,
-                        assetFromId: assetFromId,
-                        droppedAsset: droppedAsset,
-                        targetClass: e.target && e.target.className,
-                        currentTargetClass: e.currentTarget && e.currentTarget.className
-                    });
-
                     state.draggingAssetId = null;
                     state.draggingAsset = null;
 
                     if (!droppedAsset) {
-                        dndLog('ZONE drop ABORT no droppedAsset', {
-                            componentId: zone.getAttribute('data-component-id')
-                        });
                         return;
                     }
 
                     onAssign(droppedAsset);
-
-                    dndLog('ZONE drop AFTER assign callback', {
-                        componentId: zone.getAttribute('data-component-id'),
-                        componentValue: getComponentValue(zone.getAttribute('data-component-id'))
-                    });
                 });
 
                 zone.addEventListener('click', e => {
@@ -1126,12 +1112,6 @@ foreach ($templates as $tpl) {
                     if (!state.selectedAssetId) return;
 
                     const asset = assetById(state.selectedAssetId);
-
-                    dndLog('ZONE click assign', {
-                        componentId: zone.getAttribute('data-component-id'),
-                        selectedAssetId: state.selectedAssetId,
-                        asset: asset
-                    });
 
                     if (asset) onAssign(normalizeAsset(asset));
                 });
@@ -1168,34 +1148,24 @@ foreach ($templates as $tpl) {
 
                 publishPreviewCanvas.addEventListener('dragover', e => {
                     e.preventDefault();
-                if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+                    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
 
-                const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY);
+                    const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY);
 
-                dndLog('CANVAS dragover', {
-                    clientX: e.clientX,
-                    clientY: e.clientY,
-                    foundZoneComponentId: zone ? zone.getAttribute('data-component-id') : null,
-                    foundZoneClass: zone ? zone.className : null,
-                    draggingAssetId: state.draggingAssetId,
-                    draggingAsset: state.draggingAsset,
-                    selectedAssetId: state.selectedAssetId
-                });
-
-                if (zone !== activePreviewDropZone) {
-                    clearActivePreviewDropZone();
-                    if (zone) {
-                        zone.classList.add('is-over');
-                        activePreviewDropZone = zone;
+                    if (zone !== activePreviewDropZone) {
+                        clearActivePreviewDropZone();
+                        if (zone) {
+                            zone.classList.add('is-over');
+                            activePreviewDropZone = zone;
+                        }
                     }
-                }
-            });
+                });
 
                 publishPreviewCanvas.addEventListener('dragleave', e => {
                     if (!publishPreviewCanvas.contains(e.relatedTarget)) {
-                    clearActivePreviewDropZone();
-                }
-            });
+                        clearActivePreviewDropZone();
+                    }
+                });
 
                 publishPreviewCanvas.addEventListener('drop', e => {
                     e.preventDefault();
@@ -1204,32 +1174,16 @@ foreach ($templates as $tpl) {
                     const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY) || activePreviewDropZone;
                     const droppedAsset = getDraggedAssetFromEvent(e);
 
-                    dndLog('CANVAS drop BEFORE assign', {
-                        clientX: e.clientX,
-                        clientY: e.clientY,
-                        zoneComponentId: zone ? zone.getAttribute('data-component-id') : null,
-                        zoneClass: zone ? zone.className : null,
-                        droppedAsset: droppedAsset,
-                        draggingAssetId: state.draggingAssetId,
-                        draggingAsset: state.draggingAsset,
-                        selectedAssetId: state.selectedAssetId
-                    });
-
                     clearActivePreviewDropZone();
                     state.draggingAssetId = null;
                     state.draggingAsset = null;
 
                     if (!zone || !droppedAsset) {
-                        dndLog('CANVAS drop ABORT', {
-                            zoneExists: !!zone,
-                            droppedAssetExists: !!droppedAsset
-                        });
                         return;
                     }
 
                     const componentId = zone.getAttribute('data-component-id');
                     if (!componentId) {
-                        dndLog('CANVAS drop ABORT no componentId', {});
                         return;
                     }
 
@@ -1239,31 +1193,16 @@ foreach ($templates as $tpl) {
                             asset: deepClone(droppedAsset)
                         });
                     } else if (zone.classList.contains('js-preview-drop-carousel')) {
-                        const existing = getComponentValue(componentId) || { type: 'carousel', items: [] };
-                        const items = Array.isArray(existing.items) ? existing.items.slice() : [];
-                        items.push(deepClone(droppedAsset));
-
-                        setComponentValue(componentId, {
-                            type: 'carousel',
-                            items: items
-                        });
+                        const added = addAssetToCarousel(componentId, droppedAsset);
+                        if (!added) {
+                            return;
+                        }
                     }
-
-                    dndLog('CANVAS drop AFTER assign BEFORE render', {
-                        componentId: componentId,
-                        componentValue: getComponentValue(componentId)
-                    });
 
                     state.selectedAssetId = String(droppedAsset.asset_id || '');
                     syncHidden();
                     renderAssetGallery();
                     renderPreview();
-
-                    dndLog('CANVAS drop AFTER render', {
-                        componentId: componentId,
-                        hiddenJson: valuesJsonInput.value,
-                        previewHtmlSnippet: publishPreviewCanvas.innerHTML.slice(0, 400)
-                    });
                 });
             }
 
@@ -1295,16 +1234,17 @@ foreach ($templates as $tpl) {
                 }
 
                 const width = Math.max(120, Math.round(component.w || 300));
-                const columns = Math.min(PREVIEW_GRID_COLS, Math.max(1, items.length));
+                const columns = PREVIEW_GRID_COLS;
                 const innerWidth = width - (PREVIEW_GRID_PAD_X * 2) - ((columns - 1) * PREVIEW_GRID_GAP);
                 const thumbSize = Math.max(44, Math.floor(innerWidth / columns));
-                const rows = Math.ceil(items.length / PREVIEW_GRID_COLS);
+                const rows = Math.max(1, Math.ceil(items.length / columns));
 
-                const topPad = PREVIEW_CAROUSEL_PAD_TOP;
+                const topPad = 32;
+                const bottomPad = 40;
                 const gridHeight = (rows * thumbSize) + (Math.max(0, rows - 1) * PREVIEW_GRID_GAP);
-                const neededHeight = topPad + gridHeight + PREVIEW_GRID_PAD_BOTTOM + 8;
+                const neededHeight = topPad + gridHeight + bottomPad;
 
-                return Math.max(baseHeight, neededHeight);
+                return neededHeight;
             }
 
             function buildPreviewLayout(definition) {
@@ -1480,11 +1420,6 @@ foreach ($templates as $tpl) {
 
                         const componentId = node.getAttribute('data-component-id');
 
-                        dndLog('TEXT click', {
-                            componentId: componentId,
-                            className: node.className
-                        });
-
                         openTextEditor(componentId);
                     });
                 });
@@ -1492,12 +1427,6 @@ foreach ($templates as $tpl) {
                 publishPreviewCanvas.querySelectorAll('.js-preview-drop-single').forEach(zone => {
                     attachAssetDropZone(zone, asset => {
                         const componentId = zone.getAttribute('data-component-id');
-
-                        dndLog('ASSIGN single BEFORE', {
-                            componentId: componentId,
-                            asset: asset,
-                            existingValue: getComponentValue(componentId)
-                        });
 
                         setComponentValue(componentId, {
                             type: 'image',
@@ -1507,19 +1436,8 @@ foreach ($templates as $tpl) {
                         state.selectedAssetId = String(asset.asset_id || '');
                         syncHidden();
 
-                        dndLog('ASSIGN single AFTER syncHidden', {
-                            componentId: componentId,
-                            savedValue: getComponentValue(componentId),
-                            hiddenJson: valuesJsonInput.value
-                        });
-
                         renderAssetGallery();
                         renderPreview();
-
-                        dndLog('ASSIGN single AFTER render', {
-                            componentId: componentId,
-                            previewHtmlSnippet: publishPreviewCanvas.innerHTML.slice(0, 400)
-                        });
                     });
                 });
 
@@ -1537,40 +1455,19 @@ foreach ($templates as $tpl) {
                 publishPreviewCanvas.querySelectorAll('.js-preview-drop-carousel').forEach(zone => {
                     attachAssetDropZone(zone, asset => {
                         const componentId = zone.getAttribute('data-component-id');
-                        const existing = getComponentValue(componentId) || { type: 'carousel', items: [] };
-                        const items = Array.isArray(existing.items) ? existing.items.slice() : [];
+                        const added = addAssetToCarousel(componentId, asset);
 
-                        dndLog('ASSIGN carousel BEFORE', {
-                            componentId: componentId,
-                            asset: asset,
-                            existingBucket: existing
-                        });
-
-                        items.push(deepClone(asset));
-
-                        setComponentValue(componentId, {
-                            type: 'carousel',
-                            items: items
-                        });
+                        if (!added) {
+                            return;
+                        }
 
                         state.selectedAssetId = String(asset.asset_id || '');
                         syncHidden();
-
-                        dndLog('ASSIGN carousel AFTER syncHidden', {
-                            componentId: componentId,
-                            savedBucket: getComponentValue(componentId),
-                            hiddenJson: valuesJsonInput.value
-                        });
-
                         renderAssetGallery();
                         renderPreview();
-
-                        dndLog('ASSIGN carousel AFTER render', {
-                            componentId: componentId,
-                            previewHtmlSnippet: publishPreviewCanvas.innerHTML.slice(0, 400)
-                        });
                     });
                 });
+
 
                 publishPreviewCanvas.querySelectorAll('.js-preview-remove-carousel').forEach(btn => {
                     btn.addEventListener('click', e => {
@@ -1616,18 +1513,6 @@ foreach ($templates as $tpl) {
                 publishPreviewCanvas.style.height = canvasHeight + 'px';
                 publishPreviewCanvas.style.background = page.background_color || '#ffffff';
 
-                dndLog('renderPreview START', {
-                    componentValues: state.values.components,
-                    components: components.map(c => ({
-                        type: c.type,
-                        componentId: componentKey(c),
-                        x: c.preview_x ?? c.x,
-                        y: c.preview_y ?? c.y,
-                        w: c.preview_w ?? c.w,
-                        h: c.preview_h ?? c.h
-                    }))
-                });
-
                 publishPreviewCanvas.innerHTML = components.length
                     ? components.map(previewComponentMarkup).join('')
                     : '<div style="padding:40px;text-align:center;color:#6b819d;font-weight:700;">No template components found for this preview.</div>';
@@ -1643,21 +1528,9 @@ foreach ($templates as $tpl) {
                 previewCanvasWrap.style.height = Math.max(240, canvasHeight * scale) + 'px';
 
                 bindPreviewInteractions();
-
-                dndLog('renderPreview END', {
-                    singleZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-single').length,
-                    carouselZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-carousel').length,
-                    imageTagsInSingleZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-single img').length,
-                    imageTagsInCarouselZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-carousel img').length
-                });
             }
 
             function openTextEditor(componentId) {
-                dndLog('openTextEditor', {
-                    componentId: componentId,
-                    dynamicValue: getComponentValue(componentId)
-                });
-
                 ensureValues();
                 state.textEditorField = componentId;
 
@@ -1697,6 +1570,33 @@ foreach ($templates as $tpl) {
                 textModal.classList.remove('is-open');
                 tinymce.get('publishRichTextEditor')?.remove();
             }
+
+            function isAssetAlreadyInCarousel(items, asset) {
+                const assetKey = getAssetKey(asset);
+                if (!assetKey) return false;
+
+                return (items || []).some(item => getAssetKey(item) === assetKey);
+            }
+
+            function addAssetToCarousel(componentId, asset) {
+                const existing = getComponentValue(componentId) || { type: 'carousel', items: [] };
+                const items = Array.isArray(existing.items) ? existing.items.slice() : [];
+
+                if (isAssetAlreadyInCarousel(items, asset)) {
+                    showPageToast('This asset already added to the Image Carousel', 'error', 4000);
+                    return false;
+                }
+
+                items.push(deepClone(asset));
+
+                setComponentValue(componentId, {
+                    type: 'carousel',
+                    items: items
+                });
+
+                return true;
+            }
+
 
             function renderAll() {
                 ensureValues();
@@ -1764,8 +1664,39 @@ foreach ($templates as $tpl) {
 
             window.addEventListener('resize', renderPreview);
 
+            let toastHideTimer = null;
+
+            function showPageToast(message, type = 'error', duration = 5000) {
+                if (!publishToastStack) return;
+
+                clearTimeout(toastHideTimer);
+
+                publishToastStack.innerHTML = `
+                    <div class="tpl-toast tpl-toast--${escapeHtml(type)}" role="status">
+                        ${escapeHtml(message)}
+                    </div>`;
+
+                    const toast = publishToastStack.querySelector('.tpl-toast');
+                    if (!toast) return;
+
+                    requestAnimationFrame(() => {
+                        toast.classList.add('is-visible');
+                    });
+
+                    toastHideTimer = setTimeout(() => {
+                        toast.classList.remove('is-visible');
+
+                    setTimeout(() => {
+                        if (publishToastStack.contains(toast)) {
+                            publishToastStack.innerHTML = '';
+                        }
+                    }, 180);
+                }, duration);
+            }
+
             ensureValues();
             renderAll();
         })();
     </script>
 </div>
+<div id="publishToastStack" class="tpl-toast-stack" aria-live="polite" aria-atomic="true"></div>

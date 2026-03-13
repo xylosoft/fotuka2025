@@ -70,7 +70,7 @@ foreach ($templates as $tpl) {
             justify-content:space-between;
             align-items:flex-start;
             gap:20px;
-            margin-bottom:18px;
+            margin-bottom:5px;
         }
         .tpl-hero-copy h1 { margin:0 0 8px; font-size:30px; font-weight:800; }
 

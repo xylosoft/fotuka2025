@@ -73,7 +73,6 @@ foreach ($templates as $tpl) {
             margin-bottom:18px;
         }
         .tpl-hero-copy h1 { margin:0 0 8px; font-size:30px; font-weight:800; }
-        .tpl-hero-copy p { margin:0; color:#5d718f; line-height:1.55; max-width:980px; }
 
         .tpl-hero-settings {
             display:grid;
@@ -564,7 +563,6 @@ foreach ($templates as $tpl) {
                 <div class="tpl-hero-top">
                     <div class="tpl-hero-copy">
                         <h1>Publish “<?= Html::encode($folderName) ?>”</h1>
-                        <p>Select the template, adjust the publish settings, drag images from the asset rail into the live preview, and double-click any editable text block to make final WYSIWYG changes before publishing.</p>
                     </div>
                 </div>
 
@@ -587,7 +585,7 @@ foreach ($templates as $tpl) {
                     <div class="tpl-form-row">
                         <label for="publicationUri">Public URI</label>
                         <div class="tpl-inline-url">
-                            <div class="tpl-domain">https://fotuka.com/</div>
+                            <div class="tpl-domain">https://fotuka.com/page/</div>
                             <input class="tpl-input" type="text" id="publicationUri" name="WebsitePublication[uri]" value="<?= Html::encode($publication->uri ?: $folderDefaultSlug) ?>" maxlength="255" placeholder="<?= Html::encode($folderDefaultSlug) ?>">
                         </div>
                     </div>
@@ -620,7 +618,7 @@ foreach ($templates as $tpl) {
                     <div class="tpl-card tpl-preview-card">
                         <div class="tpl-card-header">
                             <h2>Live Preview</h2>
-                            <p>Drop onto image or carousel areas to assign assets. Double-click editable text blocks to open the WYSIWYG editor.</p>
+                            <p>Drop onto images from the Folder Assets to the desired component.<br/> Click editable text blocks to open the editor.</p>
                         </div>
                         <div class="tpl-preview-stage" id="previewStage">
                             <div id="previewCanvasWrap" class="tpl-preview-canvas-wrap">
@@ -636,7 +634,6 @@ foreach ($templates as $tpl) {
                     <div class="tpl-card">
                         <div class="tpl-card-header">
                             <h2>Folder Assets</h2>
-                            <p>Three-column thumbnail browser. Drag any thumbnail into the preview, or click a thumbnail to preview it larger and keep it selected for click-to-assign.</p>
                         </div>
                         <div class="tpl-card-body">
                             <div id="assetGallery" class="tpl-asset-list"></div>

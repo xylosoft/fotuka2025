@@ -47,7 +47,7 @@ foreach ($templates as $tpl) {
         }
 
         .tpl-publish-shell {
-            max-width:1380px; /* try 1320px, 1380px, or 1440px */
+            max-width:1380px;
             margin:0 auto;
             padding:0 24px;
         }
@@ -275,13 +275,6 @@ foreach ($templates as $tpl) {
             background:#eef5ff;
             box-shadow:0 0 0 4px rgba(37,99,235,.12);
         }
-        .tpl-public-media img,
-        .tpl-public-gallery img {
-            width:100%;
-            height:100%;
-            object-fit:cover;
-            display:block;
-        }
         .tpl-public-placeholder {
             width:100%;
             height:100%;
@@ -293,23 +286,9 @@ foreach ($templates as $tpl) {
             padding:16px;
             font-weight:700;
             line-height:1.5;
+            font-size: 24px;
         }
         .tpl-public-placeholder small { display:block; margin-top:6px; font-size:12px; font-weight:700; }
-        .tpl-preview-hint {
-            position:absolute;
-            left:10px;
-            right:10px;
-            bottom:10px;
-            z-index:3;
-            padding:7px 10px;
-            border-radius:10px;
-            background:rgba(15,23,42,.66);
-            color:#fff;
-            font-size:11px;
-            font-weight:800;
-            line-height:1.35;
-            text-align:center;
-        }
         .tpl-preview-remove {
             position:absolute;
             top:10px;
@@ -328,28 +307,8 @@ foreach ($templates as $tpl) {
             box-shadow:0 8px 16px rgba(0,0,0,.15);
         }
 
-        .tpl-preview-carousel-grid,
-        .tpl-preview-gallery-grid {
-            width:100%;
-            height:100%;
-            display:grid;
-            grid-template-columns:repeat(3,minmax(0,1fr));
-            gap:8px;
-            padding:8px;
-            overflow:auto;
-            align-content:start;
-        }
-        .tpl-preview-carousel-grid {
-            padding-bottom:34px;
-        }
-        .tpl-preview-thumb {
-            position:relative;
-            border-radius:10px;
-            overflow:hidden;
-            min-height:78px;
-            background:#edf3fb;
-        }
-        .tpl-preview-thumb img {
+        .tpl-public-media > img,
+        .tpl-public-gallery > img {
             width:100%;
             height:100%;
             object-fit:cover;
@@ -383,20 +342,61 @@ foreach ($templates as $tpl) {
             font-size:11px;
             font-weight:800;
         }
-        .tpl-preview-gallery-note {
-            position:absolute;
-            left:10px;
-            right:10px;
-            bottom:10px;
-            z-index:3;
-            padding:7px 10px;
+
+        .tpl-preview-carousel-grid {
+            width:100%;
+            height:100%;
+            display:grid;
+            grid-template-columns:repeat(6,minmax(0,1fr));
+            gap:8px;
+            padding:8px 8px 40px;
+            overflow:auto;
+            align-content:start;
+        }
+
+        .tpl-preview-thumb {
+            position:relative;
             border-radius:10px;
-            background:rgba(15,23,42,.66);
-            color:#fff;
-            font-size:11px;
-            font-weight:800;
+            overflow:hidden;
+            aspect-ratio:1 / 1;
+            min-height:0;
+            background:#edf3fb;
+        }
+
+        .tpl-preview-thumb img {
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            display:block;
+        }
+
+        .tpl-preview-gallery-summary {
+            position:absolute;
+            inset:0;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
             text-align:center;
-            line-height:1.35;
+            padding:16px 22px 14px;
+            gap:8px;
+            color:#4b6485;
+        }
+
+        .tpl-preview-gallery-summary-subtitle {
+            max-width:560px;
+            font-size:24px;
+            line-height:1.45;
+            color:#6b7f99;
+            font-weight:700;
+        }
+
+        .tpl-preview-gallery-summary-subtitle small {
+            display:block;
+            margin-top:8px;
+            font-size:12px;
+            font-weight:800;
+            color:#527199;
         }
 
         .tpl-asset-list {
@@ -508,12 +508,10 @@ foreach ($templates as $tpl) {
         }
         .tpl-public-media > img,
         .tpl-public-media > .tpl-public-placeholder,
-        .tpl-public-media > .tpl-preview-hint,
         .tpl-public-media > .tpl-preview-count,
         .tpl-public-media > .tpl-preview-carousel-grid,
         .tpl-public-gallery > .tpl-public-placeholder,
-        .tpl-public-gallery > .tpl-preview-gallery-grid,
-        .tpl-public-gallery > .tpl-preview-gallery-note {
+        .tpl-public-gallery > .tpl-preview-gallery-summary {
             pointer-events:none;
         }
 
@@ -715,6 +713,14 @@ foreach ($templates as $tpl) {
             const lightboxClose = document.getElementById('lightboxClose');
             const lightboxPrev = document.getElementById('lightboxPrev');
             const lightboxNext = document.getElementById('lightboxNext');
+            const PREVIEW_GRID_COLS = 6;
+            const PREVIEW_GRID_GAP = 8;
+            const PREVIEW_GRID_PAD_X = 8;
+            const PREVIEW_CAROUSEL_PAD_TOP = 42;
+            const PREVIEW_GALLERY_PAD_TOP = 8;
+            const PREVIEW_GRID_PAD_BOTTOM = 44;
+            const PREVIEW_ROW_SPACING = 18;
+            const PREVIEW_GALLERY_FIXED_HEIGHT = 450;
 
             function escapeHtml(value) {
                 return String(value ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
@@ -1261,8 +1267,111 @@ foreach ($templates as $tpl) {
                 });
             }
 
+            function getPreviewItemsForComponent(component) {
+                const bucket = getComponentValue(componentKey(component)) || null;
+                if (!bucket) return [];
+
+                if (component.type === 'carousel' || component.type === 'gallery') {
+                    return Array.isArray(bucket.items) ? bucket.items.filter(Boolean) : [];
+                }
+
+                return [];
+            }
+
+            function getExpandedPreviewHeight(component) {
+                const baseHeight = Math.max(80, Math.round(component.h || 180));
+
+                if (component.type === 'gallery') {
+                    return PREVIEW_GALLERY_FIXED_HEIGHT;
+                }
+
+                if (component.type !== 'carousel') {
+                    return baseHeight;
+                }
+
+                const items = getPreviewItemsForComponent(component);
+                if (!items.length) {
+                    return baseHeight;
+                }
+
+                const width = Math.max(120, Math.round(component.w || 300));
+                const columns = Math.min(PREVIEW_GRID_COLS, Math.max(1, items.length));
+                const innerWidth = width - (PREVIEW_GRID_PAD_X * 2) - ((columns - 1) * PREVIEW_GRID_GAP);
+                const thumbSize = Math.max(44, Math.floor(innerWidth / columns));
+                const rows = Math.ceil(items.length / PREVIEW_GRID_COLS);
+
+                const topPad = PREVIEW_CAROUSEL_PAD_TOP;
+                const gridHeight = (rows * thumbSize) + (Math.max(0, rows - 1) * PREVIEW_GRID_GAP);
+                const neededHeight = topPad + gridHeight + PREVIEW_GRID_PAD_BOTTOM + 8;
+
+                return Math.max(baseHeight, neededHeight);
+            }
+
+            function buildPreviewLayout(definition) {
+                const source = Array.isArray(definition.components) ? definition.components.map(deepClone) : [];
+                const rows = new Map();
+
+                source.forEach(component => {
+                    const rowY = Math.round(component.y || 0);
+                    if (!rows.has(rowY)) {
+                        rows.set(rowY, []);
+                    }
+                    rows.get(rowY).push(component);
+                });
+
+                const sortedRowYs = Array.from(rows.keys()).sort((a, b) => a - b);
+                const laidOut = [];
+                let carry = 0;
+                let maxBottom = 0;
+
+                sortedRowYs.forEach(rowY => {
+                    const rowComponents = rows.get(rowY).sort((a, b) => {
+                        const ax = Math.round(a.x || 0);
+                        const bx = Math.round(b.x || 0);
+                        if (ax !== bx) return ax - bx;
+                        return Math.round((a.z || 0) - (b.z || 0));
+                    });
+
+                    const previewY = rowY + carry;
+                    let originalRowBottom = rowY;
+                    let previewRowBottom = previewY;
+
+                    rowComponents.forEach(component => {
+                        component.preview_x = Math.round(component.x || 0);
+                        component.preview_y = previewY;
+                        component.preview_w = Math.round(component.w || 300);
+                        component.preview_h = getExpandedPreviewHeight(component);
+
+                        originalRowBottom = Math.max(originalRowBottom, rowY + Math.round(component.h || 180));
+                        previewRowBottom = Math.max(previewRowBottom, previewY + component.preview_h);
+
+                        laidOut.push(component);
+                    });
+
+                    const rowExtra = Math.max(0, previewRowBottom - (originalRowBottom + carry));
+                    if (rowExtra > 0) {
+                        carry += rowExtra + PREVIEW_ROW_SPACING;
+                    }
+
+                    maxBottom = Math.max(maxBottom, previewRowBottom);
+                });
+
+                laidOut.sort((a, b) => Math.round((a.z || 0) - (b.z || 0)));
+
+                return {
+                    components: laidOut,
+                    bottom: maxBottom
+                };
+            }
+
             function previewBoxStyle(component) {
-                return `left:${Math.round(component.x || 0)}px;top:${Math.round(component.y || 0)}px;width:${Math.round(component.w || 300)}px;height:${Math.round(component.h || 180)}px;z-index:${Math.round(component.z || 1)};`;
+                const left = Math.round(component.preview_x ?? component.x ?? 0);
+                const top = Math.round(component.preview_y ?? component.y ?? 0);
+                const width = Math.round(component.preview_w ?? component.w ?? 300);
+                const height = Math.round(component.preview_h ?? component.h ?? 180);
+                const zIndex = Math.round(component.z || 1);
+
+                return `left:${left}px;top:${top}px;width:${width}px;height:${height}px;z-index:${zIndex};`;
             }
 
             function previewStaticTextMarkup(component) {
@@ -1300,10 +1409,8 @@ foreach ($templates as $tpl) {
                         <div class="tpl-public-placeholder">
                             <div>
                                 Drop one image here
-                                <small>${escapeHtml(componentLabel(component))}</small>
                             </div>
                         </div>
-                        <div class="tpl-preview-hint">Drag from Folder Assets, or click here after selecting a thumbnail.</div>
                     </div>`;
             }
 
@@ -1318,10 +1425,8 @@ foreach ($templates as $tpl) {
                             <div class="tpl-public-placeholder">
                                 <div>
                                     Drop images here to build the carousel
-                                    <small>${escapeHtml(componentLabel(component))}</small>
                                 </div>
                             </div>
-                            <div class="tpl-preview-hint">Each drop adds another slide to the carousel.</div>
                         </div>`;
                 }
 
@@ -1336,7 +1441,6 @@ foreach ($templates as $tpl) {
                                 </div>
                             `).join('')}
                         </div>
-                        <div class="tpl-preview-hint">Drop more images here to append them.</div>
                     </div>`;
             }
 
@@ -1344,32 +1448,20 @@ foreach ($templates as $tpl) {
                 const componentId = componentKey(component);
                 const bucket = getComponentValue(componentId) || { type: 'gallery', items: [] };
                 const items = Array.isArray(bucket.items) ? bucket.items.filter(Boolean) : [];
-
-                if (!items.length) {
-                    return `
-                        <div class="tpl-public-item tpl-public-gallery" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                            <div class="tpl-public-placeholder">
-                                <div>
-                                    All folder images will be included in this gallery.
-                                    <small>${escapeHtml(componentLabel(component))}</small>
-                                </div>
-                            </div>
-                            <div class="tpl-preview-gallery-note">Gallery is automatic for this folder.</div>
-                        </div>`;
-                }
+                const count = items.length;
 
                 return `
                     <div class="tpl-public-item tpl-public-gallery is-filled" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                        <div class="tpl-preview-gallery-grid">
-                            ${items.map(item => `
-                                <div class="tpl-preview-thumb">
-                                    <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="${escapeHtml(item.title || '')}">
-                                </div>
-                            `).join('')}
+                        <div class="tpl-preview-gallery-summary">
+                            <div class="tpl-preview-gallery-summary-subtitle">
+                                This gallery is automatic, so there is nothing to drag into this section.
+                                The published page will pull ${count} image${count === 1 ? '' : 's'} directly from this folder.
+                            </div>
                         </div>
-                        <div class="tpl-preview-gallery-note">Gallery automatically includes all ${items.length} folder image${items.length === 1 ? '' : 's'}.</div>
                     </div>`;
             }
+
+
 
             function previewComponentMarkup(component) {
                 if (component.type === 'static_text') return previewStaticTextMarkup(component);
@@ -1510,9 +1602,15 @@ foreach ($templates as $tpl) {
 
                 const definition = getDefinition();
                 const page = definition.page || {};
-                const components = Array.isArray(definition.components) ? definition.components.slice().sort((a, b) => (a.z || 0) - (b.z || 0)): [];
                 const canvasWidth = Math.max(900, parseInt(page.canvas_width || 1200, 10));
-                const canvasHeight = Math.max(900, parseInt(page.canvas_min_height || 1400, 10));
+
+                const layout = buildPreviewLayout(definition);
+                const components = layout.components;
+                const canvasHeight = Math.max(
+                    900,
+                    parseInt(page.canvas_min_height || 1400, 10),
+                    Math.ceil(layout.bottom + 24)
+                );
 
                 publishPreviewCanvas.style.width = canvasWidth + 'px';
                 publishPreviewCanvas.style.height = canvasHeight + 'px';
@@ -1523,10 +1621,10 @@ foreach ($templates as $tpl) {
                     components: components.map(c => ({
                         type: c.type,
                         componentId: componentKey(c),
-                        x: c.x,
-                        y: c.y,
-                        w: c.w,
-                        h: c.h
+                        x: c.preview_x ?? c.x,
+                        y: c.preview_y ?? c.y,
+                        w: c.preview_w ?? c.w,
+                        h: c.preview_h ?? c.h
                     }))
                 });
 
@@ -1540,10 +1638,12 @@ foreach ($templates as $tpl) {
                 const stageWidth = Math.max(320, previewStage.clientWidth - 36);
                 const preferredScale = 0.72;
                 const scale = Math.min(1, preferredScale, stageWidth / canvasWidth);
+
                 previewScale.style.transform = `scale(${scale})`;
                 previewCanvasWrap.style.height = Math.max(240, canvasHeight * scale) + 'px';
 
                 bindPreviewInteractions();
+
                 dndLog('renderPreview END', {
                     singleZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-single').length,
                     carouselZones: publishPreviewCanvas.querySelectorAll('.js-preview-drop-carousel').length,

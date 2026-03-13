@@ -17,6 +17,7 @@ class TemplateController extends Controller
 {
     public function actionTemplates()
     {
+        $this->layout = 'folder';
         $templateQuery = WebsiteTemplate::findActive()->orderBy(['updated_at' => SORT_DESC]);
         $templateQuery = $this->applyOwnershipScope($templateQuery, WebsiteTemplate::tableName());
 
@@ -75,24 +76,25 @@ class TemplateController extends Controller
             $model->setDefinitionArray(WebsiteTemplate::defaultDefinition());
         }
 
-
-        if ($model->name === '') {
-            $model->addError('name', 'Please enter a name for this Template');
-            Yii::$app->session->setFlash('error', 'Please fix the highlighted problems and save again.');
-            return $this->render('editor', [
-                'model' => $model,
-                'definition' => $model->getDefinitionArray(),
-            ]);
-        }
-        
         if (Yii::$app->request->isPost) {
             if ($model->load(Yii::$app->request->post())) {
+                $model->name = trim((string) $model->name);
+                if ($model->name === '') {
+                    $model->addError('name', 'Please enter a name for this Template');
+                    Yii::$app->session->setFlash('error', 'Please fix the highlighted problems and save again.');
+                    return $this->render('editor', [
+                        'model' => $model,
+                        'definition' => $model->getDefinitionArray(),
+                    ]);
+                }
+
                 if ($model->isNewRecord) {
                     $model->user_id = $this->currentUserId();
                     $model->customer_id = $this->currentCustomerId();
                 }
 
                 $model->name = trim((string)$model->name);
+                // TODO: Check if this is still needed. I don't think so.
                 if ($model->name === '') {
                     $model->name = 'Untitled Template';
                 }
@@ -105,11 +107,6 @@ class TemplateController extends Controller
                     Yii::$app->session->setFlash('success', 'Template saved successfully.');
                     return $this->redirect(['template-editor', 'id' => $model->id]);
                 }
-
-                error_log('WebsiteTemplate save() returned false');
-                error_log('WebsiteTemplate POST: ' . print_r(Yii::$app->request->post('WebsiteTemplate', []), true));
-                error_log('WebsiteTemplate attributes: ' . print_r($model->attributes, true));
-                error_log('WebsiteTemplate errors: ' . print_r($model->getErrors(), true));
 
                 Yii::$app->session->setFlash('error', 'Please fix the highlighted problems and save again.');
             } else {
@@ -142,7 +139,6 @@ class TemplateController extends Controller
 
     public function actionPublish($id, $template_id = null, $publication_id = null)
     {
-        error_log("Action Publish");
         $this->layout = 'folder';
         $folder = $this->fetchFolder($id);
 
@@ -164,20 +160,17 @@ class TemplateController extends Controller
 
         if ($publication) {
             $template = $publication->template;
-            $definition = $publication->getSnapshotArray();
+            $definition = $template
+                ? $template->getDefinitionArray()
+                : $publication->getSnapshotArray(); // legacy fallback only
         } elseif ($template_id) {
             $template = $this->findTemplate($template_id);
             $definition = $template->getDefinitionArray();
         }
 
         if (Yii::$app->request->isPost) {
-            error_log("Form Submitted");
-
             $rawPost = Yii::$app->request->post();
             $wpPost = Yii::$app->request->post('WebsitePublication', []);
-
-            error_log('RAW POST: ' . print_r($rawPost, true));
-            error_log('WebsitePublication POST: ' . print_r($wpPost, true));
 
             if (!$publication) {
                 $publication = new WebsitePublication();
@@ -193,22 +186,13 @@ class TemplateController extends Controller
                 ?? 0
             );
 
-            error_log("Selected Template ID: " . $selectedTemplateId);
-
             if ($selectedTemplateId <= 0) {
                 Yii::$app->session->setFlash('error', 'Please select a template before publishing.');
                 return $this->refresh();
             }
 
-            $templateChanged = !$publication->template_id || (int)$publication->template_id !== $selectedTemplateId;
-
-            if ($templateChanged) {
-                $template = $this->findTemplate($selectedTemplateId);
-                $definition = $template->getDefinitionArray();
-            } else {
-                $template = $publication->template ?: $this->findTemplate($publication->template_id);
-                $definition = $publication->getSnapshotArray();
-            }
+            $template = $this->findTemplate($selectedTemplateId);
+            $definition = $template->getDefinitionArray();
 
             $publishDefaults = $definition['publish_defaults'] ?? [
                     'is_password_protected' => false,
@@ -225,42 +209,12 @@ class TemplateController extends Controller
             $isProtected = !empty($wpPost['is_password_protected']) ? 1 : 0;
             $allowDownloadAll = !empty($wpPost['allow_download_all']) ? 1 : 0;
 
-            // Normalize values_json
-            $rawValues = $wpPost['values_json'] ?? '{}';
-
-            if (is_array($rawValues)) {
-                $decodedValues = $rawValues;
-            } else {
-                $rawValues = trim((string) $rawValues);
-
-                if ($rawValues === '' || $rawValues === '[]') {
-                    $rawValues = '{}';
-                }
-
-                try {
-                    $decodedValues = Json::decode($rawValues, true);
-                } catch (\Throwable $e) {
-                    error_log('Invalid values_json: ' . $rawValues);
-                    error_log('values_json decode error: ' . $e->getMessage());
-                    $decodedValues = [];
-                }
-            }
-
-            if (!is_array($decodedValues)) {
-                $decodedValues = [];
-            }
-
-            // Always keep the expected top-level structure
-            $decodedValues = array_merge([
-                'dynamic_text' => [],
-                'image' => [],
-                'carousel' => [],
-                'gallery' => [],
-            ], $decodedValues);
+            $decodedValues = $this->normalizePublicationValuesForDefinition(
+                $wpPost['values_json'] ?? '{}',
+                $definition
+            );
 
             $valuesJson = Json::encode($decodedValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-            error_log('Normalized values_json: ' . $valuesJson);
 
             $publication->folder_id = (int) $id;
             $publication->template_id = $template->id;
@@ -274,22 +228,12 @@ class TemplateController extends Controller
 
             try {
                 if (!$publication->save()) {
-                    error_log("WebsitePublication save() returned false");
-                    error_log("WebsitePublication POST: " . print_r($wpPost, true));
-                    error_log("Publication attributes: " . print_r($publication->attributes, true));
-                    error_log("Publication dirtyAttributes: " . print_r($publication->dirtyAttributes, true));
-                    error_log("Publication errors: " . print_r($publication->getErrors(), true));
-
                     Yii::$app->session->setFlash('error', 'Please review the publishing form and try again.');
                 } else {
                     Yii::$app->session->setFlash('success', 'Folder published successfully.');
                     return $this->redirect(['templates']);
                 }
             } catch (\Throwable $e) {
-                error_log("WebsitePublication save exception: " . $e->getMessage());
-                error_log("File: " . $e->getFile() . ":" . $e->getLine());
-                error_log("Trace: " . $e->getTraceAsString());
-
                 Yii::$app->session->setFlash('error', 'An unexpected error occurred while publishing.');
             }
         }
@@ -335,10 +279,19 @@ class TemplateController extends Controller
             return $this->redirect(['page-password', 'uri' => $uri]);
         }
 
+        $definition = $publication->template
+            ? $publication->template->getDefinitionArray()
+            : $publication->getSnapshotArray();
+
+        $values = $this->normalizePublicationValuesForDefinition(
+            $publication->getValuesArray(),
+            $definition
+        );
+
         return $this->render('page', [
             'publication' => $publication,
-            'definition' => $publication->getSnapshotArray(),
-            'values' => $publication->getValuesArray(),
+            'definition' => $definition,
+            'values' => $values,
             'folderName' => $this->resolveFolderNameFromId($publication->folder_id),
         ]);
     }
@@ -495,5 +448,87 @@ class TemplateController extends Controller
     protected function hasPageAccess(WebsitePublication $publication)
     {
         return (bool) Yii::$app->session->get($this->pageAccessSessionKey($publication), false);
+    }
+
+    protected function normalizePublicationValuesForDefinition($rawValues, array $definition): array
+    {
+        if (is_array($rawValues)) {
+            $decoded = $rawValues;
+        } else {
+            $raw = trim((string) $rawValues);
+
+            if ($raw === '' || $raw === '[]') {
+                $raw = '{}';
+            }
+
+            try {
+                $decoded = Json::decode($raw, true);
+            } catch (\Throwable $e) {
+                error_log('Invalid values_json: ' . $raw);
+                error_log('values_json decode error: ' . $e->getMessage());
+                $decoded = [];
+            }
+        }
+
+        if (!is_array($decoded)) {
+            $decoded = [];
+        }
+
+        if (isset($decoded['components']) && is_array($decoded['components'])) {
+            return [
+                'components' => $decoded['components'],
+            ];
+        }
+
+        $components = [];
+        $definitionComponents = $definition['components'] ?? [];
+
+        foreach ($definitionComponents as $component) {
+            $componentId = (string) ($component['id'] ?? '');
+            $fieldName = (string) ($component['field_name'] ?? '');
+            $type = (string) ($component['type'] ?? '');
+
+            if ($componentId === '' || $fieldName === '') {
+                continue;
+            }
+
+            if ($type === 'dynamic_text' && !empty($decoded['dynamic_text'][$fieldName])) {
+                $components[$componentId] = [
+                    'type' => 'dynamic_text',
+                    'html' => (string) ($decoded['dynamic_text'][$fieldName]['html'] ?? ($component['default_html'] ?? '<p></p>')),
+                ];
+                continue;
+            }
+
+            if ($type === 'image' && !empty($decoded['image'][$fieldName])) {
+                $components[$componentId] = [
+                    'type' => 'image',
+                    'asset' => $decoded['image'][$fieldName],
+                ];
+                continue;
+            }
+
+            if ($type === 'carousel' && !empty($decoded['carousel'][$fieldName])) {
+                $items = $decoded['carousel'][$fieldName]['items'] ?? [];
+                $components[$componentId] = [
+                    'type' => 'carousel',
+                    'items' => is_array($items) ? array_values(array_filter($items)) : [],
+                ];
+                continue;
+            }
+
+            if ($type === 'gallery' && !empty($decoded['gallery'][$fieldName])) {
+                $items = $decoded['gallery'][$fieldName]['items'] ?? [];
+                $components[$componentId] = [
+                    'type' => 'gallery',
+                    'auto_folder_gallery' => !empty($decoded['gallery'][$fieldName]['auto_folder_gallery']) ? 1 : 0,
+                    'items' => is_array($items) ? array_values(array_filter($items)) : [],
+                ];
+            }
+        }
+
+        return [
+            'components' => $components,
+        ];
     }
 }

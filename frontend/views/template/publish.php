@@ -20,7 +20,11 @@ $this->title = 'Publish Folder';
 $initialDefinition = $definition ?: ($template ? $template->getDefinitionArray() : WebsiteTemplate::defaultDefinition());
 $initialValues = (!$publication->isNewRecord && $publication->values_json)
     ? $publication->getValuesArray()
-    : new \stdClass();$initialTemplateId = !$publication->isNewRecord ? (int) $publication->template_id : (int) ($template->id ?? 0);
+    : ['components' => []];
+
+$initialTemplateId = !$publication->isNewRecord
+    ? (int) $publication->template_id
+    : (int) ($template->id ?? 0);
 
 $templateMap = [];
 foreach ($templates as $tpl) {
@@ -772,12 +776,32 @@ foreach ($templates as $tpl) {
                 };
             }
 
-            function componentField(component) {
-                return component.field_name || slugify(component.label || component.type || 'field');
+            function componentKey(component) {
+                return String(component && component.id ? component.id : '');
             }
 
             function componentLabel(component) {
-                return component.label || component.field_name || component.type;
+                return component.label || component.field_name || component.type || 'component';
+            }
+
+            function getComponentValue(componentOrId) {
+                ensureValues();
+                const key = typeof componentOrId === 'string' ? componentOrId : componentKey(componentOrId);
+                return key && state.values.components[key] ? state.values.components[key] : null;
+            }
+
+            function setComponentValue(componentOrId, payload) {
+                ensureValues();
+                const key = typeof componentOrId === 'string' ? componentOrId : componentKey(componentOrId);
+                if (!key) return;
+                state.values.components[key] = payload;
+            }
+
+            function deleteComponentValue(componentOrId) {
+                ensureValues();
+                const key = typeof componentOrId === 'string' ? componentOrId : componentKey(componentOrId);
+                if (!key) return;
+                delete state.values.components[key];
             }
 
             function isLikelyImage(asset) {
@@ -823,43 +847,120 @@ foreach ($templates as $tpl) {
                     state.values = {};
                 }
 
-                if (!state.values.dynamic_text || typeof state.values.dynamic_text !== 'object' || Array.isArray(state.values.dynamic_text)) {
-                    state.values.dynamic_text = {};
-                }
+                if (!state.values.components || typeof state.values.components !== 'object' || Array.isArray(state.values.components)) {
+                    const legacy = state.values;
+                    const migrated = {};
+                    const definition = getDefinition();
+                    const components = Array.isArray(definition.components) ? definition.components : [];
 
-                if (!state.values.image || typeof state.values.image !== 'object' || Array.isArray(state.values.image)) {
-                    state.values.image = {};
-                }
+                    const legacyDynamicText = legacy.dynamic_text && typeof legacy.dynamic_text === 'object' && !Array.isArray(legacy.dynamic_text)
+                        ? legacy.dynamic_text
+                        : {};
 
-                if (!state.values.carousel || typeof state.values.carousel !== 'object' || Array.isArray(state.values.carousel)) {
-                    state.values.carousel = {};
-                }
+                    const legacyImage = legacy.image && typeof legacy.image === 'object' && !Array.isArray(legacy.image)
+                        ? legacy.image
+                        : {};
 
-                if (!state.values.gallery || typeof state.values.gallery !== 'object' || Array.isArray(state.values.gallery)) {
-                    state.values.gallery = {};
+                    const legacyCarousel = legacy.carousel && typeof legacy.carousel === 'object' && !Array.isArray(legacy.carousel)
+                        ? legacy.carousel
+                        : {};
+
+                    const legacyGallery = legacy.gallery && typeof legacy.gallery === 'object' && !Array.isArray(legacy.gallery)
+                        ? legacy.gallery
+                        : {};
+
+                    components.forEach(component => {
+                        const key = componentKey(component);
+                        const field = String(component.field_name || '');
+
+                        if (!key || !field) {
+                            return;
+                        }
+
+                        if (component.type === 'dynamic_text' && legacyDynamicText[field]) {
+                            migrated[key] = {
+                                type: 'dynamic_text',
+                                html: legacyDynamicText[field].html || component.default_html || '<p></p>'
+                            };
+                            return;
+                        }
+
+                        if (component.type === 'image' && legacyImage[field]) {
+                            migrated[key] = {
+                                type: 'image',
+                                asset: deepClone(legacyImage[field])
+                            };
+                            return;
+                        }
+
+                        if (component.type === 'carousel' && legacyCarousel[field]) {
+                            migrated[key] = {
+                                type: 'carousel',
+                                items: Array.isArray(legacyCarousel[field].items)
+                                    ? deepClone(legacyCarousel[field].items.filter(Boolean))
+                                    : []
+                            };
+                            return;
+                        }
+
+                        if (component.type === 'gallery' && legacyGallery[field]) {
+                            migrated[key] = {
+                                type: 'gallery',
+                                auto_folder_gallery: legacyGallery[field].auto_folder_gallery ? 1 : 0,
+                                items: Array.isArray(legacyGallery[field].items)
+                                    ? deepClone(legacyGallery[field].items.filter(Boolean))
+                                    : []
+                            };
+                        }
+                    });
+
+                    state.values = {
+                        components: migrated
+                    };
                 }
 
                 syncAutoGalleryValues();
             }
 
             function syncAutoGalleryValues() {
-                const definition = getDefinition();
-                const galleryComponents = Array.isArray(definition.components)
-                    ? definition.components.filter(c => c.type === 'gallery')
-            : [];
-                const items = galleryAssets();
-                galleryComponents.forEach(component => {
-                    const field = componentField(component);
-                state.values.gallery[field] = {
-                    auto_folder_gallery: 1,
-                    items: items
-                };
-            });
+                if (syncingAutoGalleryValues) {
+                    return;
+                }
+
+                syncingAutoGalleryValues = true;
+
+                try {
+                    if (!state.values || typeof state.values !== 'object' || Array.isArray(state.values)) {
+                        state.values = {};
+                    }
+
+                    if (!state.values.components || typeof state.values.components !== 'object' || Array.isArray(state.values.components)) {
+                        state.values.components = {};
+                    }
+
+                    const definition = getDefinition();
+                    const galleryComponents = Array.isArray(definition.components) ? definition.components.filter(component => component.type === 'gallery'): [];
+                    const items = galleryAssets();
+
+                    galleryComponents.forEach(component => {
+                        const key = componentKey(component);
+                        if (!key) return;
+
+                        state.values.components[key] = {
+                            type: 'gallery',
+                            auto_folder_gallery: 1,
+                            items: deepClone(items)
+                        };
+                    });
+                } finally {
+                    syncingAutoGalleryValues = false;
+                }
             }
 
             function syncHidden() {
                 valuesJsonInput.value = JSON.stringify(state.values);
             }
+
 
             function openLightboxByAssetId(assetId) {
                 const index = state.lightboxItems.findIndex(item => String(item.asset_id) === String(assetId));
@@ -915,7 +1016,6 @@ foreach ($templates as $tpl) {
                 assetGallery.querySelectorAll('.tpl-asset-card').forEach(card => {
                     const assetId = card.getAttribute('data-asset-id');
                     const asset = assetById(assetId);
-                    console.log('CARD CHECK', { assetId, asset });
 
                     card.setAttribute('draggable', 'true');
 
@@ -966,7 +1066,7 @@ foreach ($templates as $tpl) {
                     zone.classList.add('is-over');
 
                     dndLog('ZONE dragenter', {
-                        field: zone.getAttribute('data-field-name'),
+                        componentId: zone.getAttribute('data-component-id'),
                         zoneClass: zone.className,
                         targetClass: e.target && e.target.className
                     });
@@ -978,7 +1078,7 @@ foreach ($templates as $tpl) {
                     zone.classList.add('is-over');
 
                     dndLog('ZONE dragover', {
-                        field: zone.getAttribute('data-field-name'),
+                        componentId: zone.getAttribute('data-component-id'),
                         zoneClass: zone.className,
                         dataTransferText: e.dataTransfer.getData('text/plain'),
                         draggingAssetId: state.draggingAssetId,
@@ -988,7 +1088,7 @@ foreach ($templates as $tpl) {
                 });
 
                 zone.addEventListener('dragleave', e => {
-                        if (!zone.contains(e.relatedTarget)) {
+                    if (!zone.contains(e.relatedTarget)) {
                         zone.classList.remove('is-over');
                     }
                 });
@@ -1004,7 +1104,7 @@ foreach ($templates as $tpl) {
                     const droppedAsset = state.draggingAsset || normalizeAsset(assetFromId);
 
                     dndLog('ZONE drop BEFORE assign', {
-                        field: zone.getAttribute('data-field-name'),
+                        componentId: zone.getAttribute('data-component-id'),
                         rawDataTransfer: rawDataTransfer,
                         resolvedAssetId: assetId,
                         assetFromId: assetFromId,
@@ -1018,7 +1118,7 @@ foreach ($templates as $tpl) {
 
                     if (!droppedAsset) {
                         dndLog('ZONE drop ABORT no droppedAsset', {
-                            field: zone.getAttribute('data-field-name')
+                            componentId: zone.getAttribute('data-component-id')
                         });
                         return;
                     }
@@ -1026,27 +1126,29 @@ foreach ($templates as $tpl) {
                     onAssign(droppedAsset);
 
                     dndLog('ZONE drop AFTER assign callback', {
-                        field: zone.getAttribute('data-field-name'),
-                        imageValues: state.values.image,
-                        carouselValues: state.values.carousel
+                        componentId: zone.getAttribute('data-component-id'),
+                        componentValue: getComponentValue(zone.getAttribute('data-component-id'))
                     });
                 });
 
                 zone.addEventListener('click', e => {
                     if (e.target.closest('.tpl-preview-remove') || e.target.closest('.tpl-preview-thumb-remove')) return;
-                     if (!state.selectedAssetId) return;
+                    if (!state.selectedAssetId) return;
 
                     const asset = assetById(state.selectedAssetId);
+
                     dndLog('ZONE click assign', {
-                        field: zone.getAttribute('data-field-name'),
+                        componentId: zone.getAttribute('data-component-id'),
                         selectedAssetId: state.selectedAssetId,
                         asset: asset
                     });
+
                     if (asset) onAssign(normalizeAsset(asset));
                 });
             }
 
             let activePreviewDropZone = null;
+            let syncingAutoGalleryValues = false;
 
             function clearActivePreviewDropZone() {
                 if (activePreviewDropZone) {
@@ -1076,34 +1178,34 @@ foreach ($templates as $tpl) {
 
                 publishPreviewCanvas.addEventListener('dragover', e => {
                     e.preventDefault();
-                    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+                if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
 
-                    const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY);
+                const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY);
 
-                    dndLog('CANVAS dragover', {
-                        clientX: e.clientX,
-                        clientY: e.clientY,
-                        foundZoneField: zone ? zone.getAttribute('data-field-name') : null,
-                        foundZoneClass: zone ? zone.className : null,
-                        draggingAssetId: state.draggingAssetId,
-                        draggingAsset: state.draggingAsset,
-                        selectedAssetId: state.selectedAssetId
-                    });
-
-                    if (zone !== activePreviewDropZone) {
-                        clearActivePreviewDropZone();
-                        if (zone) {
-                            zone.classList.add('is-over');
-                            activePreviewDropZone = zone;
-                        }
-                    }
+                dndLog('CANVAS dragover', {
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    foundZoneComponentId: zone ? zone.getAttribute('data-component-id') : null,
+                    foundZoneClass: zone ? zone.className : null,
+                    draggingAssetId: state.draggingAssetId,
+                    draggingAsset: state.draggingAsset,
+                    selectedAssetId: state.selectedAssetId
                 });
+
+                if (zone !== activePreviewDropZone) {
+                    clearActivePreviewDropZone();
+                    if (zone) {
+                        zone.classList.add('is-over');
+                        activePreviewDropZone = zone;
+                    }
+                }
+            });
 
                 publishPreviewCanvas.addEventListener('dragleave', e => {
                     if (!publishPreviewCanvas.contains(e.relatedTarget)) {
-                        clearActivePreviewDropZone();
-                    }
-                });
+                    clearActivePreviewDropZone();
+                }
+            });
 
                 publishPreviewCanvas.addEventListener('drop', e => {
                     e.preventDefault();
@@ -1115,7 +1217,7 @@ foreach ($templates as $tpl) {
                     dndLog('CANVAS drop BEFORE assign', {
                         clientX: e.clientX,
                         clientY: e.clientY,
-                        zoneField: zone ? zone.getAttribute('data-field-name') : null,
+                        zoneComponentId: zone ? zone.getAttribute('data-component-id') : null,
                         zoneClass: zone ? zone.className : null,
                         droppedAsset: droppedAsset,
                         draggingAssetId: state.draggingAssetId,
@@ -1135,24 +1237,31 @@ foreach ($templates as $tpl) {
                         return;
                     }
 
-                    const field = zone.getAttribute('data-field-name');
-                    if (!field) {
-                        dndLog('CANVAS drop ABORT no field', {});
+                    const componentId = zone.getAttribute('data-component-id');
+                    if (!componentId) {
+                        dndLog('CANVAS drop ABORT no componentId', {});
                         return;
                     }
 
                     if (zone.classList.contains('js-preview-drop-single')) {
-                        state.values.image[field] = deepClone(droppedAsset);
+                        setComponentValue(componentId, {
+                            type: 'image',
+                            asset: deepClone(droppedAsset)
+                        });
                     } else if (zone.classList.contains('js-preview-drop-carousel')) {
-                        if (!state.values.carousel[field]) state.values.carousel[field] = { items: [] };
-                        if (!Array.isArray(state.values.carousel[field].items)) state.values.carousel[field].items = [];
-                        state.values.carousel[field].items.push(deepClone(droppedAsset));
+                        const existing = getComponentValue(componentId) || { type: 'carousel', items: [] };
+                        const items = Array.isArray(existing.items) ? existing.items.slice() : [];
+                        items.push(deepClone(droppedAsset));
+
+                        setComponentValue(componentId, {
+                            type: 'carousel',
+                            items: items
+                        });
                     }
 
                     dndLog('CANVAS drop AFTER assign BEFORE render', {
-                        field: field,
-                        imageValues: state.values.image,
-                        carouselValues: state.values.carousel
+                        componentId: componentId,
+                        componentValue: getComponentValue(componentId)
                     });
 
                     state.selectedAssetId = String(droppedAsset.asset_id || '');
@@ -1161,12 +1270,11 @@ foreach ($templates as $tpl) {
                     renderPreview();
 
                     dndLog('CANVAS drop AFTER render', {
-                        field: field,
+                        componentId: componentId,
                         hiddenJson: valuesJsonInput.value,
                         previewHtmlSnippet: publishPreviewCanvas.innerHTML.slice(0, 400)
                     });
                 });
-
             }
 
             function previewBoxStyle(component) {
@@ -1178,33 +1286,33 @@ foreach ($templates as $tpl) {
             }
 
             function previewDynamicTextMarkup(component) {
-                const field = componentField(component);
-                const html = state.values.dynamic_text[field]?.html || component.default_html || '<p></p>';
+                const componentId = componentKey(component);
+                const bucket = getComponentValue(componentId) || {};
+                const html = bucket.html || component.default_html || '<p></p>';
 
                 return `
-                    <div class="tpl-public-item tpl-public-text js-preview-edit-text" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}" title="Double-click to edit">
+                    <div class="tpl-public-item tpl-public-text js-preview-edit-text" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}" title="Double-click to edit">
                         <div class="tpl-preview-edit-tag">Double-click to edit</div>
                         <div class="tpl-preview-text-inner">${html}</div>
-                    </div>
-                `;
+                    </div>`;
             }
 
             function previewImageMarkup(component) {
-                const field = componentField(component);
-                const asset = state.values.image[field] || null;
+                const componentId = componentKey(component);
+                const bucket = getComponentValue(componentId) || null;
+                const asset = bucket && bucket.asset ? bucket.asset : null;
                 const imageUrl = asset ? (asset.preview_url || asset.thumbnail_url || '') : '';
 
                 if (imageUrl) {
                     return `
-                        <div class="tpl-public-item tpl-public-media is-filled js-preview-drop-single" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}">
-                            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(asset.title || field)}">
-                            <button type="button" class="tpl-preview-remove js-preview-clear-single" data-field-name="${escapeHtml(field)}" title="Clear image">×</button>
-                        </div>
-                    `;
+                        <div class="tpl-public-item tpl-public-media is-filled js-preview-drop-single" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(asset.title || componentLabel(component))}">
+                            <button type="button" class="tpl-preview-remove js-preview-clear-single" data-component-id="${escapeHtml(componentId)}" title="Clear image">×</button>
+                        </div>`;
                 }
 
                 return `
-                    <div class="tpl-public-item tpl-public-media js-preview-drop-single" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}">
+                    <div class="tpl-public-item tpl-public-media js-preview-drop-single" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
                         <div class="tpl-public-placeholder">
                             <div>
                                 Drop one image here
@@ -1212,18 +1320,17 @@ foreach ($templates as $tpl) {
                             </div>
                         </div>
                         <div class="tpl-preview-hint">Drag from Folder Assets, or click here after selecting a thumbnail.</div>
-                    </div>
-                `;
+                    </div>`;
             }
 
             function previewCarouselMarkup(component) {
-                const field = componentField(component);
-                const bucket = state.values.carousel[field] || { items: [] };
+                const componentId = componentKey(component);
+                const bucket = getComponentValue(componentId) || { type: 'carousel', items: [] };
                 const items = Array.isArray(bucket.items) ? bucket.items.filter(Boolean) : [];
 
                 if (!items.length) {
                     return `
-                        <div class="tpl-public-item tpl-public-media js-preview-drop-carousel" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}">
+                        <div class="tpl-public-item tpl-public-media js-preview-drop-carousel" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
                             <div class="tpl-public-placeholder">
                                 <div>
                                     Drop images here to build the carousel
@@ -1231,33 +1338,32 @@ foreach ($templates as $tpl) {
                                 </div>
                             </div>
                             <div class="tpl-preview-hint">Each drop adds another slide to the carousel.</div>
-                        </div>
-                    `;
+                        </div>`;
                 }
 
                 return `
-                    <div class="tpl-public-item tpl-public-media is-filled js-preview-drop-carousel" data-field-name="${escapeHtml(field)}" style="${previewBoxStyle(component)}">
+                    <div class="tpl-public-item tpl-public-media is-filled js-preview-drop-carousel" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
                         <div class="tpl-preview-count">${items.length} image${items.length === 1 ? '' : 's'}</div>
                         <div class="tpl-preview-carousel-grid">
                             ${items.map((item, index) => `
                                 <div class="tpl-preview-thumb">
                                     <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="${escapeHtml(item.title || '')}">
-                                    <button type="button" class="tpl-preview-thumb-remove js-preview-remove-carousel" data-field-name="${escapeHtml(field)}" data-item-index="${index}" title="Remove image">×</button>
+                                    <button type="button" class="tpl-preview-thumb-remove js-preview-remove-carousel" data-component-id="${escapeHtml(componentId)}" data-item-index="${index}" title="Remove image">×</button>
                                 </div>
                             `).join('')}
                         </div>
                         <div class="tpl-preview-hint">Drop more images here to append them.</div>
-                    </div>
-                `;
+                    </div>`;
             }
 
             function previewGalleryMarkup(component) {
-                const field = componentField(component);
-                const items = Array.isArray(state.values.gallery[field]?.items) ? state.values.gallery[field].items.filter(Boolean) : [];
+                const componentId = componentKey(component);
+                const bucket = getComponentValue(componentId) || { type: 'gallery', items: [] };
+                const items = Array.isArray(bucket.items) ? bucket.items.filter(Boolean) : [];
 
                 if (!items.length) {
                     return `
-                        <div class="tpl-public-item tpl-public-gallery" style="${previewBoxStyle(component)}">
+                        <div class="tpl-public-item tpl-public-gallery" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
                             <div class="tpl-public-placeholder">
                                 <div>
                                     All folder images will be included in this gallery.
@@ -1265,12 +1371,11 @@ foreach ($templates as $tpl) {
                                 </div>
                             </div>
                             <div class="tpl-preview-gallery-note">Gallery is automatic for this folder.</div>
-                        </div>
-                    `;
+                        </div>`;
                 }
 
                 return `
-                    <div class="tpl-public-item tpl-public-gallery is-filled" style="${previewBoxStyle(component)}">
+                    <div class="tpl-public-item tpl-public-gallery is-filled" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
                         <div class="tpl-preview-gallery-grid">
                             ${items.map(item => `
                                 <div class="tpl-preview-thumb">
@@ -1279,8 +1384,7 @@ foreach ($templates as $tpl) {
                             `).join('')}
                         </div>
                         <div class="tpl-preview-gallery-note">Gallery automatically includes all ${items.length} folder image${items.length === 1 ? '' : 's'}.</div>
-                    </div>
-                `;
+                    </div>`;
             }
 
             function previewComponentMarkup(component) {
@@ -1298,34 +1402,38 @@ foreach ($templates as $tpl) {
                         e.preventDefault();
                         e.stopPropagation();
 
-                        const field = node.getAttribute('data-field-name');
+                        const componentId = node.getAttribute('data-component-id');
 
                         dndLog('TEXT click', {
-                            field: field,
+                            componentId: componentId,
                             className: node.className
                         });
 
-                        openTextEditor(field);
+                        openTextEditor(componentId);
                     });
                 });
 
                 publishPreviewCanvas.querySelectorAll('.js-preview-drop-single').forEach(zone => {
                     attachAssetDropZone(zone, asset => {
-                        const field = zone.getAttribute('data-field-name');
+                        const componentId = zone.getAttribute('data-component-id');
 
                         dndLog('ASSIGN single BEFORE', {
-                            field: field,
+                            componentId: componentId,
                             asset: asset,
-                            existingValue: state.values.image[field] || null
+                            existingValue: getComponentValue(componentId)
                         });
 
-                        state.values.image[field] = deepClone(asset);
+                        setComponentValue(componentId, {
+                            type: 'image',
+                            asset: deepClone(asset)
+                        });
+
                         state.selectedAssetId = String(asset.asset_id || '');
                         syncHidden();
 
                         dndLog('ASSIGN single AFTER syncHidden', {
-                            field: field,
-                            savedValue: state.values.image[field],
+                            componentId: componentId,
+                            savedValue: getComponentValue(componentId),
                             hiddenJson: valuesJsonInput.value
                         });
 
@@ -1333,7 +1441,7 @@ foreach ($templates as $tpl) {
                         renderPreview();
 
                         dndLog('ASSIGN single AFTER render', {
-                            field: field,
+                            componentId: componentId,
                             previewHtmlSnippet: publishPreviewCanvas.innerHTML.slice(0, 400)
                         });
                     });
@@ -1343,7 +1451,8 @@ foreach ($templates as $tpl) {
                     btn.addEventListener('click', e => {
                         e.preventDefault();
                         e.stopPropagation();
-                        delete state.values.image[btn.getAttribute('data-field-name')];
+
+                        deleteComponentValue(btn.getAttribute('data-component-id'));
                         syncHidden();
                         renderPreview();
                     });
@@ -1351,24 +1460,29 @@ foreach ($templates as $tpl) {
 
                 publishPreviewCanvas.querySelectorAll('.js-preview-drop-carousel').forEach(zone => {
                     attachAssetDropZone(zone, asset => {
-                        const field = zone.getAttribute('data-field-name');
+                        const componentId = zone.getAttribute('data-component-id');
+                        const existing = getComponentValue(componentId) || { type: 'carousel', items: [] };
+                        const items = Array.isArray(existing.items) ? existing.items.slice() : [];
 
                         dndLog('ASSIGN carousel BEFORE', {
-                            field: field,
+                            componentId: componentId,
                             asset: asset,
-                            existingBucket: state.values.carousel[field] || null
+                            existingBucket: existing
                         });
 
-                        if (!state.values.carousel[field]) state.values.carousel[field] = { items: [] };
-                        if (!Array.isArray(state.values.carousel[field].items)) state.values.carousel[field].items = [];
+                        items.push(deepClone(asset));
 
-                        state.values.carousel[field].items.push(deepClone(asset));
+                        setComponentValue(componentId, {
+                            type: 'carousel',
+                            items: items
+                        });
+
                         state.selectedAssetId = String(asset.asset_id || '');
                         syncHidden();
 
                         dndLog('ASSIGN carousel AFTER syncHidden', {
-                            field: field,
-                            savedBucket: state.values.carousel[field],
+                            componentId: componentId,
+                            savedBucket: getComponentValue(componentId),
                             hiddenJson: valuesJsonInput.value
                         });
 
@@ -1376,7 +1490,7 @@ foreach ($templates as $tpl) {
                         renderPreview();
 
                         dndLog('ASSIGN carousel AFTER render', {
-                            field: field,
+                            componentId: componentId,
                             previewHtmlSnippet: publishPreviewCanvas.innerHTML.slice(0, 400)
                         });
                     });
@@ -1386,16 +1500,20 @@ foreach ($templates as $tpl) {
                     btn.addEventListener('click', e => {
                         e.preventDefault();
                         e.stopPropagation();
-                        const field = btn.getAttribute('data-field-name');
-                        const index = parseInt(btn.getAttribute('data-item-index'), 10);
 
-                        if (
-                            state.values.carousel[field] &&
-                            Array.isArray(state.values.carousel[field].items) &&
-                            index >= 0
-                        ) {
-                            state.values.carousel[field].items.splice(index, 1);
+                        const componentId = btn.getAttribute('data-component-id');
+                        const index = parseInt(btn.getAttribute('data-item-index'), 10);
+                        const existing = getComponentValue(componentId) || { type: 'carousel', items: [] };
+                        const items = Array.isArray(existing.items) ? existing.items.slice() : [];
+
+                        if (index >= 0) {
+                            items.splice(index, 1);
                         }
+
+                        setComponentValue(componentId, {
+                            type: 'carousel',
+                            items: items
+                        });
 
                         syncHidden();
                         renderPreview();
@@ -1417,17 +1535,17 @@ foreach ($templates as $tpl) {
                 publishPreviewCanvas.style.background = page.background_color || '#ffffff';
 
                 dndLog('renderPreview START', {
-                    imageValues: state.values.image,
-                    carouselValues: state.values.carousel,
+                    componentValues: state.values.components,
                     components: components.map(c => ({
                         type: c.type,
-                        field: componentField(c),
+                        componentId: componentKey(c),
                         x: c.x,
                         y: c.y,
                         w: c.w,
                         h: c.h
                     }))
                 });
+
                 publishPreviewCanvas.innerHTML = components.length
                     ? components.map(previewComponentMarkup).join('')
                     : '<div style="padding:40px;text-align:center;color:#6b819d;font-weight:700;">No template components found for this preview.</div>';
@@ -1450,24 +1568,25 @@ foreach ($templates as $tpl) {
                 });
             }
 
-            function openTextEditor(fieldName) {
+            function openTextEditor(componentId) {
                 dndLog('openTextEditor', {
-                    fieldName: fieldName,
-                    dynamicValue: state.values.dynamic_text[fieldName] || null
+                    componentId: componentId,
+                    dynamicValue: getComponentValue(componentId)
                 });
 
                 ensureValues();
-                state.textEditorField = fieldName;
+                state.textEditorField = componentId;
 
                 const definition = getDefinition();
-                const component = (definition.components || []).find(c => c.type === 'dynamic_text' && componentField(c) === fieldName);
+                const component = (definition.components || []).find(c => componentKey(c) === componentId);
 
-                textModalTitle.textContent = componentLabel(component || { field_name: fieldName, type: 'dynamic_text' });
-                textModalSubtitle.textContent = 'Field name: ' + fieldName;
+                textModalTitle.textContent = componentLabel(component || { type: 'dynamic_text', label: 'Dynamic Text' });
+                textModalSubtitle.textContent = 'Component ID: ' + componentId;
 
                 textModal.classList.add('is-open');
 
-                const initialHtml = state.values.dynamic_text[fieldName]?.html || component?.default_html || '<p></p>';
+                const existingValue = getComponentValue(componentId) || {};
+                const initialHtml = existingValue.html || component?.default_html || '<p></p>';
 
                 const existingEditor = tinymce.get('publishRichTextEditor');
                 if (existingEditor) {
@@ -1525,8 +1644,10 @@ foreach ($templates as $tpl) {
                 const editor = tinymce.get('publishRichTextEditor');
                 if (!editor || !state.textEditorField) return;
 
-                ensureValues();
-                state.values.dynamic_text[state.textEditorField] = { html: editor.getContent() };
+                setComponentValue(state.textEditorField, {
+                    type: 'dynamic_text',
+                    html: editor.getContent()
+                });
 
                 closeTextEditor();
                 syncHidden();

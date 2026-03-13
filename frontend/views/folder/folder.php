@@ -1737,7 +1737,7 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                         };
                         */
                         menu.publish = {
-                            label: '<span style="font-size:16px;padding-right:10px;">🗑️</span> Publish Folder',
+                            label: '<span style="font-size:16px;padding-right:10px;">&#128640;️</span> Publish Folder',
                             separator_before: true,
                             action: function() {
                                 const tree = $('#folderTree').jstree(true);

@@ -18,7 +18,7 @@ FolderAsset::register($this);
         :root {
             --app-header-height: 70px;
             --page-side-padding: 24px;
-            --page-top-gap: 18px;
+            --page-top-gap: 0px;
             --page-max-width: 1380px;
         }
 

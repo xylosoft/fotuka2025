@@ -13,38 +13,177 @@ use yii\widgets\LinkPager;
 
 $this->title = 'Website Templates';
 ?>
-<div class="template-index-page">
-    <style>
-        .template-index-page { color:#10233f; padding:24px; background:linear-gradient(180deg,#f5f8fc 0%,#eef4fb 100%); min-height:calc(100vh - 60px); }
-        .template-index-shell { max-width:1380px; margin:0 auto; }
-        .template-hero { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:24px; background:#fff; border:1px solid #dbe6f3; border-radius:20px; padding:24px 28px; box-shadow:0 20px 50px rgba(17,40,74,.08); }
-        .template-hero h1 { margin:0 0 8px; font-size:30px; font-weight:800; }
-        .template-hero p { margin:0; color:#5a6f8d; max-width:820px; line-height:1.55; }
-        .template-grid { display:grid; grid-template-columns:1fr; gap:20px; }
-        .template-card { background:#fff; border:1px solid #dbe6f3; border-radius:20px; padding:22px; box-shadow:0 18px 42px rgba(17,40,74,.06); }
-        .template-card h2 { margin:0 0 16px; font-size:21px; font-weight:800; }
-        .template-card table { width:100%; border-collapse:collapse; }
-        .template-card th,.template-card td { padding:14px 10px; border-bottom:1px solid #e7eef8; text-align:left; vertical-align:middle; }
-        .template-card th { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#6b7f9b; }
-        .template-card tr:last-child td { border-bottom:none; }
-        .template-actions { display:flex; gap:8px; flex-wrap:wrap; }
-        .btn-fotuka { display:inline-flex; align-items:center; justify-content:center; gap:8px; background:#2563eb; color:#fff; border:none; border-radius:12px; padding:10px 16px; font-weight:700; text-decoration:none; box-shadow:0 14px 26px rgba(37,99,235,.18); }
-        .btn-fotuka:hover { color:#fff; text-decoration:none; background:#1d4ed8; }
-        .btn-fotuka-secondary { background:#fff; color:#12335c; border:1px solid #dbe6f3; box-shadow:none; }
-        .btn-fotuka-secondary:hover { background:#f8fbff; color:#12335c; }
-        .btn-fotuka-danger { background:#fff5f5; color:#b42318; border:1px solid #fecaca; box-shadow:none; }
-        .flash-wrap { margin-bottom:18px; }
-        .flash-wrap .alert { border-radius:14px; border:none; padding:14px 16px; margin-bottom:14px; }
-        .muted { color:#6b7f9b; }
-        .table-empty { padding:26px; text-align:center; color:#6b7f9b; border:1px dashed #c6d5e7; border-radius:16px; background:#fafcff; }
-        .pager-shell { margin-top:18px; }
-        .pagination { display:flex; gap:8px; padding-left:0; list-style:none; }
-        .pagination li a,.pagination li span { display:inline-flex; min-width:38px; height:38px; padding:0 12px; align-items:center; justify-content:center; border-radius:10px; border:1px solid #d6e2f0; background:#fff; color:#16345b; text-decoration:none; }
-        .pagination .active a,.pagination .active span { background:#2563eb; border-color:#2563eb; color:#fff; }
-        .template-link { color:#2563eb; text-decoration:none; font-weight:700; }
-        .template-link:hover { text-decoration:underline; }
-    </style>
+<style>
+    html, body {
+        margin: 0;
+        background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
+    }
+    .template-index-page {
+        color: #10233f;
+        padding: 24px;
+        padding-top: 0;
+        margin-top: 0;
+        background: linear-gradient(180deg, #f5f8fc 0%, #eef4fb 100%);
 
+    }
+    .template-index-shell {
+        max-width:1380px;
+        margin:0 auto;
+    }
+    .template-hero {
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:18px;
+        margin-bottom:24px;
+        background:#fff;
+        border:1px solid #dbe6f3;
+        border-radius:20px;
+        padding:24px 28px;
+        box-shadow:0 20px 50px rgba(17,40,74,.08);
+    }
+    .template-hero h1 {
+        margin:0 0 8px;
+        font-size:30px;
+        font-weight:800;
+    }
+    .template-hero p {
+        margin:0;
+        color:#5a6f8d;
+        max-width:820px;
+        line-height:1.55;
+    }
+    .template-grid {
+        display:grid;
+        grid-template-columns:1fr;
+        gap:20px;
+    }
+    .template-card {
+        background:#fff;
+        border:1px solid #dbe6f3;
+        border-radius:20px;
+        padding:22px;
+        box-shadow:0 18px 42px rgba(17,40,74,.06);
+    }
+    .template-card h2 { margin:0 0 16px;
+        font-size:21px;
+        font-weight:800;
+    }
+    .template-card table {
+        width:100%;
+        border-collapse:collapse;
+    }
+    .template-card th,.template-card td {
+        padding:14px 10px;
+        border-bottom:1px solid #e7eef8;
+        text-align:left;
+        vertical-align:middle;
+    }
+    .template-card th { font-size:12px;
+        text-transform:uppercase;
+        letter-spacing:.08em;
+        color:#6b7f9b;
+    }
+    .template-card tr:last-child td {
+        border-bottom:none;
+    }
+    .template-actions {
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+    }
+    .btn-fotuka {
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+        background:#2563eb;
+        color:#fff;
+        border:none;
+        border-radius:12px;
+        padding:10px 16px;
+        font-weight:700;
+        text-decoration:none;
+        box-shadow:0 14px 26px rgba(37,99,235,.18);
+    }
+    .btn-fotuka:hover {
+        color:#fff;
+        text-decoration:none;
+        background:#1d4ed8;
+    }
+    .btn-fotuka-secondary {
+        background:#fff;
+        color:#12335c;
+        border:1px solid #dbe6f3;
+        box-shadow:none;
+    }
+    .btn-fotuka-secondary:hover {
+        background:#f8fbff;
+        color:#12335c;
+    }
+    .btn-fotuka-danger {
+        background:#fff5f5;
+        color:#b42318;
+        border:1px solid #fecaca;
+        box-shadow:none;
+    }
+    .flash-wrap {
+        margin-bottom:18px;
+    }
+    .flash-wrap .alert {
+        border-radius:14px;
+        border:none;
+        padding:14px 16px;
+        margin-bottom:14px;
+    }
+    .muted {
+        color:#6b7f9b;
+    }
+    .table-empty {
+        padding:26px;
+        text-align:center;
+        color:#6b7f9b;
+        border:1px dashed #c6d5e7;
+        border-radius:16px;
+        background:#fafcff;
+    }
+    .pager-shell {
+        margin-top:18px;
+    }
+    .pagination {
+        display:flex;
+        gap:8px;
+        padding-left:0;
+        list-style:none;
+    }
+    .pagination li a,.pagination li span {
+        display:inline-flex;
+        min-width:38px;
+        height:38px;
+        padding:0 12px;
+        align-items:center;
+        justify-content:center;
+        border-radius:10px;
+        border:1px solid #d6e2f0;
+        background:#fff;
+        color:#16345b;
+        text-decoration:none;
+    }
+    .pagination .active a,.pagination .active span {
+        background:#2563eb;
+        border-color:#2563eb;
+        color:#fff;
+    }
+    .template-link {
+        color:#2563eb;
+        text-decoration:none;
+        font-weight:700;
+    }
+    .template-link:hover {
+        text-decoration:underline;
+    }
+</style>
+<div class="template-index-page">
     <div class="template-index-shell">
         <div class="flash-wrap">
             <?php foreach (Yii::$app->session->getAllFlashes() as $type => $message): ?>

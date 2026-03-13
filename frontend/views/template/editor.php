@@ -15,12 +15,24 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 ?>
 <div class="template-editor-page">
     <style>
-        .template-editor-page {
-            box-sizing: border-box;
-            width: 100%;
+        html, body {
+            min-height: 100%;
+            margin: 0;
             background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
-            min-height: calc(100vh - var(--app-header-height, 70px) - var(--page-top-gap, 18px) - 24px);
-            padding: 20px;
+        }
+
+        .template-editor-page {
+            margin-top:18px;
+            box-sizing: border-box;
+            position: relative;
+            left: 50%;
+            right: 50%;
+            margin-left: -50vw;
+            margin-right: -50vw;
+            width: 100vw;
+            background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
+
+            padding: 0 20px 24px;
             color: #10233f;
         }
 
@@ -30,6 +42,8 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
         }
 
         .tpl-editor-shell {
+            max-width: 1200px;
+            margin: 0 auto;
             display: grid;
             grid-template-columns: 320px minmax(0, 1fr);
             gap: 20px;
@@ -158,17 +172,19 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
         }
 
         .tpl-canvas-wrap {
-            overflow-x: hidden;
-            overflow-y: hidden;
-            background: #eef4fb;
-            border: 1px solid #dce7f3;
-            border-radius: 20px;
-            padding: 24px;
+            width: 100%;
+            overflow: hidden;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            display: block;
         }
 
         .tpl-canvas-stage {
             position: relative;
-            margin: 0 auto;
+            width: 100%;
+            margin: 0;
         }
 
         .tpl-canvas {
@@ -1128,16 +1144,21 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             function applyFitZoom() {
                 const canvasWidth = state.definition.page.canvas_width || 1200;
                 const canvasHeight = getCanvasRenderHeight();
-                const availableWidth = Math.max(300, canvasWrap.clientWidth - 48);
 
-                const zoom = Math.min(1, Math.max(0.45, availableWidth / canvasWidth));
+                const wrapStyles = window.getComputedStyle(canvasWrap);
+                const horizontalPadding =
+                    (parseFloat(wrapStyles.paddingLeft) || 0) +
+                    (parseFloat(wrapStyles.paddingRight) || 0);
+
+                const availableWidth = Math.max(300, canvasWrap.clientWidth - horizontalPadding);
+
+                const zoom = Math.max(0.45, availableWidth / canvasWidth);
                 state.zoom = zoom;
 
                 canvas.style.transform = 'scale(' + zoom + ')';
-                canvasStage.style.width = Math.round(canvasWidth * zoom) + 'px';
+                canvasStage.style.width = availableWidth + 'px';
                 canvasStage.style.height = Math.round(canvasHeight * zoom) + 'px';
             }
-
             function syncSelectionClasses() {
                 const elements = canvas.querySelectorAll('.tpl-component');
 

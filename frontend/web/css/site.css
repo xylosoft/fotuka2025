@@ -183,7 +183,21 @@ a.desc:after {
     background: transparent !important;
 }
 
-.tpl-back-link {
+.breadcrum-link {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-bottom:12px;
+    color:#355a86;
+    font-size:13px;
+    font-weight:800;
+    text-decoration:none;
+}
+.breadcrum-link:hover {
+     color: #1D4ED8;
+     text-decoration: none;
+}
+.breadcrum-static {
     display:inline-flex;
     align-items:center;
     gap:6px;

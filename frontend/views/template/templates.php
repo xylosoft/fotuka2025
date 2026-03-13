@@ -20,14 +20,14 @@ $this->title = 'Website Templates';
     }
     .template-index-page {
         color: #10233f;
-        padding: 24px;
+        padding: 0px;
         padding-top: 0;
-        margin-top: 0;
+        margin-top: 24px;
         background: linear-gradient(180deg, #f5f8fc 0%, #eef4fb 100%);
 
     }
     .template-index-shell {
-        max-width:1380px;
+        min-width:1280px;
         margin:0 auto;
     }
     .template-hero {
@@ -128,7 +128,7 @@ $this->title = 'Website Templates';
         box-shadow:none;
     }
     .flash-wrap {
-        margin-bottom:18px;
+        margin-bottom:0px;
     }
     .flash-wrap .alert {
         border-radius:14px;
@@ -185,6 +185,9 @@ $this->title = 'Website Templates';
 </style>
 <div class="template-index-page">
     <div class="template-index-shell">
+        <a class="breadcrum-link" href="/folders">Folders</a>
+        &nbsp;&nbsp;/&nbsp;&nbsp;
+        <span class="breadcrum-static">Website Templates</span>
         <div class="flash-wrap">
             <?php foreach (Yii::$app->session->getAllFlashes() as $type => $message): ?>
                 <div class="alert alert-<?= Html::encode($type) ?>"><?= Html::encode($message) ?></div>

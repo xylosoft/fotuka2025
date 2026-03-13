@@ -37,10 +37,9 @@ foreach ($templates as $tpl) {
 ?>
 <div class="tpl-publish-page">
     <style>
-        html, body { background:linear-gradient(180deg,#f4f8fc 0%,#eef4fb 100%); }
+        html, body { background-color: #f4f8fc; }
         .tpl-publish-page {
             color:#10233f;
-            background:linear-gradient(180deg,#f4f8fc 0%,#eef4fb 100%);
             min-height:100vh;
             width:auto;
             margin:0;
@@ -52,10 +51,7 @@ foreach ($templates as $tpl) {
             margin:0 auto;
             padding:0 24px;
         }
-        .flash-wrap { margin-bottom:18px; }
         .flash-wrap .alert { border:none; border-radius:14px; padding:14px 16px; margin-bottom:12px; }
-
-        .tpl-back-link:hover { color:#1d4ed8; text-decoration:none; }
 
         .tpl-card {
             background:#fff;
@@ -205,7 +201,7 @@ foreach ($templates as $tpl) {
         .tpl-preview-stage {
             overflow:hidden;
             padding:18px;
-            background:linear-gradient(180deg,#eff4fb 0%,#e8eff8 100%);
+            background-color: #FFFFFF;
         }
         .tpl-preview-canvas-wrap {
             width:100%;
@@ -551,6 +547,9 @@ foreach ($templates as $tpl) {
     </style>
 
     <div class="tpl-publish-shell">
+        <a class="breadcrum-link" href="/folders">Folders</a>
+        &nbsp;&nbsp;/&nbsp;&nbsp;
+        <span class="breadcrum-static">Folder Publishing</span>
         <div class="flash-wrap">
             <?php foreach (Yii::$app->session->getAllFlashes() as $type => $message): ?>
                 <div class="alert alert-<?= Html::encode($type) ?>"><?= Html::encode($message) ?></div>
@@ -562,8 +561,6 @@ foreach ($templates as $tpl) {
             <?= Html::hiddenInput('WebsitePublication[values_json]', $publication->values_json ?: Json::encode($initialValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), ['id' => 'publicationValuesJson']) ?>
 
             <div class="tpl-card tpl-publish-hero">
-                <a class="tpl-back-link" href="/folders">← Back to Folders</a>
-
                 <div class="tpl-hero-top">
                     <div class="tpl-hero-copy">
                         <h1>Publish “<?= Html::encode($folderName) ?>”</h1>

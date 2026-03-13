@@ -13,679 +13,691 @@ $page = $definition['page'] ?? [];
 $canvasWidth = 1200;
 $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 ?>
+<style>
+    html, body {
+        min-height: 100%;
+        margin: 0;
+        background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
+    }
+
+    .template-editor-page {
+        margin-top:18px;
+        box-sizing: border-box;
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        width: 100vw;
+        background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
+
+        padding: 0 20px 24px;
+        color: #10233f;
+    }
+
+    .template-editor-page,
+    .template-editor-page * {
+        box-sizing: border-box;
+    }
+
+    .breadcrum-div{
+        padding-top:6px;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: block;
+    }
+    .tpl-editor-shell {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 20px;
+        align-items: start;
+    }
+
+    .tpl-editor-main,
+    .tpl-canvas-wrap,
+    .tpl-preview-topbar,
+    .tpl-canvas-stage {
+        min-width: 0;
+    }
+
+    .tpl-editor-panel,
+    .tpl-editor-main {
+        background: #fff;
+        border: 1px solid #dbe6f3;
+        border-radius: 22px;
+        box-shadow: 0 20px 48px rgba(17, 40, 74, 0.08);
+    }
+
+    .tpl-editor-panel {
+        position: sticky;
+        top: 20px;
+        padding: 18px;
+        max-height: calc(100vh - 40px);
+        overflow: auto;
+    }
+
+    .tpl-editor-main {
+        padding: 18px;
+    }
+
+    .tpl-form-row {
+        margin-bottom: 16px;
+    }
+
+    .tpl-form-row label {
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #627894;
+        margin-bottom: 8px;
+    }
+
+    .tpl-input {
+        width: 100%;
+        border: 1px solid #d6e1ef;
+        border-radius: 12px;
+        padding: 12px 14px;
+        font-size: 14px;
+        outline: none;
+        background: #fff;
+    }
+
+    .tpl-button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .tpl-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        border: none;
+        border-radius: 12px;
+        padding: 0 14px;
+        font-weight: 800;
+        cursor: pointer;
+        text-decoration: none;
+        transition: .2s ease;
+    }
+
+    .tpl-btn-primary {
+        background: #2563eb;
+        color: #fff;
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+    }
+
+    .tpl-btn-primary:hover {
+        background: #1d4ed8;
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .tpl-btn-secondary {
+        background: #fff;
+        color: #13355f;
+        border: 1px solid #d6e1ef;
+    }
+
+    .tpl-btn-secondary:hover {
+        background: #f8fbff;
+    }
+
+    .tpl-preview-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .tpl-preview-title h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 800;
+    }
+
+    .tpl-url-placeholder {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #f7fbff;
+        border: 1px solid #dce7f3;
+        padding: 5px;
+        border-radius: 14px;
+        min-width: 330px;
+        justify-content: center;
+        color: #5a6f8d;
+    }
+
+    .tpl-canvas-wrap {
+        width: 100%;
+        overflow: hidden;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        display: block;
+    }
+
+    .tpl-canvas-stage {
+        position: relative;
+        width: 100%;
+        margin: 0;
+    }
+
+    .tpl-canvas {
+        position: relative;
+        width: <?= $canvasWidth ?>px;
+        min-height: <?= $canvasMinHeight ?>px;
+        margin: 0;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 30px 60px rgba(17, 40, 74, .14);
+        overflow: hidden;
+        transform-origin: top left;
+    }
+
+    .tpl-empty-canvas {
+        position: absolute;
+        inset: 24px;
+        border: 2px dashed #c8d6e8;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6a809c;
+        font-size: 18px;
+        font-weight: 700;
+        pointer-events: none;
+    }
+
+    .tpl-component {
+        position: absolute;
+        border: 1px dashed transparent;
+        transition: box-shadow .16s ease, border-color .16s ease;
+        overflow: hidden;
+        border-radius: 8px;
+        background: transparent;
+        cursor: move;
+    }
+
+    .tpl-component:hover {
+        border-color: #98b7e0;
+    }
+
+    .tpl-component.is-selected {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .14);
+    }
+
+    .tpl-component-content {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .tpl-component-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(16, 35, 63, .82);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .04em;
+        z-index: 6;
+        pointer-events: none;
+    }
+
+    .tpl-component-controls {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        display: flex;
+        gap: 6px;
+        z-index: 7;
+        opacity: 0;
+        transition: opacity .15s ease;
+    }
+
+    .tpl-component:hover .tpl-component-controls,
+    .tpl-component.is-selected .tpl-component-controls {
+        opacity: 1;
+    }
+
+    .tpl-component-control {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(16, 35, 63, .82);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .tpl-component-control:hover {
+        background: #2563eb;
+    }
+
+    .tpl-placeholder-box,
+    .tpl-placeholder-gallery,
+    .tpl-placeholder-carousel {
+        width: 100%;
+        height: 100%;
+        border: 2px dashed #8fb2da;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(248, 251, 255, .98) 0%, rgba(240, 247, 255, .98) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #557193;
+        text-align: center;
+        padding: 16px;
+    }
+
+    .tpl-placeholder-carousel .inner,
+    .tpl-placeholder-gallery .inner,
+    .tpl-placeholder-box .inner {
+        width: 100%;
+    }
+
+    .tpl-carousel-sample {
+        display: grid;
+        gap: var(--tpl-carousel-gap, 12px);
+        margin: 14px auto 0;
+        grid-template-columns: repeat(4, var(--tpl-carousel-cell-size, 68px));
+        justify-content: center;
+    }
+
+    .tpl-gallery-sample {
+        display: grid;
+        gap: 10px;
+        margin: 14px auto 0;
+        width: 400px;
+        max-width: 100%;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .tpl-sample-cell {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        height: auto;
+        border: 2px dashed #b6cbe5;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .8);
+    }
+
+    .tpl-static-text-preview,
+    .tpl-dynamic-text-preview {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        box-sizing: border-box;
+        padding: 38px 12px 12px 12px;
+        color: #10233f;
+    }
+
+    .tpl-static-text-preview p,
+    .tpl-dynamic-text-preview p {
+        margin: 0 0 10px;
+    }
+
+    .tpl-static-text-preview p:last-child,
+    .tpl-dynamic-text-preview p:last-child {
+        margin-bottom: 0;
+    }
+
+    .tpl-dynamic-text-preview {
+        background: rgba(247, 250, 255, .9);
+    }
+
+    .tpl-dynamic-chip {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #e0edff;
+        color: #174a95;
+        font-size: 12px;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .tpl-section-title {
+        margin: 18px 0 12px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #657b96;
+        font-weight: 800;
+    }
+
+    .tpl-color-preview {
+        width: 100%;
+        border: 1px solid #d6e1ef;
+        border-radius: 12px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        background: #fff;
+    }
+
+    .tpl-color-swatch {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        border: 1px solid rgba(16, 35, 63, .1);
+    }
+
+    .tpl-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(14, 25, 42, .64);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 20px;
+    }
+
+    .tpl-modal-backdrop.is-open {
+        display: flex;
+    }
+
+    .tpl-modal-card {
+        width: min(920px, calc(100vw - 40px));
+        background: #fff;
+        border-radius: 22px;
+        box-shadow: 0 24px 50px rgba(0, 0, 0, .24);
+        overflow: visible;
+        position: relative;
+        z-index: 10000;
+    }
+
+    .tox-tinymce-aux,
+    .tox-menu,
+    .tox-collection,
+    .tox-collection__group,
+    .tox-dialog,
+    .tox-dialog-wrap,
+    .tox-silver-sink,
+    .tox-pop {
+        z-index: 10050 !important;
+    }
+
+    .tpl-modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 20px;
+        border-bottom: 1px solid #e6edf8;
+    }
+
+    .tpl-modal-head h3 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .tpl-modal-body {
+        padding: 20px;
+    }
+
+    .tpl-modal-close {
+        border: none;
+        background: #f3f7fc;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 20px;
+    }
+
+    .tpl-note {
+        font-size: 13px;
+        color: #637791;
+        line-height: 1.5;
+    }
+
+    .pcr-app .pcr-interaction {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .pcr-app .pcr-interaction .pcr-save,
+    .pcr-app .pcr-interaction .pcr-cancel {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 14px;
+        cursor: pointer;
+        transition: .2s ease;
+        box-shadow: none;
+        background-image: none;
+    }
+
+    .pcr-app .pcr-interaction .pcr-save {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+    }
+
+    .pcr-app .pcr-interaction .pcr-save:hover {
+        background: #1d4ed8;
+    }
+
+    .pcr-app .pcr-interaction .pcr-cancel {
+        background: #fff;
+        color: #13355f;
+        border: 1px solid #d6e1ef;
+    }
+
+    .pcr-app .pcr-interaction .pcr-cancel:hover {
+        background: #f8fbff;
+    }
+    /* Pickr popup styled closer to your site modal */
+    .pcr-app.tpl-pickr-popup {
+        border: 1px solid #dbe6f3;
+        border-radius: 22px;
+        box-shadow: 0 24px 50px rgba(0, 0, 0, .18);
+        overflow: hidden;
+        z-index: 10050 !important;
+        background: #fff;
+    }
+
+    /* Title bar */
+    .tpl-pickr-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 18px;
+        border-bottom: 1px solid #e6edf8;
+        background: #fff;
+    }
+
+    .tpl-pickr-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+        color: #10233f;
+    }
+
+    /* Slightly calmer inner spacing */
+    .pcr-app.tpl-pickr-popup .pcr-selection,
+    .pcr-app.tpl-pickr-popup .pcr-swatches,
+    .pcr-app.tpl-pickr-popup .pcr-interaction {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    /* Buttons aligned right */
+    .pcr-app.tpl-pickr-popup .pcr-interaction {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        padding-bottom: 14px;
+    }
+
+    /* Smaller, less prominent buttons */
+    .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-save,
+    .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel {
+        width: auto;
+        flex: 0 0 auto;
+        min-height: 32px;
+        padding: 0 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+        box-shadow: none;
+        background-image: none;
+        cursor: pointer;
+    }
+
+    /* Save = blue */
+    .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-save {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+    }
+
+    .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-save:hover {
+        background: #1d4ed8;
+    }
+
+    /* Cancel = white, not red */
+    .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel {
+        background: #fff !important;
+        color: #13355f !important;
+        border: 1px solid #d6e1ef !important;
+    }
+
+    .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel:hover {
+        background: #f8fbff !important;
+    }
+
+    .tpl-insert-elements-row {
+        gap: 8px;
+    }
+
+    .tpl-btn-insert {
+        min-height: 32px;
+        padding: 0 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        gap: 6px;
+    }
+
+    .tpl-btn-insert:hover {
+        background: #f4f8fd;
+    }
+    .tpl-field-error {
+        display: none;
+        margin-top: 8px;
+        color: #dc2626;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .tpl-input.has-error {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.10);
+    }
+    .tpl-color-setting-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+        min-height: 40px;
+    }
+
+    .tpl-color-setting-label {
+        font-size: 15px;
+        font-weight: 500;
+        color: #13355f;
+        text-transform: none;
+        letter-spacing: normal;
+    }
+
+    .tpl-color-swatch-btn {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .tpl-color-swatch-btn:focus {
+        outline: none;
+    }
+
+    .tpl-color-swatch-btn .tpl-color-swatch {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        border: 1px solid rgba(16, 35, 63, .12);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+    }
+    .tpl-url-placeholder-block {
+        display: flex;
+        flex-direction: column;
+        align-items: left;
+    }
+
+    .tpl-url-placeholder-note {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #6b7280;
+        font-weight: 500;
+        text-align: center;
+    }
+</style>
 <div class="template-editor-page">
-    <style>
-        html, body {
-            min-height: 100%;
-            margin: 0;
-            background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
-        }
-
-        .template-editor-page {
-            margin-top:18px;
-            box-sizing: border-box;
-            position: relative;
-            left: 50%;
-            right: 50%;
-            margin-left: -50vw;
-            margin-right: -50vw;
-            width: 100vw;
-            background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
-
-            padding: 0 20px 24px;
-            color: #10233f;
-        }
-
-        .template-editor-page,
-        .template-editor-page * {
-            box-sizing: border-box;
-        }
-
-        .tpl-editor-shell {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 320px minmax(0, 1fr);
-            gap: 20px;
-            align-items: start;
-        }
-
-        .tpl-editor-main,
-        .tpl-canvas-wrap,
-        .tpl-preview-topbar,
-        .tpl-canvas-stage {
-            min-width: 0;
-        }
-
-        .tpl-editor-panel,
-        .tpl-editor-main {
-            background: #fff;
-            border: 1px solid #dbe6f3;
-            border-radius: 22px;
-            box-shadow: 0 20px 48px rgba(17, 40, 74, 0.08);
-        }
-
-        .tpl-editor-panel {
-            position: sticky;
-            top: 20px;
-            padding: 18px;
-            max-height: calc(100vh - 40px);
-            overflow: auto;
-        }
-
-        .tpl-editor-main {
-            padding: 18px;
-        }
-
-        .tpl-form-row {
-            margin-bottom: 16px;
-        }
-
-        .tpl-form-row label {
-            display: block;
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: .08em;
-            text-transform: uppercase;
-            color: #627894;
-            margin-bottom: 8px;
-        }
-
-        .tpl-input {
-            width: 100%;
-            border: 1px solid #d6e1ef;
-            border-radius: 12px;
-            padding: 12px 14px;
-            font-size: 14px;
-            outline: none;
-            background: #fff;
-        }
-
-        .tpl-button-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .tpl-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            min-height: 42px;
-            border: none;
-            border-radius: 12px;
-            padding: 0 14px;
-            font-weight: 800;
-            cursor: pointer;
-            text-decoration: none;
-            transition: .2s ease;
-        }
-
-        .tpl-btn-primary {
-            background: #2563eb;
-            color: #fff;
-            box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
-        }
-
-        .tpl-btn-primary:hover {
-            background: #1d4ed8;
-            color: #fff;
-            text-decoration: none;
-        }
-
-        .tpl-btn-secondary {
-            background: #fff;
-            color: #13355f;
-            border: 1px solid #d6e1ef;
-        }
-
-        .tpl-btn-secondary:hover {
-            background: #f8fbff;
-        }
-
-        .tpl-preview-topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .tpl-preview-title h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 800;
-        }
-
-        .tpl-url-placeholder {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #f7fbff;
-            border: 1px solid #dce7f3;
-            padding: 5px;
-            border-radius: 14px;
-            min-width: 330px;
-            justify-content: center;
-            color: #5a6f8d;
-        }
-
-        .tpl-canvas-wrap {
-            width: 100%;
-            overflow: hidden;
-            background: transparent;
-            border: none;
-            border-radius: 0;
-            padding: 0;
-            display: block;
-        }
-
-        .tpl-canvas-stage {
-            position: relative;
-            width: 100%;
-            margin: 0;
-        }
-
-        .tpl-canvas {
-            position: relative;
-            width: <?= $canvasWidth ?>px;
-            min-height: <?= $canvasMinHeight ?>px;
-            margin: 0;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 30px 60px rgba(17, 40, 74, .14);
-            overflow: hidden;
-            transform-origin: top left;
-        }
-
-        .tpl-empty-canvas {
-            position: absolute;
-            inset: 24px;
-            border: 2px dashed #c8d6e8;
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6a809c;
-            font-size: 18px;
-            font-weight: 700;
-            pointer-events: none;
-        }
-
-        .tpl-component {
-            position: absolute;
-            border: 1px dashed transparent;
-            transition: box-shadow .16s ease, border-color .16s ease;
-            overflow: hidden;
-            border-radius: 8px;
-            background: transparent;
-            cursor: move;
-        }
-
-        .tpl-component:hover {
-            border-color: #98b7e0;
-        }
-
-        .tpl-component.is-selected {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, .14);
-        }
-
-        .tpl-component-content {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            pointer-events: none;
-        }
-
-        .tpl-component-badge {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            background: rgba(16, 35, 63, .82);
-            color: #fff;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: .04em;
-            z-index: 6;
-            pointer-events: none;
-        }
-
-        .tpl-component-controls {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            display: flex;
-            gap: 6px;
-            z-index: 7;
-            opacity: 0;
-            transition: opacity .15s ease;
-        }
-
-        .tpl-component:hover .tpl-component-controls,
-        .tpl-component.is-selected .tpl-component-controls {
-            opacity: 1;
-        }
-
-        .tpl-component-control {
-            width: 28px;
-            height: 28px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(16, 35, 63, .82);
-            color: #fff;
-            font-size: 14px;
-            font-weight: 800;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .tpl-component-control:hover {
-            background: #2563eb;
-        }
-
-        .tpl-placeholder-box,
-        .tpl-placeholder-gallery,
-        .tpl-placeholder-carousel {
-            width: 100%;
-            height: 100%;
-            border: 2px dashed #8fb2da;
-            border-radius: 12px;
-            background: linear-gradient(180deg, rgba(248, 251, 255, .98) 0%, rgba(240, 247, 255, .98) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #557193;
-            text-align: center;
-            padding: 16px;
-        }
-
-        .tpl-placeholder-carousel .inner,
-        .tpl-placeholder-gallery .inner,
-        .tpl-placeholder-box .inner {
-            width: 100%;
-        }
-
-        .tpl-carousel-sample {
-            display: grid;
-            gap: var(--tpl-carousel-gap, 12px);
-            margin: 14px auto 0;
-            grid-template-columns: repeat(4, var(--tpl-carousel-cell-size, 68px));
-            justify-content: center;
-        }
-
-        .tpl-gallery-sample {
-            display: grid;
-            gap: 10px;
-            margin: 14px auto 0;
-            width: 400px;
-            max-width: 100%;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .tpl-sample-cell {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            height: auto;
-            border: 2px dashed #b6cbe5;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, .8);
-        }
-
-        .tpl-static-text-preview,
-        .tpl-dynamic-text-preview {
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            box-sizing: border-box;
-            padding: 38px 12px 12px 12px;
-            color: #10233f;
-        }
-
-        .tpl-static-text-preview p,
-        .tpl-dynamic-text-preview p {
-            margin: 0 0 10px;
-        }
-
-        .tpl-static-text-preview p:last-child,
-        .tpl-dynamic-text-preview p:last-child {
-            margin-bottom: 0;
-        }
-
-        .tpl-dynamic-text-preview {
-            background: rgba(247, 250, 255, .9);
-        }
-
-        .tpl-dynamic-chip {
-            display: inline-flex;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: #e0edff;
-            color: #174a95;
-            font-size: 12px;
-            font-weight: 800;
-            margin-bottom: 10px;
-        }
-
-        .tpl-section-title {
-            margin: 18px 0 12px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: #657b96;
-            font-weight: 800;
-        }
-
-        .tpl-color-preview {
-            width: 100%;
-            border: 1px solid #d6e1ef;
-            border-radius: 12px;
-            padding: 12px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            background: #fff;
-        }
-
-        .tpl-color-swatch {
-            width: 26px;
-            height: 26px;
-            border-radius: 8px;
-            border: 1px solid rgba(16, 35, 63, .1);
-        }
-
-        .tpl-modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(14, 25, 42, .64);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            padding: 20px;
-        }
-
-        .tpl-modal-backdrop.is-open {
-            display: flex;
-        }
-
-        .tpl-modal-card {
-            width: min(920px, calc(100vw - 40px));
-            background: #fff;
-            border-radius: 22px;
-            box-shadow: 0 24px 50px rgba(0, 0, 0, .24);
-            overflow: visible;
-            position: relative;
-            z-index: 10000;
-        }
-
-        .tox-tinymce-aux,
-        .tox-menu,
-        .tox-collection,
-        .tox-collection__group,
-        .tox-dialog,
-        .tox-dialog-wrap,
-        .tox-silver-sink,
-        .tox-pop {
-            z-index: 10050 !important;
-        }
-
-        .tpl-modal-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            padding: 18px 20px;
-            border-bottom: 1px solid #e6edf8;
-        }
-
-        .tpl-modal-head h3 {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 800;
-        }
-
-        .tpl-modal-body {
-            padding: 20px;
-        }
-
-        .tpl-modal-close {
-            border: none;
-            background: #f3f7fc;
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 20px;
-        }
-
-        .tpl-note {
-            font-size: 13px;
-            color: #637791;
-            line-height: 1.5;
-        }
-
-        .pcr-app .pcr-interaction {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .pcr-app .pcr-interaction .pcr-save,
-        .pcr-app .pcr-interaction .pcr-cancel {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 42px;
-            padding: 0 14px;
-            border-radius: 12px;
-            font-weight: 800;
-            font-size: 14px;
-            cursor: pointer;
-            transition: .2s ease;
-            box-shadow: none;
-            background-image: none;
-        }
-
-        .pcr-app .pcr-interaction .pcr-save {
-            background: #2563eb;
-            color: #fff;
-            border: none;
-            box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
-        }
-
-        .pcr-app .pcr-interaction .pcr-save:hover {
-            background: #1d4ed8;
-        }
-
-        .pcr-app .pcr-interaction .pcr-cancel {
-            background: #fff;
-            color: #13355f;
-            border: 1px solid #d6e1ef;
-        }
-
-        .pcr-app .pcr-interaction .pcr-cancel:hover {
-            background: #f8fbff;
-        }
-        /* Pickr popup styled closer to your site modal */
-        .pcr-app.tpl-pickr-popup {
-            border: 1px solid #dbe6f3;
-            border-radius: 22px;
-            box-shadow: 0 24px 50px rgba(0, 0, 0, .18);
-            overflow: hidden;
-            z-index: 10050 !important;
-            background: #fff;
-        }
-
-        /* Title bar */
-        .tpl-pickr-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 14px 18px;
-            border-bottom: 1px solid #e6edf8;
-            background: #fff;
-        }
-
-        .tpl-pickr-title {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 800;
-            color: #10233f;
-        }
-
-        /* Slightly calmer inner spacing */
-        .pcr-app.tpl-pickr-popup .pcr-selection,
-        .pcr-app.tpl-pickr-popup .pcr-swatches,
-        .pcr-app.tpl-pickr-popup .pcr-interaction {
-            padding-left: 16px;
-            padding-right: 16px;
-        }
-
-        /* Buttons aligned right */
-        .pcr-app.tpl-pickr-popup .pcr-interaction {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 8px;
-            padding-bottom: 14px;
-        }
-
-        /* Smaller, less prominent buttons */
-        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-save,
-        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel {
-            width: auto;
-            flex: 0 0 auto;
-            min-height: 32px;
-            padding: 0 10px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: 700;
-            line-height: 1;
-            box-shadow: none;
-            background-image: none;
-            cursor: pointer;
-        }
-
-        /* Save = blue */
-        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-save {
-            background: #2563eb;
-            color: #fff;
-            border: none;
-        }
-
-        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-save:hover {
-            background: #1d4ed8;
-        }
-
-        /* Cancel = white, not red */
-        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel {
-            background: #fff !important;
-            color: #13355f !important;
-            border: 1px solid #d6e1ef !important;
-        }
-
-        .pcr-app.tpl-pickr-popup .pcr-interaction .pcr-cancel:hover {
-            background: #f8fbff !important;
-        }
-
-        .tpl-insert-elements-row {
-            gap: 8px;
-        }
-
-        .tpl-btn-insert {
-            min-height: 32px;
-            padding: 0 10px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: 700;
-            gap: 6px;
-        }
-
-        .tpl-btn-insert:hover {
-            background: #f4f8fd;
-        }
-        .tpl-field-error {
-            display: none;
-            margin-top: 8px;
-            color: #dc2626;
-            font-size: 13px;
-            font-weight: 700;
-            line-height: 1.35;
-        }
-
-        .tpl-input.has-error {
-            border-color: #dc2626;
-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.10);
-        }
-        .tpl-color-setting-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 16px;
-            min-height: 40px;
-        }
-
-        .tpl-color-setting-label {
-            font-size: 15px;
-            font-weight: 500;
-            color: #13355f;
-            text-transform: none;
-            letter-spacing: normal;
-        }
-
-        .tpl-color-swatch-btn {
-            width: 44px;
-            height: 44px;
-            padding: 0;
-            border: none;
-            background: transparent;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-
-        .tpl-color-swatch-btn:focus {
-            outline: none;
-        }
-
-        .tpl-color-swatch-btn .tpl-color-swatch {
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
-            border: 1px solid rgba(16, 35, 63, .12);
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
-        }
-        .tpl-url-placeholder-block {
-            display: flex;
-            flex-direction: column;
-            align-items: left;
-        }
-
-        .tpl-url-placeholder-note {
-            margin-top: 6px;
-            font-size: 13px;
-            color: #6b7280;
-            font-weight: 500;
-            text-align: center;
-        }
-    </style>
-
     <form id="templateEditorForm" method="post">
         <?= Html::hiddenInput(Yii::$app->request->csrfParam, Yii::$app->request->getCsrfToken()) ?>
         <input type="hidden" name="WebsiteTemplate[definition_json]" id="definitionJsonField" value="<?= Html::encode($model->definition_json) ?>">
 
+        <div class="breadcrum-div">
+            <a class="breadcrum-link" href="/folders">Folders</a>
+            &nbsp;&nbsp;/&nbsp;&nbsp;
+            <a class="breadcrum-link" href="/templates">Website Templates</a>
+            &nbsp;&nbsp;/&nbsp;&nbsp;
+            <span class="breadcrum-static">Website Template Builder<span>
+        </div>
         <div class="tpl-editor-shell">
             <div class="tpl-editor-panel">
                 <div class="tpl-form-row">

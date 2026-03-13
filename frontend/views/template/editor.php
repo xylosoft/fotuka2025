@@ -733,9 +733,11 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
             <div class="tpl-editor-main">
                 <div class="tpl-preview-topbar">
                     <div class="tpl-preview-title">
+                        <a class="tpl-back-link" href="/templates">← Back to Templates</a>
                         <div>
                             <h1>Website Template Builder</h1>
                         </div>
+
                     </div>
 
                     <div class="tpl-url-placeholder-block">

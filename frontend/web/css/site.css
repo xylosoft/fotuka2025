@@ -183,3 +183,15 @@ a.desc:after {
     background: transparent !important;
 }
 
+.tpl-back-link {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-bottom:12px;
+    color:#355a86;
+    font-size:13px;
+    font-weight:800;
+    text-decoration:none;
+}
+
+

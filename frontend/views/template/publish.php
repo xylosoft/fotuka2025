@@ -55,16 +55,6 @@ foreach ($templates as $tpl) {
         .flash-wrap { margin-bottom:18px; }
         .flash-wrap .alert { border:none; border-radius:14px; padding:14px 16px; margin-bottom:12px; }
 
-        .tpl-back-link {
-            display:inline-flex;
-            align-items:center;
-            gap:6px;
-            margin-bottom:12px;
-            color:#355a86;
-            font-size:13px;
-            font-weight:800;
-            text-decoration:none;
-        }
         .tpl-back-link:hover { color:#1d4ed8; text-decoration:none; }
 
         .tpl-card {

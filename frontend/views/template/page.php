@@ -13,7 +13,6 @@ use yii\helpers\Url;
 $this->title = $publication->page_title ?: $folderName;
 
 $page = $definition['page'] ?? [];
-$canvasWidth = (int) ($page['canvas_width'] ?? 1200);
 $canvasHeight = (int) ($page['canvas_min_height'] ?? 1500);
 $backgroundColor = $page['background_color'] ?? '#ffffff';
 $buttonColor = $page['button_color'] ?? '#2563eb';
@@ -34,7 +33,6 @@ $downloadAllUrl = Url::to(['/folder/download-all', 'id' => $publication->folder_
 $carouselAutoScrollSpeed = 55; // pixels per second
 $carouselImageGap = 0;         // pixels between carousel images
 $footerBarHeight = 34;         // pixels
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -85,8 +83,11 @@ $footerBarHeight = 34;         // pixels
 
         .pub-floating-actions {
             position: fixed;
-            top: 16px;
-            right: 16px;
+            top: 20px;
+            right: max(
+                    12px,
+                    calc((100vw - (<?= (int) 1200 ?>px + 120px)) / 2 + <?= (int) 55 ?>px)
+            );
             z-index: 60;
             display: flex;
             align-items: center;
@@ -120,13 +121,13 @@ $footerBarHeight = 34;         // pixels
         }
 
         .pub-canvas-wrap {
-            max-width: calc(<?= (int) $canvasWidth ?>px + 120px);
+            max-width: calc(<?= (int) 1200 ?>px + 120px);
             margin: 0 auto;
         }
 
         .pub-canvas {
             position: relative;
-            width: <?= (int) $canvasWidth ?>px;
+            width: <?= (int) 1200 ?>px;
             min-height: <?= (int) $canvasHeight ?>px;
             height: <?= (int) $canvasHeight ?>px;
             margin: 0 auto;
@@ -292,10 +293,6 @@ $footerBarHeight = 34;         // pixels
             cursor: default;
         }
 
-        /* =====================================
-           FOOTER
-           ===================================== */
-
         .pub-footer {
             position: fixed;
             left: 0;
@@ -311,7 +308,7 @@ $footerBarHeight = 34;         // pixels
         }
 
         .pub-footer-inner {
-            width: min(calc(<?= (int) $canvasWidth ?>px + 120px), 100%);
+            width: min(calc(<?= (int) 1200 ?>px + 30px), 100%);
             margin: 0 auto;
             padding: 0 24px;
             display: flex;
@@ -425,7 +422,7 @@ $footerBarHeight = 34;         // pixels
             }
 
             .pub-floating-actions {
-                top: 14px;
+                top: <?= (int) 20 ?>px;
                 right: 12px;
             }
         }
@@ -457,6 +454,7 @@ $footerBarHeight = 34;         // pixels
         </div>
     </div>
 </div>
+
 
 <div class="pub-footer">
     <div class="pub-footer-inner">

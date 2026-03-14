@@ -214,22 +214,6 @@ $isWideWorkspacePage = in_array($controllerId, ['folder', 'asset', 'site']);
     <div id="notification-banner" class="notification"></div>
     <?= $content ?>
 </div>
-
-<div id="new-folder-dialog" title="Create Folder" style="display:none;">
-    <div class="modal-body">
-        <label class="modal-label" for="folder-name">Folder name</label>
-        <input
-                id="folder-name"
-                type="text"
-                class="modal-input"
-                placeholder="Please enter your folder's name"
-                autocomplete="off"
-                maxlength="50"
-        />
-        <div id="folder-error" class="modal-error" style="display:none;"></div>
-    </div>
-</div>
-
 <script>
     window.closeAllFotukaMenus = function(options) {
         options = options || {};

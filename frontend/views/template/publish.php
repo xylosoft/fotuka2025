@@ -18,13 +18,24 @@ use yii\helpers\Url;
 $this->title = 'Publish Folder';
 
 $initialDefinition = $definition ?: ($template ? $template->getDefinitionArray() : WebsiteTemplate::defaultDefinition());
-$initialValues = (!$publication->isNewRecord && $publication->values_json)
+$initialDefinition = $definition ?: ($template ? $template->getDefinitionArray() : WebsiteTemplate::defaultDefinition());
+$initialValues = $publication->values_json
     ? $publication->getValuesArray()
     : ['components' => []];
 
 $initialTemplateId = !$publication->isNewRecord
     ? (int) $publication->template_id
     : (int) ($template->id ?? 0);
+
+$pageTitleValue = (string) $publication->page_title;
+if ($pageTitleValue === '' && !$publication->hasErrors('page_title')) {
+    $pageTitleValue = $folderName;
+}
+
+$uriValue = (string) $publication->uri;
+if ($uriValue === '' && !$publication->hasErrors('uri')) {
+    $uriValue = $folderDefaultSlug;
+}
 
 $templateMap = [];
 foreach ($templates as $tpl) {
@@ -94,7 +105,7 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
             display:grid;
             grid-template-columns:minmax(220px,280px) minmax(180px,240px) minmax(280px,1fr) auto;
             gap:12px;
-            align-items:end;
+            align-items:start;
         }
 
         .tpl-form-row { margin:0; }
@@ -177,6 +188,7 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
             display:flex;
             justify-content:flex-end;
             align-items:end;
+            align-self:end;
         }
 
         .btn-fotuka {
@@ -815,8 +827,25 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
             max-width: none;
             justify-self: stretch;
         }
+        .tpl-form-error {
+            display: none;
+            margin-top: 6px;
+            color: #dc2626;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.3;
+        }
 
+        .tpl-input.is-invalid,
+        .tpl-select.is-invalid,
+        .tpl-domain.is-invalid {
+            border-color: #dc2626;
+        }
 
+        .tpl-input.is-invalid:focus,
+        .tpl-select.is-invalid:focus {
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, .10);
+        }
     </style>
     <div class="tpl-publish-shell">
         <a class="breadcrum-link" href="/folders">Folders</a>
@@ -837,7 +866,9 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
                 <div class="tpl-hero-settings">
                     <div class="tpl-form-row">
                         <label for="publicationTemplateId">Template</label>
-                        <select class="tpl-select" id="publicationTemplateId" name="WebsitePublication[template_id]">
+                        <select  class="tpl-select<?= $publication->hasErrors('template_id') ? ' is-invalid' : '' ?>"
+                                id="publicationTemplateId"
+                                name="WebsitePublication[template_id]" >
                             <option value="">Select a template…</option>
                             <?php foreach ($templates as $tpl): ?>
                                 <option value="<?= (int) $tpl->id ?>" <?= $initialTemplateId === (int) $tpl->id ? 'selected' : '' ?>>
@@ -845,18 +876,47 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <div id="publicationTemplateIdError"  class="tpl-form-error"
+                            <?= $publication->hasErrors('template_id') ? '' : 'style="display:none;"' ?> >
+                            <?= Html::encode($publication->getFirstError('template_id')) ?>
+                        </div>
                     </div>
 
                     <div class="tpl-form-row">
                         <label for="publicationPageTitle">Page Title</label>
-                        <input class="tpl-input" type="text" id="publicationPageTitle" name="WebsitePublication[page_title]" value="<?= Html::encode($publication->page_title ?: $folderName) ?>" maxlength="255">
+                        <input  class="tpl-input<?= $publication->hasErrors('page_title') ? ' is-invalid' : '' ?>"
+                                type="text"
+                                id="publicationPageTitle"
+                                name="WebsitePublication[page_title]"
+                                value="<?= Html::encode($pageTitleValue) ?>"
+                                maxlength="255">
+                        <div id="publicationPageTitleError"
+                             class="tpl-form-error"
+                            <?= $publication->hasErrors('page_title') ? '' : 'style="display:none;"' ?> >
+                            <?= Html::encode($publication->getFirstError('page_title')) ?>
+                        </div>
                     </div>
 
                     <div class="tpl-form-row">
                         <label for="publicationUri">Public URI</label>
                         <div class="tpl-inline-url">
-                            <div class="tpl-domain">https://fotuka.com/page/</div>
-                            <input class="tpl-input" type="text" id="publicationUri" name="WebsitePublication[uri]" value="<?= Html::encode($publication->uri ?: $folderDefaultSlug) ?>" maxlength="255" placeholder="<?= Html::encode($folderDefaultSlug) ?>">
+                            <div
+                                    id="publicationUriDomain"
+                                    class="tpl-domain<?= $publication->hasErrors('uri') ? ' is-invalid' : '' ?>">
+                                https://fotuka.com/page/
+                            </div>
+                            <input  class="tpl-input<?= $publication->hasErrors('uri') ? ' is-invalid' : '' ?>"
+                                    type="text"
+                                    id="publicationUri"
+                                    name="WebsitePublication[uri]"
+                                    value="<?= Html::encode($uriValue) ?>"
+                                    maxlength="255"
+                                    placeholder="<?= Html::encode($folderDefaultSlug) ?>" >
+                        </div>
+                        <div  id="publicationUriError"
+                                class="tpl-form-error"
+                            <?= $publication->hasErrors('uri') ? '' : 'style="display:none;"' ?> >
+                            <?= Html::encode($publication->getFirstError('uri')) ?>
                         </div>
                     </div>
 
@@ -870,7 +930,17 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
                     </label>
 
                     <div class="tpl-form-row tpl-password-row" id="passwordRow" style="<?= (int) $publication->is_password_protected === 1 ? '' : 'display:none;' ?>">
-                        <input class="tpl-input" type="password" id="publicationPassword" name="WebsitePublication[plain_password]" value="" placeholder="<?= $publication->isNewRecord ? 'Password' : '********' ?>">
+                        <input  class="tpl-input<?= $publication->hasErrors('plain_password') ? ' is-invalid' : '' ?>"
+                                type="password"
+                                id="publicationPassword"
+                                name="WebsitePublication[plain_password]"
+                                value=""
+                                placeholder="<?= $publication->isNewRecord ? 'Password' : '********' ?>" >
+                        <div id="publicationPasswordError"
+                                class="tpl-form-error"
+                            <?= $publication->hasErrors('plain_password') ? '' : 'style="display:none;"' ?> >
+                            <?= Html::encode($publication->getFirstError('plain_password')) ?>
+                        </div>
                     </div>
 
                     <label class="tpl-check-inline tpl-download-toggle">
@@ -1018,6 +1088,18 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
             const assetPickerSelectAll = document.getElementById('assetPickerSelectAll');
             const assetPickerUnselectAll = document.getElementById('assetPickerUnselectAll');
             const assetPickerBulkActions = document.getElementById('assetPickerBulkActions');
+
+            const publishForm = document.getElementById('publishForm');
+            const pageTitleInput = document.getElementById('publicationPageTitle');
+            const uriInput = document.getElementById('publicationUri');
+            const uriDomain = document.getElementById('publicationUriDomain');
+            const passwordInput = document.getElementById('publicationPassword');
+
+            const templateError = document.getElementById('publicationTemplateIdError');
+            const pageTitleError = document.getElementById('publicationPageTitleError');
+            const uriError = document.getElementById('publicationUriError');
+            const passwordError = document.getElementById('publicationPasswordError');
+
 
             function deepClone(obj) {
                 return JSON.parse(JSON.stringify(obj));
@@ -1893,8 +1975,17 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
             });
 
             protectedCheckbox.addEventListener('change', function () {
+                clearFieldError(passwordInput, passwordError);
                 passwordRow.style.display = protectedCheckbox.checked ? '' : 'none';
             });
+
+            passwordInput.addEventListener('input', function () {
+                if (passwordError.style.display !== 'none') {
+                    validatePasswordField();
+                }
+            });
+
+            passwordInput.addEventListener('blur', validatePasswordField);
 
             closeTextModal.addEventListener('click', closeTextEditor);
             cancelTextModal.addEventListener('click', closeTextEditor);
@@ -1952,14 +2043,120 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
             });
 
             publishForm.addEventListener('submit', function (e) {
-                const templateId = String(templateSelect.value || '').trim();
+                const result = validatePublishForm();
 
-                if (!templateId) {
-                    e.preventDefault();
-                    showPageToast('Please select a template before publishing.', 'error', 4000);
-                    templateSelect.focus();
+                if (result.valid) {
+                    return;
+                }
+
+                e.preventDefault();
+
+                if (result.firstInvalidField) {
+                    result.firstInvalidField.focus();
                 }
             });
+
+            function setFieldError(field, errorNode, message, extraNodes = []) {
+                if (field) {
+                    field.classList.add('is-invalid');
+                }
+
+                extraNodes.forEach(function (node) {
+                    if (node) {
+                        node.classList.add('is-invalid');
+                    }
+                });
+
+                if (errorNode) {
+                    errorNode.textContent = message;
+                    errorNode.style.display = 'block';
+                }
+            }
+
+            function clearFieldError(field, errorNode, extraNodes = []) {
+                if (field) {
+                    field.classList.remove('is-invalid');
+                }
+
+                extraNodes.forEach(function (node) {
+                    if (node) {
+                        node.classList.remove('is-invalid');
+                    }
+                });
+
+                if (errorNode) {
+                    errorNode.textContent = '';
+                    errorNode.style.display = 'none';
+                }
+            }
+
+            function validateRequiredField(field, errorNode, message, extraNodes = []) {
+                const value = String(field?.value || '').trim();
+
+                if (value === '') {
+                    setFieldError(field, errorNode, message, extraNodes);
+                    return false;
+                }
+
+                clearFieldError(field, errorNode, extraNodes);
+                return true;
+            }
+
+            function validatePasswordField() {
+                if (!protectedCheckbox.checked) {
+                    clearFieldError(passwordInput, passwordError);
+                    return true;
+                }
+
+                return validateRequiredField(
+                    passwordInput,
+                    passwordError,
+                    'Please enter a Password'
+                );
+            }
+
+            function validatePublishForm() {
+                const checks = [
+                    {
+                        valid: validateRequiredField(
+                            templateSelect,
+                            templateError,
+                            'Please select a Template'
+                        ),
+                        field: templateSelect
+                    },
+                    {
+                        valid: validateRequiredField(
+                            pageTitleInput,
+                            pageTitleError,
+                            'Please enter a Page Title'
+                        ),
+                        field: pageTitleInput
+                    },
+                    {
+                        valid: validateRequiredField(
+                            uriInput,
+                            uriError,
+                            'Please select a Public URI for your page',
+                            [uriDomain]
+                        ),
+                        field: uriInput
+                    },
+                    {
+                        valid: validatePasswordField(),
+                        field: passwordInput
+                    }
+                ];
+
+                const failed = checks.find(function (item) {
+                    return !item.valid;
+                });
+
+                return {
+                    valid: !failed,
+                    firstInvalidField: failed ? failed.field : null
+                };
+            }
 
             normalizeAllAssets();
             renderAll();

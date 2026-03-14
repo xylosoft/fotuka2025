@@ -181,59 +181,85 @@ class TemplateController extends Controller
                 ?? 0
             );
 
-            if ($selectedTemplateId <= 0) {
-                Yii::$app->session->setFlash('error', 'Please select a template before publishing.');
-                return $this->refresh();
-            }
-
-            $template = $this->findTemplate($selectedTemplateId);
-            $definition = $template->getDefinitionArray();
-
-            $publishDefaults = $definition['publish_defaults'] ?? [
-                    'is_password_protected' => false,
-                    'allow_download_all' => false,
-                ];
-
-            if ($publication->isNewRecord) {
-                $publication->is_password_protected = !empty($publishDefaults['is_password_protected']) ? 1 : 0;
-                $publication->allow_download_all = !empty($publishDefaults['allow_download_all']) ? 1 : 0;
-            }
-
+            $pageTitle = trim((string) ($wpPost['page_title'] ?? ''));
             $uri = trim((string) ($wpPost['uri'] ?? ''));
-            $pageTitle = trim((string) ($wpPost['page_title'] ?? $this->resolveFolderName($folder)));
             $isProtected = !empty($wpPost['is_password_protected']) ? 1 : 0;
             $allowDownloadAll = !empty($wpPost['allow_download_all']) ? 1 : 0;
-
-            $decodedValues = $this->normalizePublicationValuesForDefinition(
-                $wpPost['values_json'] ?? '{}',
-                $definition
-            );
-
-            $valuesJson = Json::encode($decodedValues, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $plainPassword = trim((string) ($wpPost['plain_password'] ?? ''));
 
             $publication->folder_id = (int) $id;
-            $publication->template_id = $template->id;
+            $publication->template_id = $selectedTemplateId ?: null;
             $publication->page_title = $pageTitle;
-            $publication->uri = $uri ?: $this->defaultFolderSlug($folder);
+            $publication->uri = $uri;
             $publication->is_password_protected = $isProtected;
             $publication->allow_download_all = $allowDownloadAll;
-            $publication->plain_password = (string) ($wpPost['plain_password'] ?? '');
-            $publication->template_snapshot_json = Json::encode($definition, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            $publication->values_json = $valuesJson;
+            $publication->plain_password = $plainPassword;
+            $publication->values_json = (string) ($wpPost['values_json'] ?? Json::encode([
+                    'components' => [],
+                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
-            try {
-                if (!$publication->save()) {
-                    Yii::$app->session->setFlash('error', 'Please review the publishing form and try again.');
-                } else {
-                    Yii::$app->session->setFlash('success', 'Folder published successfully.');
-                    return $this->redirect(['templates']);
+            $hasErrors = false;
+
+            if ($selectedTemplateId <= 0) {
+                $publication->addError('template_id', 'Please select a Template');
+                $hasErrors = true;
+            }
+
+            if ($pageTitle === '') {
+                $publication->addError('page_title', 'Please enter a Page Title');
+                $hasErrors = true;
+            }
+
+            if ($uri === '') {
+                $publication->addError('uri', 'Please select a Public URI for your page');
+                $hasErrors = true;
+            }
+
+            if ($isProtected === 1 && $plainPassword === '') {
+                $publication->addError('plain_password', 'Please enter a Password');
+                $hasErrors = true;
+            }
+
+            if ($selectedTemplateId > 0) {
+                $template = $this->findTemplate($selectedTemplateId);
+                $definition = $template->getDefinitionArray();
+
+                $decodedValues = $this->normalizePublicationValuesForDefinition(
+                    $wpPost['values_json'] ?? '{}',
+                    $definition
+                );
+
+                $publication->template_snapshot_json = Json::encode(
+                    $definition,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                );
+
+                $publication->values_json = Json::encode(
+                    $decodedValues,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                );
+            } elseif (!$definition) {
+                $definition = $publication->getSnapshotArray() ?: WebsiteTemplate::defaultDefinition();
+            }
+
+            if ($hasErrors) {
+                Yii::$app->session->setFlash('error', 'Please fix the highlighted problems and try again.');
+            } else {
+                try {
+                    if (!$publication->save()) {
+                        Yii::$app->session->setFlash('error', 'Please review the publishing form and try again.');
+                    } else {
+                        Yii::$app->session->setFlash('success', 'Folder published successfully.');
+                        return $this->redirect(['templates']);
+                    }
+                } catch (\Throwable $e) {
+                    error_log($e->getMessage());
+                    error_log($e->getTraceAsString());
+                    Yii::$app->session->setFlash('error', 'An unexpected error occurred while publishing.');
                 }
-            } catch (\Throwable $e) {
-                error_log($e->getMessage());
-                error_log($e->getTraceAsString());
-                Yii::$app->session->setFlash('error', 'An unexpected error occurred while publishing.');
             }
         }
+
 
         $templates = WebsiteTemplate::findActive()->orderBy(['name' => SORT_ASC])->all();
         $assets = $this->fetchAssets($id);

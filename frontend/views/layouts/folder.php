@@ -162,7 +162,7 @@ FolderAsset::register($this);
         const publishToastStack = document.getElementById('publishToastStack');
 
 
-        function showPageToast(message, type = 'success', duration = 4000) {
+        function showBanner(message, type = 'success', duration = 4000) {
             if (!publishToastStack) return;
 
             clearTimeout(toastHideTimer);
@@ -198,7 +198,7 @@ FolderAsset::register($this);
 
             messages.forEach(function (message) {
                 setTimeout(function () {
-                    showPageToast(message, type, 4000);
+                    showBanner(message, type, 4000);
                 }, delay);
                 delay += 250;
             });

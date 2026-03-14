@@ -76,17 +76,18 @@ $footerBarHeight = 34;         // pixels
         a { color: inherit; }
 
         .pub-shell {
+            position: relative;
             min-height: 100vh;
             background: var(--page-bg);
             padding-bottom: calc(var(--footer-h) + 12px);
         }
 
         .pub-floating-actions {
-            position: fixed;
-            top: 20px;
+            position: absolute;
+            top: 10px;   /* adjust as needed */
             right: max(
                     12px,
-                    calc((100vw - (<?= (int) 1200 ?>px + 120px)) / 2 + <?= (int) 55 ?>px)
+                    calc((100vw - (1200px + 120px)) / 2 + 55px)
             );
             z-index: 60;
             display: flex;

@@ -254,9 +254,9 @@ $this->title = 'Website Templates';
                         <thead>
                         <tr>
                             <th>Folder</th>
-                            <th>URI</th>
+                            <th>Publishing Name</th>
                             <th>Template</th>
-                            <th>Updated</th>
+                            <th>Publish Date</th>
                             <th style="width:280px;">Actions</th>
                         </tr>
                         </thead>
@@ -268,13 +268,13 @@ $this->title = 'Website Templates';
                                     <span class="muted">Folder ID #<?= (int) $publication->folder_id ?></span>
                                 </td>
                                 <td>
-                                    <a class="template-link" href="<?= Url::to(['page', 'uri' => $publication->uri]) ?>" target="_blank">/pages/<?= Html::encode($publication->uri) ?></a>
+                                    <a target="_blank" class="template-link" href="<?= Url::to(['page', 'uri' => $publication->uri]) ?>" target="_blank"><?= $publication->page_title ?></a>
                                 </td>
                                 <td><?= Html::encode($publication->template ? $publication->template->name : ('Template #' . $publication->template_id)) ?></td>
-                                <td><?= date('M j, Y g:i a', (int) $publication->updated_at) ?></td>
+                                <td><?= date('M j, Y g:i a', (int) $publication->created_at) ?></td>
                                 <td>
                                     <div class="template-actions">
-                                        <a class="btn-fotuka btn-fotuka-secondary" href="/publish/<?= $publication->folder_id ?>/<?= $publication->id ?>">Edit</a>
+                                        <a class="btn-fotuka btn-fotuka-secondary" href="/publish/<?= $publication->folder_id ?>">Edit</a>
                                         <a class="btn-fotuka btn-fotuka-danger" href="<?= Url::to(['publication-delete', 'id' => $publication->id]) ?>" onclick="return confirm('Delete this published page? The public page will no longer be available for anyone.');">Delete</a>
                                     </div>
                                 </td>

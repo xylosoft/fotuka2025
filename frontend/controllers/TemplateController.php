@@ -105,7 +105,7 @@ class TemplateController extends Controller
 
                 if ($model->save()) {
                     Yii::$app->session->setFlash('success', 'Template saved successfully.');
-                    return $this->redirect(['template-editor', 'id' => $model->id]);
+                    return $this->redirect(['templates']    );
                 }
 
                 Yii::$app->session->setFlash('error', 'Please fix the highlighted problems and save again.');
@@ -137,7 +137,7 @@ class TemplateController extends Controller
         return $this->redirect(['templates']);
     }
 
-    public function actionPublish($id, $template_id = null, $publication_id = null)
+    public function actionPublish($id, $template_id = null)
     {
         $this->layout = 'folder';
         $folder = $this->fetchFolder($id);
@@ -150,13 +150,9 @@ class TemplateController extends Controller
         $template = null;
         $definition = null;
 
-        if ($publication_id) {
-            $publication = $this->findPublication($publication_id);
-        } else {
-            $publication = WebsitePublication::findActive()
-                ->andWhere(['folder_id' => (int) $id])
-                ->one();
-        }
+        $publication = WebsitePublication::findActive()
+            ->andWhere(['folder_id' => (int) $id])
+            ->one();
 
         if ($publication) {
             $template = $publication->template;
@@ -169,7 +165,6 @@ class TemplateController extends Controller
         }
 
         if (Yii::$app->request->isPost) {
-            $rawPost = Yii::$app->request->post();
             $wpPost = Yii::$app->request->post('WebsitePublication', []);
 
             if (!$publication) {
@@ -234,12 +229,18 @@ class TemplateController extends Controller
                     return $this->redirect(['templates']);
                 }
             } catch (\Throwable $e) {
+                error_log($e->getMessage());
+                error_log($e->getTraceAsString());
                 Yii::$app->session->setFlash('error', 'An unexpected error occurred while publishing.');
             }
         }
 
         $templates = WebsiteTemplate::findActive()->orderBy(['name' => SORT_ASC])->all();
         $assets = $this->fetchAssets($id);
+
+        // TODO: Review
+        $customerId = (int) Yii::$app->user->identity->customer_id;
+        $assets = $this->buildPublishPickerAssets($assets, $customerId);
 
         return $this->render('publish', [
             'folder' => $folder,
@@ -386,23 +387,47 @@ class TemplateController extends Controller
             return [];
         }
 
-        $rows = (new Query())
-            ->from('assets')
-            ->where(['folder_id' => (int) $folderId])
-            ->andWhere(['deleted' => null])
-            ->orderBy(['id' => SORT_DESC])
-            ->all();
+        $customerId = $this->currentCustomerId();
+        $userId = $this->currentUserId();
 
-        return array_map(function ($row) {
-            return [
-                'id' => $row['id'] ?? null,
-                'title' => $row['title'] ?? $row['filename'] ?? ('Asset #' . ($row['id'] ?? '')),
-                'filename' => $row['filename'] ?? $row['title'] ?? '',
-                'preview_url' => $row['preview_url'] ?? '',
-                'thumbnail_url' => $row['thumbnail_url'] ?? '',
-                'file_type' => $row['file_type'] ?? $row['mime_type'] ?? '',
-            ];
-        }, $rows);
+        $query = (new Query())
+            ->select([
+                'asset_id' => 'a.id',
+                'status' => 'a.status',
+                'title' => 'a.title',
+                'description' => 'a.description',
+                'thumbnail_url' => 'a.thumbnail_url',
+                'preview_url' => 'a.preview_url',
+                'type' => 'f.type',
+                'width' => 'f.width',
+                'height' => 'f.height',
+                'filename' => 'f.filename',
+                'extension' => 'f.extension',
+                'orientation' => 'f.orientation',
+            ])
+            ->from(['a' => 'assets'])
+            ->innerJoin(['f' => 'files'], 'f.id = a.file_id')
+            ->where([
+                'a.folder_id' => (int) $folderId,
+                'a.deleted' => null,
+                'a.status' => 'active',
+                'f.type' => 'image',
+            ])
+            ->orderBy(['a.id' => SORT_DESC]);
+
+        if ($customerId) {
+            $query->andWhere([
+                'a.customer_id' => $customerId,
+                'f.customer_id' => $customerId,
+            ]);
+        } elseif ($userId) {
+            $query->andWhere([
+                'a.user_id' => $userId,
+                'f.user_id' => $userId,
+            ]);
+        }
+
+        return $query->all();
     }
 
     protected function resolveFolderNameFromId($folderId)
@@ -530,5 +555,101 @@ class TemplateController extends Controller
         return [
             'components' => $components,
         ];
+    }
+
+    private function buildPublishPickerAssets(array $assets, int $customerId): array
+    {
+        $assetIds = [];
+
+        foreach ($assets as $asset) {
+            $assetId = (int) ($asset['asset_id'] ?? $asset['id'] ?? 0);
+            if ($assetId > 0) {
+                $assetIds[] = $assetId;
+            }
+        }
+
+        $assetIds = array_values(array_unique($assetIds));
+
+        $labelsByAsset = [];
+
+        if ($assetIds) {
+            $labelRows = (new Query())
+                ->select([
+                    'asset_id' => 'al.asset_id',
+                    'label_name' => 'l.name',
+                ])
+                ->from(['al' => 'asset_labels'])
+                ->innerJoin(['l' => 'labels'], 'l.id = al.label_id')
+                ->where([
+                    'al.customer_id' => $customerId,
+                    'al.asset_id' => $assetIds,
+                ])
+                ->orderBy(['l.name' => SORT_ASC])
+                ->all();
+
+            foreach ($labelRows as $row) {
+                $assetId = (int) ($row['asset_id'] ?? 0);
+                $labelName = trim((string) ($row['label_name'] ?? ''));
+
+                if ($assetId > 0 && $labelName !== '') {
+                    $labelsByAsset[$assetId][] = $labelName;
+                }
+            }
+        }
+
+        $result = [];
+
+        foreach ($assets as $asset) {
+            $assetId = (int) ($asset['asset_id'] ?? $asset['id'] ?? 0);
+            if ($assetId <= 0) {
+                continue;
+            }
+
+            $status = strtolower(trim((string) ($asset['status'] ?? 'active')));
+            if ($status !== 'active') {
+                continue;
+            }
+
+            $fileCategory = strtolower(trim((string) (
+                $asset['type']
+                ?? $asset['file_category']
+                ?? $asset['file_kind']
+                ?? $asset['file_type_group']
+                ?? ''
+            )));
+
+            $mimeType = strtolower(trim((string) ($asset['file_type'] ?? $asset['mime_type'] ?? '')));
+
+            $isImage = (
+                $fileCategory === 'image'
+                || strpos($mimeType, 'image/') === 0
+            );
+
+            if (!$isImage) {
+                continue;
+            }
+
+            $width = (int) ($asset['width'] ?? 0);
+            $height = (int) ($asset['height'] ?? 0);
+
+            $result[] = [
+                'asset_id' => $assetId,
+                'title' => (string) ($asset['title'] ?? ''),
+                'description' => (string) ($asset['description'] ?? ''),
+                'filename' => (string) ($asset['filename'] ?? ''),
+                'extension' => strtolower((string) (
+                    $asset['extension']
+                    ?? pathinfo((string) ($asset['filename'] ?? ''), PATHINFO_EXTENSION)
+                )),
+                'orientation' => strtolower((string) ($asset['orientation'] ?? '')),
+                'width' => $width,
+                'height' => $height,
+                'thumbnail_url' => (string) ($asset['thumbnail_url'] ?? ''),
+                'preview_url' => (string) ($asset['preview_url'] ?? ''),
+                'labels' => array_values(array_unique($labelsByAsset[$assetId] ?? [])),
+            ];
+        }
+
+        return $result;
     }
 }

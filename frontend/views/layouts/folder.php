@@ -151,6 +151,7 @@ $isWideWorkspacePage = in_array($controllerId, ['folder', 'asset', 'site']);
 ?>
 
 <div class="layout-page <?= $isWideWorkspacePage ? 'layout-page--wide' : 'layout-page--centered' ?>">
+    <div id="notification-banner" class="notification"></div>
     <?= $content ?>
 </div>
 

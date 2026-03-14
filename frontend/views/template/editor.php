@@ -693,7 +693,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
 
         <div class="breadcrum-div">
             <a class="breadcrum-link" href="/folders">Folders</a>
-            &nbsp;&nbsp;/&nbsp;&nbsp;
+            &nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;
             <a class="breadcrum-link" href="/templates">Website Templates</a>
             &nbsp;&nbsp;/&nbsp;&nbsp;
             <span class="breadcrum-static">Website Template Builder<span>

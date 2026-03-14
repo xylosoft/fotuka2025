@@ -34,10 +34,13 @@ foreach ($templates as $tpl) {
         'definition' => $tpl->getDefinitionArray(),
     ];
 }
+$assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLabelPartialMatch'] ?? true);
+
 ?>
 <div class="tpl-publish-page">
     <style>
         html, body { background-color: #f4f8fc; }
+
         .tpl-publish-page {
             color:#10233f;
             min-height:100vh;
@@ -47,11 +50,18 @@ foreach ($templates as $tpl) {
         }
 
         .tpl-publish-shell {
-            max-width:1380px;
+            max-width:1200px;
             margin:0 auto;
             padding:0 24px;
         }
-        .flash-wrap .alert { border:none; border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+
+        .tpl-publish-grid {
+            display:block;
+        }
+
+        .tpl-main-col {
+            width:100%;
+        }
 
         .tpl-card {
             background:#fff;
@@ -65,6 +75,7 @@ foreach ($templates as $tpl) {
             margin-bottom:20px;
             padding:22px 24px 20px;
         }
+
         .tpl-hero-top {
             display:flex;
             justify-content:space-between;
@@ -72,7 +83,12 @@ foreach ($templates as $tpl) {
             gap:20px;
             margin-bottom:5px;
         }
-        .tpl-hero-copy h1 { margin:0 0 8px; font-size:30px; font-weight:800; }
+
+        .tpl-hero-copy h1 {
+            margin:0 0 8px;
+            font-size:30px;
+            font-weight:800;
+        }
 
         .tpl-hero-settings {
             display:grid;
@@ -80,7 +96,9 @@ foreach ($templates as $tpl) {
             gap:12px;
             align-items:end;
         }
+
         .tpl-form-row { margin:0; }
+
         .tpl-form-row label {
             display:block;
             margin-bottom:6px;
@@ -90,6 +108,7 @@ foreach ($templates as $tpl) {
             color:#25476f;
             text-transform:uppercase;
         }
+
         .tpl-input,
         .tpl-select {
             width:100%;
@@ -103,17 +122,20 @@ foreach ($templates as $tpl) {
             outline:none;
             box-shadow:inset 0 1px 2px rgba(16,35,63,.03);
         }
+
         .tpl-input:focus,
         .tpl-select:focus {
             border-color:#2563eb;
             box-shadow:0 0 0 4px rgba(37,99,235,.12);
         }
+
         .tpl-inline-url {
             display:grid;
             grid-template-columns:auto 1fr;
             gap:10px;
             align-items:center;
         }
+
         .tpl-inline-url .tpl-domain {
             padding:10px 12px;
             border:1px solid #cfdded;
@@ -126,6 +148,7 @@ foreach ($templates as $tpl) {
             display:flex;
             align-items:center;
         }
+
         .tpl-check-inline {
             display:inline-flex;
             align-items:center;
@@ -139,19 +162,23 @@ foreach ($templates as $tpl) {
             font-size:13px;
             font-weight:700;
             justify-self:start;
-            width:auto;
+            width:100%;
             max-width:320px;
         }
+
         .tpl-check-inline input { margin:0; }
+
         .tpl-password-row {
             min-width:180px;
             max-width:260px;
         }
+
         .tpl-hero-actions {
             display:flex;
             justify-content:flex-end;
             align-items:end;
         }
+
         .btn-fotuka {
             display:inline-flex;
             align-items:center;
@@ -168,10 +195,31 @@ foreach ($templates as $tpl) {
             box-shadow:0 14px 26px rgba(37,99,235,.18);
             cursor:pointer;
         }
-        .btn-fotuka:hover { color:#fff; text-decoration:none; background:#1d4ed8; }
-        .btn-fotuka-secondary { background:#fff; color:#15355e; border:1px solid #d5e2f1; box-shadow:none; }
-        .btn-fotuka-secondary:hover { background:#f7fbff; }
-        .btn-fotuka-danger { background:#fff4f4; color:#b42318; border:1px solid #fecaca; box-shadow:none; }
+
+        .btn-fotuka:hover {
+            color:#fff;
+            text-decoration:none;
+            background:#1d4ed8;
+        }
+
+        .btn-fotuka-secondary {
+            background:#fff;
+            color:#15355e;
+            border:1px solid #d5e2f1;
+            box-shadow:none;
+        }
+
+        .btn-fotuka-secondary:hover {
+            background:#f7fbff;
+        }
+
+        .btn-fotuka-danger {
+            background:#fff4f4;
+            color:#b42318;
+            border:1px solid #fecaca;
+            box-shadow:none;
+        }
+
         .tpl-pill {
             display:inline-flex;
             align-items:center;
@@ -182,60 +230,84 @@ foreach ($templates as $tpl) {
             font-size:12px;
             font-weight:800;
         }
+
         .tpl-muted { color:#6a7d98; }
 
-        .tpl-publish-grid {
-            display:grid;
-            grid-template-columns:minmax(0,1fr) 420px;
-            gap:20px;
-            align-items:start;
+        .tpl-card-header {
+            padding:18px 22px 12px;
+            border-bottom:1px solid #ebf1f8;
         }
 
-        .tpl-card-header { padding:18px 22px 12px; border-bottom:1px solid #ebf1f8; }
-        .tpl-card-header h2 { margin:0; font-size:20px; font-weight:800; }
-        .tpl-card-header p { margin:6px 0 0; color:#69809f; line-height:1.5; }
+        .tpl-card-header h2 {
+            margin:0;
+            font-size:20px;
+            font-weight:800;
+        }
+
+        .tpl-card-header p {
+            margin:6px 0 0;
+            color:#69809f;
+            line-height:1.5;
+        }
+
         .tpl-card-body { padding:18px 22px 22px; }
 
-        .tpl-preview-card { position:sticky; top:20px; }
+        .tpl-preview-card {
+            position:relative;
+            top:0;
+        }
+
         .tpl-preview-stage {
             overflow:hidden;
-            padding:18px;
-            background-color: #FFFFFF;
+            padding:22px 22px 5px;
+            background:#fff;
         }
+
         .tpl-preview-canvas-wrap {
             width:100%;
             display:flex;
             justify-content:center;
             align-items:flex-start;
-            overflow:hidden;
+            overflow:hidden
         }
-        .tpl-preview-canvas-scale { transform-origin:top center; }
+
+        .tpl-preview-canvas-scale {
+            transform-origin:top center;
+        }
+
         .tpl-preview-canvas {
             position:relative;
             background:#fff;
-            border:1px solid #dbe6f3;
+            border:none;
             border-radius:18px;
             overflow:hidden;
-            box-shadow:0 20px 44px rgba(17,40,74,.08);
+            box-shadow:none;
         }
 
-        .tpl-public-item { position:absolute; overflow:hidden; }
+        .tpl-public-item {
+            position:absolute;
+            overflow:hidden;
+        }
+
         .tpl-public-static,
         .tpl-public-text {
             background:transparent;
             border-radius:14px;
             cursor:pointer;
         }
+
         .tpl-public-text {
             cursor:pointer;
             outline:2px dashed transparent;
             outline-offset:-6px;
             transition:outline-color .15s ease, background .15s ease;
         }
+
         .tpl-public-text:hover {
             outline-color:#9bb9df;
             background:rgba(255,255,255,.55);
         }
+
         .tpl-preview-text-inner {
             width:100%;
             height:100%;
@@ -243,6 +315,7 @@ foreach ($templates as $tpl) {
             padding:6px;
             pointer-events:none;
         }
+
         .tpl-preview-edit-tag {
             position:absolute;
             top:10px;
@@ -263,18 +336,23 @@ foreach ($templates as $tpl) {
             border-radius:16px;
             background:#f8fbff;
             overflow:hidden;
+            cursor:pointer;
+            transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
         }
+
+        .tpl-public-media:hover,
+        .tpl-public-gallery:hover {
+            border-color:#97b7dc;
+            box-shadow:0 0 0 4px rgba(37,99,235,.08);
+        }
+
         .tpl-public-media.is-filled,
         .tpl-public-gallery.is-filled {
             border-style:solid;
             border-color:#dbe6f3;
             background:#fff;
         }
-        .tpl-public-media.is-over {
-            border-color:#2563eb;
-            background:#eef5ff;
-            box-shadow:0 0 0 4px rgba(37,99,235,.12);
-        }
+
         .tpl-public-placeholder {
             width:100%;
             height:100%;
@@ -286,9 +364,16 @@ foreach ($templates as $tpl) {
             padding:16px;
             font-weight:700;
             line-height:1.5;
-            font-size: 24px;
+            font-size:24px;
         }
-        .tpl-public-placeholder small { display:block; margin-top:6px; font-size:12px; font-weight:700; }
+
+        .tpl-public-placeholder small {
+            display:block;
+            margin-top:6px;
+            font-size:12px;
+            font-weight:700;
+        }
+
         .tpl-preview-remove {
             position:absolute;
             top:10px;
@@ -307,6 +392,11 @@ foreach ($templates as $tpl) {
             box-shadow:0 8px 16px rgba(0,0,0,.15);
         }
 
+        .tpl-preview-remove,
+        .tpl-preview-thumb-remove {
+            pointer-events:auto;
+        }
+
         .tpl-public-media > img,
         .tpl-public-gallery > img {
             width:100%;
@@ -314,6 +404,7 @@ foreach ($templates as $tpl) {
             object-fit:cover;
             display:block;
         }
+
         .tpl-preview-thumb-remove {
             position:absolute;
             top:5px;
@@ -330,6 +421,7 @@ foreach ($templates as $tpl) {
             line-height:1;
             cursor:pointer;
         }
+
         .tpl-preview-count {
             position:absolute;
             top:10px;
@@ -343,12 +435,13 @@ foreach ($templates as $tpl) {
             font-weight:800;
         }
 
-        .tpl-preview-carousel-grid {
+        .tpl-preview-carousel-grid,
+        .tpl-preview-gallery-grid {
             width:100%;
             display:grid;
             grid-template-columns:repeat(6,minmax(0,1fr));
             gap:8px;
-            padding:50px 8px 8px;
+            padding:50px 8px 40px;
             align-content:start;
             box-sizing:border-box;
         }
@@ -369,132 +462,302 @@ foreach ($templates as $tpl) {
             display:block;
         }
 
-        .tpl-preview-gallery-summary {
-            position:absolute;
+        .tpl-lightbox {
+            position:fixed;
             inset:0;
-            display:flex;
-            flex-direction:column;
+            z-index:10010;
+            background:rgba(10,18,31,.68);
+            display:none;
             align-items:center;
             justify-content:center;
-            text-align:center;
-            padding:16px 22px 14px;
-            gap:8px;
-            color:#4b6485;
+            padding:24px;
         }
 
-        .tpl-preview-gallery-summary-subtitle {
-            max-width:560px;
+        .tpl-lightbox.is-open {
+            display:flex;
+        }
+
+        .tpl-lightbox-dialog {
+            position:relative;
+            border:1px solid #dbe6f3;
+            border-radius:22px;
+            box-shadow:0 24px 60px rgba(17,40,74,.20);
+            overflow:hidden;
+            display:flex;
+            flex-direction:column;
+        }
+
+        .tpl-lightbox-btn.close {
+            position:absolute;
+            top:14px;
+            right:14px;
+            z-index:4;
+            width:34px;
+            height:34px;
+            border:none;
+            border-radius:999px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+            font-size:20px;
+            font-weight:800;
+            line-height:1;
+        }
+
+        .tpl-picker-modal {
+            position:fixed;
+            inset:0;
+            z-index:10020;
+            background:rgba(10,18,31,.58);
+            display:none;
+            align-items:center;
+            justify-content:center;
+            padding:24px;
+        }
+
+        .tpl-picker-modal.is-open {
+            display:flex;
+        }
+
+        .tpl-picker-dialog {
+            width:min(1040px, 92vw);
+            height:min(76vh, 660px);
+            background:#fff;
+            border:1px solid #dbe6f3;
+            border-radius:22px;
+            box-shadow:0 24px 60px rgba(17,40,74,.18);
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+        }
+
+        .tpl-picker-header {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+            padding:18px 22px 12px;
+            border-bottom:1px solid #e7eef8;
+        }
+
+        .tpl-picker-header h2 {
+            margin:0;
+            font-size:26px;
+            font-weight:800;
+            color:#14345c;
+        }
+
+        .tpl-picker-close {
+            width:36px;
+            height:36px;
+            border:none;
+            border-radius:999px;
+            background:#edf4fb;
+            color:#16355c;
+            font-size:19px;
+            font-weight:800;
+            cursor:pointer;
+            line-height:1;
+        }
+
+        .tpl-picker-toolbar {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:14px;
+            padding:14px 22px 8px;
+        }
+
+        .tpl-picker-search-wrap {
+            width:min(360px, 100%);
+            margin:0 auto;
+            position:relative;
+        }
+
+        .tpl-picker-search-icon {
+            position:absolute;
+            left:110px;
+            top:19px;
+            transform:translateY(-50%);
+            color:#94a3b8;
             font-size:24px;
-            line-height:1.45;
-            color:#6b7f99;
+            line-height:1;
+            pointer-events:none;
+        }
+
+        .tpl-picker-search-input {
+            margin-left: 100px;
+            width:100%;
+            height:48px;
+            padding:0 18px 0 35px;
+            border:1px solid #d8e2ef;
+            border-radius:14px;
+            background:#fff;
+            color:#10233f;
+            font-size:16px;
+            outline:none;
+            box-shadow:inset 0 1px 2px rgba(16,35,63,.03);
+        }
+
+        .tpl-picker-search-input:focus {
+            border-color:#2563eb;
+            box-shadow:0 0 0 4px rgba(37,99,235,.12);
+        }
+
+        .tpl-picker-bulk-actions {
+            display:flex;
+            gap:10px;
+            flex-shrink:0;
+        }
+
+        .tpl-picker-bulk-btn {
+            min-height:34px;
+            padding:0 16px;
+            border:2px solid #7c8293;
+            border-radius:14px;
+            background:#fff;
+            color:#4a5568;
+            font-size:14px;
+            font-weight:700;
+            cursor:pointer;
+            line-height:1;
+        }
+
+        .tpl-picker-bulk-btn[disabled] {
+            opacity:.45;
+            cursor:default;
+        }
+
+        .tpl-picker-meta {
+            min-height:22px;
+            padding:0 22px 10px;
+            color:#64748b;
+            font-size:14px;
             font-weight:700;
         }
 
-        .tpl-preview-gallery-summary-subtitle small {
-            display:block;
-            margin-top:8px;
-            font-size:12px;
-            font-weight:800;
-            color:#527199;
+        .tpl-picker-body {
+            flex:1;
+            min-height:0;
+            overflow-y:auto;
+            overflow-x:hidden;
+            padding:0 22px 18px;
         }
 
-        .tpl-asset-list {
+        .tpl-picker-grid {
             display:grid;
-            grid-template-columns:repeat(3,minmax(0,1fr));
-            gap:10px;
+            grid-template-columns:repeat(auto-fill, minmax(126px, 126px));
+            gap:14px;
+            align-content:start;
+            justify-content:start;
         }
-        .tpl-asset-card {
+
+        .tpl-picker-card {
+            position:relative;
+            width:126px;
             border:1px solid #dbe6f3;
-            border-radius:14px;
+            border-radius:20px;
             background:#fff;
+            padding:10px;
+            cursor:pointer;
+            transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+        }
+
+        .tpl-picker-card:hover {
+            transform:translateY(-1px);
+            box-shadow:0 14px 26px rgba(16,35,63,.08);
+        }
+
+        .tpl-picker-card.is-selected {
+            border-color:#8fb1f0;
+            box-shadow:0 0 0 4px rgba(37,99,235,.18);
+        }
+
+        .tpl-picker-check {
+            position:absolute;
+            top:10px;
+            left:10px;
+            width:18px;
+            height:18px;
+            border-radius:6px;
+            border:2px solid rgba(121,128,147,.66);
+            background:#fff;
+            box-shadow:0 6px 14px rgba(17,40,74,.12);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            z-index:2;
+        }
+
+        .tpl-picker-card.is-selected .tpl-picker-check {
+            border-color:#2563eb;
+            background:#2563eb;
+            color:#fff;
+        }
+
+        .tpl-picker-check svg {
+            width:10px;
+            height:10px;
+            display:block;
+        }
+
+        .tpl-picker-thumb {
+            width:100%;
+            aspect-ratio:1 / 1;
+            border-radius:18px;
             overflow:hidden;
-            cursor:grab;
-            transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease;
-            user-select:none;
-            -webkit-user-select:none;
+            background:#edf3fb;
         }
-        .tpl-asset-card:active {
-            cursor:grabbing;
-        }
-        .tpl-asset-card:hover { transform:translateY(-1px); box-shadow:0 14px 26px rgba(16,35,63,.08); }
-        .tpl-asset-card.is-selected { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
-        .tpl-asset-thumb {
-            height:110px;
-            pointer-events:none;
-        }
-        .tpl-asset-thumb img {
+
+        .tpl-picker-thumb img {
             width:100%;
             height:100%;
             object-fit:cover;
             display:block;
-            pointer-events:none;
-            user-select:none;
-            -webkit-user-drag:none;
         }
-        .tpl-asset-empty {
-            font-size:12px;
-            color:#6e83a0;
-            padding:12px;
-            text-align:center;
-            line-height:1.35;
-        }
-        .tpl-lightbox {
-            position:fixed;
-            inset:0;
-            background:rgba(6,16,29,.84);
-            z-index:9999;
-            display:none;
-            align-items:center;
-            justify-content:center;
-            padding:42px;
-        }
-        .tpl-lightbox.is-open { display:flex; }
-        .tpl-lightbox-dialog {
-            position:relative;
-            width:min(1100px,92vw);
-            height:min(80vh,780px);
-            border-radius:24px;
-            background:#09121f;
-            box-shadow:0 24px 70px rgba(0,0,0,.35);
-            overflow:hidden;
-        }
-        .tpl-lightbox-dialog img {
+
+        .tpl-picker-empty-thumb {
             width:100%;
             height:100%;
-            object-fit:contain;
-            display:block;
-            background:#09121f;
-        }
-        .tpl-lightbox-btn {
-            position:absolute;
-            top:18px;
-            width:44px;
-            height:44px;
-            border:none;
-            border-radius:999px;
-            background:rgba(255,255,255,.13);
-            color:#fff;
-            font-size:20px;
-            font-weight:800;
-            cursor:pointer;
-            backdrop-filter:blur(10px);
-        }
-        .tpl-lightbox-btn.close { right:18px; }
-        .tpl-lightbox-btn.prev { top:50%; left:18px; transform:translateY(-50%); }
-        .tpl-lightbox-btn.next { top:50%; right:18px; transform:translateY(-50%); }
-        .tpl-lightbox-caption {
-            position:absolute;
-            left:22px;
-            right:82px;
-            bottom:18px;
-            padding:12px 14px;
-            border-radius:14px;
-            background:rgba(255,255,255,.12);
-            color:#fff;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            color:#6b819d;
+            font-size:12px;
             font-weight:700;
-            white-space:nowrap;
-            overflow:hidden;
-            text-overflow:ellipsis;
+            text-align:center;
+            padding:8px;
+        }
+
+        .tpl-picker-empty {
+            min-height:280px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            text-align:center;
+            color:#6b819d;
+            font-size:18px;
+            font-weight:700;
+            border:1px dashed #cfdbeb;
+            border-radius:18px;
+            background:#fafcff;
+        }
+
+        .tpl-picker-footer {
+            display:flex;
+            justify-content:flex-end;
+            gap:10px;
+            padding:14px 22px 18px;
+            border-top:1px solid #e7eef8;
+        }
+
+        .tpl-picker-modal .btn-fotuka,
+        .tpl-picker-modal .btn-fotuka-secondary {
+            min-height:38px;
+            padding:9px 15px;
+            border-radius:12px;
+            box-shadow:none;
         }
 
         .tpl-empty-state {
@@ -505,50 +768,46 @@ foreach ($templates as $tpl) {
             color:#6b819d;
             background:#fafcff;
         }
+
         .tpl-public-media > img,
         .tpl-public-media > .tpl-public-placeholder,
         .tpl-public-media > .tpl-preview-count,
         .tpl-public-media > .tpl-preview-carousel-grid,
         .tpl-public-gallery > .tpl-public-placeholder,
-        .tpl-public-gallery > .tpl-preview-gallery-summary {
+        .tpl-public-gallery > .tpl-preview-count,
+        .tpl-public-gallery > .tpl-preview-gallery-grid {
             pointer-events:none;
         }
 
-        .tpl-preview-remove,
-        .tpl-preview-thumb-remove {
-            pointer-events:auto;
+        @media (max-width:1400px) {
+            .tpl-hero-settings {
+                grid-template-columns:repeat(2,minmax(240px,1fr));
+            }
+
+            .tpl-hero-actions {
+                justify-content:flex-start;
+            }
         }
 
-        @media (max-width:1400px) {
-            .tpl-publish-grid { grid-template-columns:minmax(0,1fr) 380px; }
-            .tpl-hero-settings { grid-template-columns:repeat(2,minmax(240px,1fr)); }
-            .tpl-hero-actions { justify-content:flex-start; }
-        }
-        @media (max-width:1180px) {
-            .tpl-publish-grid { grid-template-columns:1fr; }
-            .tpl-preview-card { position:relative; top:0; }
-        }
         @media (max-width:900px) {
             .tpl-publish-shell { padding:0 16px; }
             .tpl-publish-hero { padding:18px; }
             .tpl-hero-top { flex-direction:column; }
             .tpl-hero-settings { grid-template-columns:1fr; }
-            .tpl-asset-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
-        .tpl-public-media.is-over {
-            border-color:#2563eb;
-            background:#eef5ff;
-            box-shadow:0 0 0 4px rgba(37,99,235,.12);
-        }
+
         .tpl-toast-stack {
-            position:fixed;
-            inset:0;
-            z-index:12000;
-            pointer-events:none;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            padding:24px;
+            position: fixed;
+            top: 100px;
+            left: 0;
+            right: 0;
+            z-index: 12000;
+            pointer-events: none;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 0 24px;
+            top:70px;
         }
 
         .tpl-toast {
@@ -576,16 +835,88 @@ foreach ($templates as $tpl) {
             color:#a61b1b;
             border:1px solid #dde3ea;
         }
+        .tpl-toast--success {
+            background:#e8f7ec;
+            color:#1f7a39;
+            border:1px solid #bfe3c8;
+        }
+        .tpl-protect-toggle {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .tpl-password-row {
+            grid-column: 2;
+            grid-row: 2;
+            width: 100%;
+            justify-self: start;
+        }
+
+        .tpl-download-toggle {
+            grid-column: 3;
+            grid-row: 2;
+            width: 210px;
+            max-width: none;
+            justify-self: stretch;
+        }
+
 
     </style>
+    <script>
+        let toastHideTimer = null;
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, function (m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
 
+        function showPageToast(message, type = 'success', duration = 4000) {
+            if (!publishToastStack) return;
+
+            clearTimeout(toastHideTimer);
+
+            publishToastStack.innerHTML = `
+                    <div class="tpl-toast tpl-toast--${escapeHtml(type)}" role="status">
+                        ${escapeHtml(message)}
+                    </div>`;
+
+            const toast = publishToastStack.querySelector('.tpl-toast');
+            if (!toast) return;
+
+            requestAnimationFrame(function () {
+                toast.classList.add('is-visible');
+            });
+
+            toastHideTimer = setTimeout(function () {
+                toast.classList.remove('is-visible');
+
+                setTimeout(function () {
+                    if (publishToastStack.contains(toast)) {
+                        publishToastStack.innerHTML = '';
+                    }
+                }, 180);
+            }, duration);
+        }
+    </script>
+    <div id="publishToastStack" class="tpl-toast-stack" aria-live="polite" aria-atomic="true"></div>
     <div class="tpl-publish-shell">
         <a class="breadcrum-link" href="/folders">Folders</a>
         &nbsp;&nbsp;/&nbsp;&nbsp;
         <span class="breadcrum-static">Folder Publishing</span>
+
         <div class="flash-wrap">
             <?php foreach (Yii::$app->session->getAllFlashes() as $type => $message): ?>
-                <div class="alert alert-<?= Html::encode($type) ?>"><?= Html::encode($message) ?></div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showPageToast("<?= Html::encode($message) ?>", "<?=Html::encode($type)?>");
+                });
+            </script>
             <?php endforeach; ?>
         </div>
 
@@ -606,7 +937,9 @@ foreach ($templates as $tpl) {
                         <select class="tpl-select" id="publicationTemplateId" name="WebsitePublication[template_id]">
                             <option value="">Select a template…</option>
                             <?php foreach ($templates as $tpl): ?>
-                                <option value="<?= (int) $tpl->id ?>" <?= $initialTemplateId === (int) $tpl->id ? 'selected' : '' ?>><?= Html::encode($tpl->name) ?></option>
+                                <option value="<?= (int) $tpl->id ?>" <?= $initialTemplateId === (int) $tpl->id ? 'selected' : '' ?>>
+                                    <?= Html::encode($tpl->name) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -628,22 +961,20 @@ foreach ($templates as $tpl) {
                         <button type="submit" class="btn-fotuka">Publish Folder</button>
                     </div>
 
-                    <label class="tpl-check-inline">
+                    <label class="tpl-check-inline tpl-protect-toggle">
                         <input type="checkbox" id="publicationProtected" name="WebsitePublication[is_password_protected]" value="1" <?= (int) $publication->is_password_protected === 1 ? 'checked' : '' ?>>
                         <span>Password protect this page</span>
                     </label>
 
                     <div class="tpl-form-row tpl-password-row" id="passwordRow" style="<?= (int) $publication->is_password_protected === 1 ? '' : 'display:none;' ?>">
-                        <label for="publicationPassword">Password</label>
-                        <input class="tpl-input" type="text" id="publicationPassword" name="WebsitePublication[plain_password]" value="" placeholder="<?= $publication->isNewRecord ? 'Enter a password' : 'Leave blank to keep current password' ?>">
+                        <input class="tpl-input" type="password" id="publicationPassword" name="WebsitePublication[plain_password]" value="" placeholder="<?= $publication->isNewRecord ? 'Password' : '********' ?>">
                     </div>
 
-                    <label class="tpl-check-inline">
+                    <label class="tpl-check-inline tpl-download-toggle">
                         <input type="checkbox" name="WebsitePublication[allow_download_all]" value="1" <?= (int) $publication->allow_download_all === 1 ? 'checked' : '' ?>>
-                        <span>Show “Download All” button</span>
+                        <span>Allow Downloads</span>
                     </label>
 
-                    <div></div>
                 </div>
             </div>
 
@@ -652,7 +983,6 @@ foreach ($templates as $tpl) {
                     <div class="tpl-card tpl-preview-card">
                         <div class="tpl-card-header">
                             <h2>Live Preview</h2>
-                            <p>Drop onto images from the Folder Assets to the desired component.<br/> Click editable text blocks to open the editor.</p>
                         </div>
                         <div class="tpl-preview-stage" id="previewStage">
                             <div id="previewCanvasWrap" class="tpl-preview-canvas-wrap">
@@ -663,30 +993,19 @@ foreach ($templates as $tpl) {
                         </div>
                     </div>
                 </div>
-
-                <div class="tpl-right-col">
-                    <div class="tpl-card">
-                        <div class="tpl-card-header">
-                            <h2>Folder Assets</h2>
-                        </div>
-                        <div class="tpl-card-body">
-                            <div id="assetGallery" class="tpl-asset-list"></div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </form>
     </div>
 
-    <div id="publishTextModal" class="tpl-lightbox" style="background:rgba(10,18,31,.68);">
-        <div class="tpl-lightbox-dialog" style="background:#fff; height:min(86vh,860px); width:min(1100px,96vw);">
+    <div id="publishTextModal" class="tpl-lightbox">
+        <div class="tpl-lightbox-dialog" style="background:#fff; height:420px; width:800px;">
             <button type="button" class="tpl-lightbox-btn close" id="closeTextModal" style="color:#16355c; background:rgba(11,38,73,.08);">✕</button>
-            <div style="padding:24px 26px 18px; border-bottom:1px solid #e7eef8;">
+            <div style="padding:22px 24px 16px; border-bottom:1px solid #e7eef8;">
                 <div class="tpl-pill" id="textModalType">Publish-Time Text</div>
                 <h2 id="textModalTitle" style="margin:12px 0 0; font-size:28px; font-weight:800; color:#14345c;"></h2>
                 <p id="textModalSubtitle" class="tpl-muted" style="margin:8px 0 0;"></p>
             </div>
-            <div style="padding:20px 26px 24px; height:calc(100% - 120px); display:flex; flex-direction:column; gap:16px;">
+            <div style="padding:16px 22px 18px; height:calc(100% - 106px); display:flex; flex-direction:column; gap:12px;">
                 <textarea id="publishRichTextEditor"></textarea>
                 <div style="display:flex; justify-content:flex-end; gap:10px;">
                     <button type="button" class="btn-fotuka btn-fotuka-secondary" id="cancelTextModal">Cancel</button>
@@ -696,13 +1015,44 @@ foreach ($templates as $tpl) {
         </div>
     </div>
 
-    <div id="assetLightbox" class="tpl-lightbox">
-        <div class="tpl-lightbox-dialog">
-            <button type="button" class="tpl-lightbox-btn close" id="lightboxClose">✕</button>
-            <button type="button" class="tpl-lightbox-btn prev" id="lightboxPrev">‹</button>
-            <button type="button" class="tpl-lightbox-btn next" id="lightboxNext">›</button>
-            <img id="lightboxImage" src="" alt="">
-            <div id="lightboxCaption" class="tpl-lightbox-caption"></div>
+    <div id="assetPickerModal" class="tpl-picker-modal">
+        <div class="tpl-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="assetPickerTitle">
+            <div class="tpl-picker-header">
+                <h2 id="assetPickerTitle">Asset Selection</h2>
+                <button type="button" class="tpl-picker-close" id="assetPickerClose" aria-label="Close">✕</button>
+            </div>
+
+            <div class="tpl-picker-toolbar">
+                <div class="tpl-picker-search-wrap">
+                    <span class="tpl-picker-search-icon" aria-hidden="true">⌕</span>
+                    <input
+                            type="text"
+                            id="assetPickerSearch"
+                            class="tpl-picker-search-input"
+                            placeholder="Search Images"
+                            autocomplete="off"
+                    >
+                </div>
+
+                <div class="tpl-picker-bulk-actions" id="assetPickerBulkActions">
+                    <button type="button" class="tpl-picker-bulk-btn" id="assetPickerSelectAll">Select All</button>
+                    <button type="button" class="tpl-picker-bulk-btn" id="assetPickerUnselectAll">Unselect All</button>
+                </div>
+            </div>
+
+            <div class="tpl-picker-meta" id="assetPickerMeta"></div>
+
+            <div class="tpl-picker-body">
+                <div id="assetPickerEmpty" class="tpl-picker-empty" style="display:none;">
+                    No image assets matched your search.
+                </div>
+                <div id="assetPickerGrid" class="tpl-picker-grid"></div>
+            </div>
+
+            <div class="tpl-picker-footer">
+                <button type="button" class="btn-fotuka btn-fotuka-secondary" id="assetPickerCancel">Cancel</button>
+                <button type="button" class="btn-fotuka" id="assetPickerInsert">Insert</button>
+            </div>
         </div>
     </div>
 
@@ -711,64 +1061,72 @@ foreach ($templates as $tpl) {
     <script>
         (function () {
             const templates = <?= Json::htmlEncode($templateMap) ?>;
-            const assets = <?= Json::htmlEncode(array_values($assets)) ?>;
+            const rawAssets = <?= Json::htmlEncode(array_values($assets)) ?>;
+            const assetPickerLabelPartialMatch = <?= $assetPickerLabelPartialMatch ? 'true' : 'false' ?>;
             const initialDefinition = <?= Json::htmlEncode($initialDefinition) ?>;
+
+            const PREVIEW_GRID_COLS = 6;
+            const PREVIEW_GRID_GAP = 8;
+            const PREVIEW_GRID_PAD_X = 8;
+            const PREVIEW_MULTI_TOP_PAD = 34;
+            const PREVIEW_MULTI_BOTTOM_PAD = 40;
+            const PREVIEW_ROW_SPACING = 18;
+
             const state = {
                 selectedTemplateId: <?= Json::htmlEncode((string) $initialTemplateId) ?>,
                 values: <?= Json::htmlEncode($initialValues) ?>,
-                selectedAssetId: null,
-                draggingAssetId: null,
-                draggingAsset: null,
-                previewScale: 1,
+                definition: initialDefinition,
                 textEditorField: null,
-                lightboxItems: assets.filter(a => (a.preview_url || a.thumbnail_url)),
-                lightboxIndex: 0
+                assetPicker: {
+                    isOpen: false,
+                    componentId: null,
+                    mode: 'multiple',
+                    query: '',
+                    allAssets: [],
+                    visibleAssets: [],
+                    selectedIds: new Set()
+                }
             };
+
             const templateSelect = document.getElementById('publicationTemplateId');
+            const publishToastStack = document.getElementById('publishToastStack');
             const valuesJsonInput = document.getElementById('publicationValuesJson');
-            const assetGallery = document.getElementById('assetGallery');
             const publishPreviewCanvas = document.getElementById('publishPreviewCanvas');
             const previewScale = document.getElementById('previewScale');
             const previewStage = document.getElementById('previewStage');
             const previewCanvasWrap = document.getElementById('previewCanvasWrap');
             const protectedCheckbox = document.getElementById('publicationProtected');
             const passwordRow = document.getElementById('passwordRow');
+
             const textModal = document.getElementById('publishTextModal');
             const closeTextModal = document.getElementById('closeTextModal');
             const cancelTextModal = document.getElementById('cancelTextModal');
             const saveTextModal = document.getElementById('saveTextModal');
             const textModalTitle = document.getElementById('textModalTitle');
             const textModalSubtitle = document.getElementById('textModalSubtitle');
-            const lightbox = document.getElementById('assetLightbox');
-            const lightboxImage = document.getElementById('lightboxImage');
-            const lightboxCaption = document.getElementById('lightboxCaption');
-            const lightboxClose = document.getElementById('lightboxClose');
-            const lightboxPrev = document.getElementById('lightboxPrev');
-            const lightboxNext = document.getElementById('lightboxNext');
-            const PREVIEW_GRID_COLS = 6;
-            const PREVIEW_GRID_GAP = 8;
-            const PREVIEW_GRID_PAD_X = 8;
-            const PREVIEW_CAROUSEL_PAD_TOP = 42;
-            const PREVIEW_GALLERY_PAD_TOP = 8;
-            const PREVIEW_GRID_PAD_BOTTOM = 44;
-            const PREVIEW_ROW_SPACING = 18;
-            const PREVIEW_GALLERY_FIXED_HEIGHT = 450;
 
-            function escapeHtml(value) {
-                return String(value ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
-            }
-
-            function slugify(value) {
-                return String(value || '')
-                    .toLowerCase()
-                    .trim()
-                    .replace(/[^a-z0-9-_]+/g, '-')
-                    .replace(/-+/g, '-')
-                    .replace(/^-|-$/g, '');
-            }
+            const assetPickerModal = document.getElementById('assetPickerModal');
+            const assetPickerClose = document.getElementById('assetPickerClose');
+            const assetPickerCancel = document.getElementById('assetPickerCancel');
+            const assetPickerInsert = document.getElementById('assetPickerInsert');
+            const assetPickerSearch = document.getElementById('assetPickerSearch');
+            const assetPickerGrid = document.getElementById('assetPickerGrid');
+            const assetPickerEmpty = document.getElementById('assetPickerEmpty');
+            const assetPickerMeta = document.getElementById('assetPickerMeta');
+            const assetPickerSelectAll = document.getElementById('assetPickerSelectAll');
+            const assetPickerUnselectAll = document.getElementById('assetPickerUnselectAll');
+            const assetPickerBulkActions = document.getElementById('assetPickerBulkActions');
 
             function deepClone(obj) {
                 return JSON.parse(JSON.stringify(obj));
+            }
+
+            function componentKey(component) {
+                return String(component && component.id ? component.id : '');
+            }
+
+            function componentLabel(component) {
+                return component?.label || component?.field_name || component?.type || 'component';
             }
 
             function getSelectedTemplate() {
@@ -798,72 +1156,6 @@ foreach ($templates as $tpl) {
                 };
             }
 
-            function componentKey(component) {
-                return String(component && component.id ? component.id : '');
-            }
-
-            function componentLabel(component) {
-                return component.label || component.field_name || component.type || 'component';
-            }
-
-            function getComponentValue(componentOrId) {
-                ensureValues();
-                const key = typeof componentOrId === 'string' ? componentOrId : componentKey(componentOrId);
-                return key && state.values.components[key] ? state.values.components[key] : null;
-            }
-
-            function setComponentValue(componentOrId, payload) {
-                ensureValues();
-                const key = typeof componentOrId === 'string' ? componentOrId : componentKey(componentOrId);
-                if (!key) return;
-                state.values.components[key] = payload;
-            }
-
-            function deleteComponentValue(componentOrId) {
-                ensureValues();
-                const key = typeof componentOrId === 'string' ? componentOrId : componentKey(componentOrId);
-                if (!key) return;
-                delete state.values.components[key];
-            }
-
-            function isLikelyImage(asset) {
-                const type = String(asset.file_type || asset.mime_type || '').toLowerCase();
-                if (!type) return !!(asset.preview_url || asset.thumbnail_url);
-                return type.indexOf('image/') === 0;
-            }
-
-            function getAssetKey(asset) {
-                if (!asset) return '';
-                return String(asset.asset_id ?? asset.id ?? '');
-            }
-
-            function normalizeAsset(asset) {
-                if (!asset) return null;
-
-                const key = asset.asset_id ?? asset.id ?? null;
-
-                return {
-                    asset_id: key,
-                    title: asset.title || asset.filename || ('Asset #' + (key || '')),
-                    filename: asset.filename || '',
-                    preview_url: asset.preview_url || asset.thumbnail_url || '',
-                    thumbnail_url: asset.thumbnail_url || asset.preview_url || '',
-                    file_type: asset.file_type || asset.mime_type || ''
-                };
-            }
-
-            function assetById(assetId) {
-                return assets.find(a => String(a.asset_id ?? a.id ?? '') === String(assetId)) || null;
-            }
-
-            function galleryAssets() {
-                return assets
-                    .filter(isLikelyImage)
-                    .map(normalizeAsset)
-                    .filter(Boolean)
-                    .filter(a => a.preview_url || a.thumbnail_url);
-            }
-
             function ensureValues() {
                 if (!state.values || typeof state.values !== 'object' || Array.isArray(state.values)) {
                     state.values = {};
@@ -891,7 +1183,7 @@ foreach ($templates as $tpl) {
                         ? legacy.gallery
                         : {};
 
-                    components.forEach(component => {
+                    components.forEach(function (component) {
                         const key = componentKey(component);
                         const field = String(component.field_name || '');
 
@@ -928,7 +1220,6 @@ foreach ($templates as $tpl) {
                         if (component.type === 'gallery' && legacyGallery[field]) {
                             migrated[key] = {
                                 type: 'gallery',
-                                auto_folder_gallery: legacyGallery[field].auto_folder_gallery ? 1 : 0,
                                 items: Array.isArray(legacyGallery[field].items)
                                     ? deepClone(legacyGallery[field].items.filter(Boolean))
                                     : []
@@ -940,270 +1231,355 @@ foreach ($templates as $tpl) {
                         components: migrated
                     };
                 }
-
-                syncAutoGalleryValues();
             }
 
-            function syncAutoGalleryValues() {
-                if (syncingAutoGalleryValues) {
-                    return;
-                }
+            function getComponentValue(componentOrId) {
+                ensureValues();
+                const key = typeof componentOrId === 'string' ? componentOrId : componentKey(componentOrId);
+                return key && state.values.components[key] ? state.values.components[key] : null;
+            }
 
-                syncingAutoGalleryValues = true;
+            function setComponentValue(componentOrId, payload) {
+                ensureValues();
+                const key = typeof componentOrId === 'string' ? componentOrId : componentKey(componentOrId);
+                if (!key) return;
+                state.values.components[key] = payload;
+            }
 
-                try {
-                    if (!state.values || typeof state.values !== 'object' || Array.isArray(state.values)) {
-                        state.values = {};
-                    }
-
-                    if (!state.values.components || typeof state.values.components !== 'object' || Array.isArray(state.values.components)) {
-                        state.values.components = {};
-                    }
-
-                    const definition = getDefinition();
-                    const galleryComponents = Array.isArray(definition.components) ? definition.components.filter(component => component.type === 'gallery'): [];
-                    const items = galleryAssets();
-
-                    galleryComponents.forEach(component => {
-                        const key = componentKey(component);
-                        if (!key) return;
-
-                        state.values.components[key] = {
-                            type: 'gallery',
-                            auto_folder_gallery: 1,
-                            items: deepClone(items)
-                        };
-                    });
-                } finally {
-                    syncingAutoGalleryValues = false;
-                }
+            function deleteComponentValue(componentOrId) {
+                ensureValues();
+                const key = typeof componentOrId === 'string' ? componentOrId : componentKey(componentOrId);
+                if (!key) return;
+                delete state.values.components[key];
             }
 
             function syncHidden() {
                 valuesJsonInput.value = JSON.stringify(state.values);
             }
 
+            function normalizeAsset(asset) {
+                if (!asset) return null;
 
-            function openLightboxByAssetId(assetId) {
-                const index = state.lightboxItems.findIndex(item => String(item.asset_id) === String(assetId));
-                if (index === -1) return;
-                state.lightboxIndex = index;
-                renderLightbox();
-                lightbox.classList.add('is-open');
+                const assetId = asset.asset_id ?? asset.id ?? null;
+                if (!assetId) return null;
+
+                const width = parseInt(asset.width || 0, 10) || 0;
+                const height = parseInt(asset.height || 0, 10) || 0;
+
+                return {
+                    asset_id: String(assetId),
+                    title: String(asset.title || ''),
+                    description: String(asset.description || ''),
+                    filename: String(asset.filename || ''),
+                    extension: String(asset.extension || ''),
+                    orientation: String(asset.orientation || '').toLowerCase(),
+                    width: width,
+                    height: height,
+                    thumbnail_url: String(asset.thumbnail_url || ''),
+                    preview_url: String(asset.preview_url || ''),
+                    labels: Array.isArray(asset.labels) ? asset.labels.map(function (v) { return String(v || ''); }) : []
+                };
             }
 
-            function renderLightbox() {
-                const item = state.lightboxItems[state.lightboxIndex];
-                if (!item) return;
-                lightboxImage.src = item.preview_url || item.thumbnail_url || '';
-                lightboxCaption.textContent = item.title || item.filename || '';
+            function getAssetKey(asset) {
+                return String(asset?.asset_id ?? asset?.id ?? '');
             }
 
-            function closeLightbox() {
-                lightbox.classList.remove('is-open');
+            function normalizeAllAssets() {
+                state.assetPicker.allAssets = rawAssets
+                    .map(normalizeAsset)
+                    .filter(Boolean)
+                    .filter(function (asset) {
+                        return !!getAssetKey(asset);
+                    });
+
+                state.assetPicker.visibleAssets = state.assetPicker.allAssets.slice();
             }
 
-            function previousLightbox() {
-                if (!state.lightboxItems.length) return;
-                state.lightboxIndex = (state.lightboxIndex - 1 + state.lightboxItems.length) % state.lightboxItems.length;
-                renderLightbox();
+            function componentPickerMode(component) {
+                return component?.type === 'image' ? 'single' : 'multiple';
             }
 
-            function nextLightbox() {
-                if (!state.lightboxItems.length) return;
-                state.lightboxIndex = (state.lightboxIndex + 1) % state.lightboxItems.length;
-                renderLightbox();
+            function getSelectedAssetIdsForComponent(componentId) {
+                const bucket = getComponentValue(componentId) || null;
+                if (!bucket) return [];
+
+                if (bucket.type === 'image' && bucket.asset) {
+                    const assetId = getAssetKey(bucket.asset);
+                    return assetId ? [assetId] : [];
+                }
+
+                if ((bucket.type === 'carousel' || bucket.type === 'gallery') && Array.isArray(bucket.items)) {
+                    return bucket.items
+                        .map(function (item) { return getAssetKey(item); })
+                        .filter(Boolean);
+                }
+
+                return [];
             }
 
-            function assetCardMarkup(asset) {
+            function searchTokens(query) {
+                return String(query || '')
+                    .toLowerCase()
+                    .trim()
+                    .split(/\s+/)
+                    .filter(Boolean);
+            }
+
+            function assetMatchesToken(asset, token) {
+                const width = parseInt(asset.width || 0, 10) || 0;
+                const height = parseInt(asset.height || 0, 10) || 0;
+
+                const searchableFields = [
+                    String(asset.title || '').toLowerCase(),
+                    String(asset.description || '').toLowerCase(),
+                    String(asset.filename || '').toLowerCase(),
+                    String(asset.extension || '').toLowerCase(),
+                    String(asset.orientation || '').toLowerCase()
+                ];
+
+                const searchableLabels = Array.isArray(asset.labels)
+                    ? asset.labels.map(function (label) { return String(label || '').toLowerCase(); })
+                    : [];
+
+                if (token === 'portrait' || token === 'vertical') {
+                    if (height > width && width > 0 && height > 0) {
+                        return true;
+                    }
+                }
+
+                if (token === 'landscape' || token === 'horizontal') {
+                    if (width >= height && width > 0 && height > 0) {
+                        return true;
+                    }
+                }
+
+                if (token === 'square') {
+                    if (width === height && width > 0) {
+                        return true;
+                    }
+                }
+
+                if (searchableFields.some(function (field) { return field.indexOf(token) !== -1; })) {
+                    return true;
+                }
+
+                if (assetPickerLabelPartialMatch) {
+                    if (searchableLabels.some(function (label) { return label.indexOf(token) !== -1; })) {
+                        return true;
+                    }
+                } else {
+                    if (searchableLabels.some(function (label) { return label === token; })) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            function filterPickerAssets(query) {
+                const tokens = searchTokens(query);
+
+                if (!tokens.length) {
+                    return state.assetPicker.allAssets.slice();
+                }
+
+                return state.assetPicker.allAssets.filter(function (asset) {
+                    return tokens.some(function (token) {
+                        return assetMatchesToken(asset, token);
+                    });
+                });
+            }
+
+            function assetPickerCardMarkup(asset) {
+                const assetId = getAssetKey(asset);
+                const selected = state.assetPicker.selectedIds.has(assetId);
                 const thumbUrl = asset.thumbnail_url || asset.preview_url || '';
-                const assetKey = getAssetKey(asset);
 
                 return `
-                    <div class="tpl-asset-card ${String(state.selectedAssetId) === assetKey ? 'is-selected' : ''}" data-asset-id="${escapeHtml(assetKey)}" draggable="true">
-                        <div class="tpl-asset-thumb">
-                            ${thumbUrl ? `<img src="${escapeHtml(thumbUrl)}" alt="" draggable="false">` : `<div class="tpl-asset-empty">Thumbnail not available</div>`}
+                    <button
+                        type="button"
+                        class="tpl-picker-card ${selected ? 'is-selected' : ''}"
+                        data-asset-id="${escapeHtml(assetId)}"
+                    >
+                        <span class="tpl-picker-check">
+                            ${selected ? `
+                                <svg viewBox="0 0 20 20" aria-hidden="true">
+                                    <path d="M7.8 13.9 4.2 10.3l-1.4 1.4 5 5 9-9-1.4-1.4z" fill="currentColor"></path>
+                                </svg>
+                            ` : ''}
+                        </span>
+                        <div class="tpl-picker-thumb">
+                            ${thumbUrl
+                    ? `<img src="${escapeHtml(thumbUrl)}" alt="">`
+                    : `<div class="tpl-picker-empty-thumb">Thumbnail not available</div>`
+                    }
                         </div>
-                    </div>`;
+                    </button>
+                `;
             }
 
-            function renderAssetGallery() {
-                if (!assets.length) {
-                    assetGallery.innerHTML = '<div class="tpl-empty-state" style="grid-column:1 / -1;">No assets were found for this folder.</div>';
+            function renderAssetPicker() {
+                const visibleAssets = state.assetPicker.visibleAssets;
+                const selectedCount = state.assetPicker.selectedIds.size;
+                const isSingle = state.assetPicker.mode === 'single';
+
+                assetPickerBulkActions.style.display = isSingle ? 'none' : 'flex';
+                assetPickerSelectAll.disabled = isSingle || visibleAssets.length === 0;
+                assetPickerUnselectAll.disabled = selectedCount === 0;
+
+                assetPickerMeta.textContent = `${selectedCount} selected · ${visibleAssets.length} shown`;
+
+                if (!visibleAssets.length) {
+                    assetPickerGrid.innerHTML = '';
+                    assetPickerEmpty.style.display = 'flex';
                     return;
                 }
 
-                assetGallery.innerHTML = assets.map(assetCardMarkup).join('');
+                assetPickerEmpty.style.display = 'none';
+                assetPickerGrid.innerHTML = visibleAssets.map(assetPickerCardMarkup).join('');
 
-                assetGallery.querySelectorAll('.tpl-asset-card').forEach(card => {
-                    const assetId = card.getAttribute('data-asset-id');
-                    const asset = assetById(assetId);
-
-                    card.setAttribute('draggable', 'true');
-
-                    card.addEventListener('dragstart', e => {
-                        state.draggingAssetId = String(assetId);
-                        state.draggingAsset = normalizeAsset(asset);
-                        state.selectedAssetId = String(assetId);
-
-                        e.dataTransfer.clearData();
-                        e.dataTransfer.setData('text/plain', String(assetId));
-                        e.dataTransfer.effectAllowed = 'copy';
-                    });
-
-                    card.addEventListener('dragend', () => {
-                        setTimeout(() => {
-                            state.draggingAssetId = null;
-                            state.draggingAsset = null;
-                        }, 0);
-                    });
-
-                    card.addEventListener('click', () => {
-                        state.selectedAssetId = assetId;
-                        renderAssetGallery();
-
-                        if (asset && (asset.preview_url || asset.thumbnail_url)) {
-                            openLightboxByAssetId(assetId);
-                        }
+                assetPickerGrid.querySelectorAll('.tpl-picker-card').forEach(function (card) {
+                    card.addEventListener('click', function () {
+                        const assetId = card.getAttribute('data-asset-id');
+                        togglePickerAsset(assetId);
                     });
                 });
             }
 
-            function attachAssetDropZone(zone, onAssign) {
-                zone.addEventListener('dragenter', e => {
-                    e.preventDefault();
-                    zone.classList.add('is-over');
+            function openAssetPicker(componentId) {
+                ensureValues();
+
+                const definition = getDefinition();
+                const component = (definition.components || []).find(function (c) {
+                    return componentKey(c) === componentId;
                 });
 
-                zone.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'copy';
-                    zone.classList.add('is-over');
-                });
+                if (!component) return;
+                if (!['image', 'carousel', 'gallery'].includes(component.type)) return;
 
-                zone.addEventListener('dragleave', e => {
-                    if (!zone.contains(e.relatedTarget)) {
-                        zone.classList.remove('is-over');
-                    }
-                });
+                state.assetPicker.isOpen = true;
+                state.assetPicker.componentId = componentId;
+                state.assetPicker.mode = componentPickerMode(component);
+                state.assetPicker.query = '';
+                state.assetPicker.visibleAssets = state.assetPicker.allAssets.slice();
+                state.assetPicker.selectedIds = new Set(getSelectedAssetIdsForComponent(componentId));
 
-                zone.addEventListener('drop', e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    zone.classList.remove('is-over');
+                assetPickerSearch.value = '';
+                assetPickerModal.classList.add('is-open');
+                renderAssetPicker();
 
-                    const rawDataTransfer = e.dataTransfer.getData('text/plain');
-                    const assetId = rawDataTransfer || state.draggingAssetId || state.selectedAssetId;
-                    const assetFromId = assetById(assetId);
-                    const droppedAsset = state.draggingAsset || normalizeAsset(assetFromId);
-
-                    state.draggingAssetId = null;
-                    state.draggingAsset = null;
-
-                    if (!droppedAsset) {
-                        return;
-                    }
-
-                    onAssign(droppedAsset);
-                });
-
-                zone.addEventListener('click', e => {
-                    if (e.target.closest('.tpl-preview-remove') || e.target.closest('.tpl-preview-thumb-remove')) return;
-                    if (!state.selectedAssetId) return;
-
-                    const asset = assetById(state.selectedAssetId);
-
-                    if (asset) onAssign(normalizeAsset(asset));
-                });
+                setTimeout(function () {
+                    assetPickerSearch.focus();
+                }, 0);
             }
 
-            let activePreviewDropZone = null;
-            let syncingAutoGalleryValues = false;
+            function closeAssetPicker() {
+                state.assetPicker.isOpen = false;
+                state.assetPicker.componentId = null;
+                state.assetPicker.mode = 'multiple';
+                state.assetPicker.query = '';
+                state.assetPicker.visibleAssets = state.assetPicker.allAssets.slice();
+                state.assetPicker.selectedIds = new Set();
 
-            function clearActivePreviewDropZone() {
-                if (activePreviewDropZone) {
-                    activePreviewDropZone.classList.remove('is-over');
-                    activePreviewDropZone = null;
+                assetPickerSearch.value = '';
+                assetPickerModal.classList.remove('is-open');
+            }
+
+            function togglePickerAsset(assetId) {
+                const id = String(assetId);
+
+                if (state.assetPicker.mode === 'single') {
+                    if (state.assetPicker.selectedIds.has(id)) {
+                        state.assetPicker.selectedIds.clear();
+                    } else {
+                        state.assetPicker.selectedIds = new Set([id]);
+                    }
+                } else {
+                    if (state.assetPicker.selectedIds.has(id)) {
+                        state.assetPicker.selectedIds.delete(id);
+                    } else {
+                        state.assetPicker.selectedIds.add(id);
+                    }
                 }
+
+                renderAssetPicker();
             }
 
-            function findPreviewDropZoneFromPoint(clientX, clientY) {
-                const el = document.elementFromPoint(clientX, clientY);
-                if (!el) return null;
-                return el.closest('.js-preview-drop-single, .js-preview-drop-carousel');
-            }
+            function selectAllVisibleAssets() {
+                if (state.assetPicker.mode === 'single') return;
 
-            function getDraggedAssetFromEvent(e) {
-                const assetId =
-                    (e.dataTransfer && e.dataTransfer.getData('text/plain')) ||
-                    state.draggingAssetId ||
-                    state.selectedAssetId;
-
-                return state.draggingAsset || normalizeAsset(assetById(assetId));
-            }
-
-            function bindPreviewCanvasDnD() {
-                if (publishPreviewCanvas.dataset.dndBound === '1') return;
-                publishPreviewCanvas.dataset.dndBound = '1';
-
-                publishPreviewCanvas.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-
-                    const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY);
-
-                    if (zone !== activePreviewDropZone) {
-                        clearActivePreviewDropZone();
-                        if (zone) {
-                            zone.classList.add('is-over');
-                            activePreviewDropZone = zone;
-                        }
+                state.assetPicker.visibleAssets.forEach(function (asset) {
+                    const assetId = getAssetKey(asset);
+                    if (assetId) {
+                        state.assetPicker.selectedIds.add(assetId);
                     }
                 });
 
-                publishPreviewCanvas.addEventListener('dragleave', e => {
-                    if (!publishPreviewCanvas.contains(e.relatedTarget)) {
-                        clearActivePreviewDropZone();
-                    }
+                renderAssetPicker();
+            }
+
+            function unselectAllAssets() {
+                state.assetPicker.selectedIds.clear();
+                renderAssetPicker();
+            }
+
+            function runPickerSearch() {
+                state.assetPicker.query = assetPickerSearch.value || '';
+                state.assetPicker.visibleAssets = filterPickerAssets(state.assetPicker.query);
+                renderAssetPicker();
+            }
+
+            function applyAssetPickerSelection() {
+                const componentId = state.assetPicker.componentId;
+                if (!componentId) return;
+
+                const definition = getDefinition();
+                const component = (definition.components || []).find(function (c) {
+                    return componentKey(c) === componentId;
                 });
 
-                publishPreviewCanvas.addEventListener('drop', e => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                if (!component) {
+                    closeAssetPicker();
+                    return;
+                }
 
-                    const zone = findPreviewDropZoneFromPoint(e.clientX, e.clientY) || activePreviewDropZone;
-                    const droppedAsset = getDraggedAssetFromEvent(e);
+                const selectedAssets = state.assetPicker.allAssets
+                    .filter(function (asset) {
+                        return state.assetPicker.selectedIds.has(getAssetKey(asset));
+                    })
+                    .map(function (asset) {
+                        return deepClone(asset);
+                    });
 
-                    clearActivePreviewDropZone();
-                    state.draggingAssetId = null;
-                    state.draggingAsset = null;
-
-                    if (!zone || !droppedAsset) {
-                        return;
-                    }
-
-                    const componentId = zone.getAttribute('data-component-id');
-                    if (!componentId) {
-                        return;
-                    }
-
-                    if (zone.classList.contains('js-preview-drop-single')) {
+                if (component.type === 'image') {
+                    if (selectedAssets.length) {
                         setComponentValue(componentId, {
                             type: 'image',
-                            asset: deepClone(droppedAsset)
+                            asset: selectedAssets[0]
                         });
-                    } else if (zone.classList.contains('js-preview-drop-carousel')) {
-                        const added = addAssetToCarousel(componentId, droppedAsset);
-                        if (!added) {
-                            return;
-                        }
+                    } else {
+                        deleteComponentValue(componentId);
                     }
+                }
 
-                    state.selectedAssetId = String(droppedAsset.asset_id || '');
-                    syncHidden();
-                    renderAssetGallery();
-                    renderPreview();
-                });
+                if (component.type === 'carousel') {
+                    setComponentValue(componentId, {
+                        type: 'carousel',
+                        items: selectedAssets
+                    });
+                }
+
+                if (component.type === 'gallery') {
+                    setComponentValue(componentId, {
+                        type: 'gallery',
+                        items: selectedAssets
+                    });
+                }
+
+                syncHidden();
+                closeAssetPicker();
+                renderPreview();
             }
 
             function getPreviewItemsForComponent(component) {
@@ -1220,11 +1596,7 @@ foreach ($templates as $tpl) {
             function getExpandedPreviewHeight(component) {
                 const baseHeight = Math.max(80, Math.round(component.h || 180));
 
-                if (component.type === 'gallery') {
-                    return PREVIEW_GALLERY_FIXED_HEIGHT;
-                }
-
-                if (component.type !== 'carousel') {
+                if (component.type !== 'carousel' && component.type !== 'gallery') {
                     return baseHeight;
                 }
 
@@ -1238,20 +1610,16 @@ foreach ($templates as $tpl) {
                 const innerWidth = width - (PREVIEW_GRID_PAD_X * 2) - ((columns - 1) * PREVIEW_GRID_GAP);
                 const thumbSize = Math.max(44, Math.floor(innerWidth / columns));
                 const rows = Math.max(1, Math.ceil(items.length / columns));
-
-                const topPad = 32;
-                const bottomPad = 40;
                 const gridHeight = (rows * thumbSize) + (Math.max(0, rows - 1) * PREVIEW_GRID_GAP);
-                const neededHeight = topPad + gridHeight + bottomPad;
 
-                return neededHeight;
+                return PREVIEW_MULTI_TOP_PAD + gridHeight + PREVIEW_MULTI_BOTTOM_PAD;
             }
 
             function buildPreviewLayout(definition) {
                 const source = Array.isArray(definition.components) ? definition.components.map(deepClone) : [];
                 const rows = new Map();
 
-                source.forEach(component => {
+                source.forEach(function (component) {
                     const rowY = Math.round(component.y || 0);
                     if (!rows.has(rowY)) {
                         rows.set(rowY, []);
@@ -1259,13 +1627,16 @@ foreach ($templates as $tpl) {
                     rows.get(rowY).push(component);
                 });
 
-                const sortedRowYs = Array.from(rows.keys()).sort((a, b) => a - b);
+                const sortedRowYs = Array.from(rows.keys()).sort(function (a, b) {
+                    return a - b;
+                });
+
                 const laidOut = [];
                 let carry = 0;
                 let maxBottom = 0;
 
-                sortedRowYs.forEach(rowY => {
-                    const rowComponents = rows.get(rowY).sort((a, b) => {
+                sortedRowYs.forEach(function (rowY) {
+                    const rowComponents = rows.get(rowY).sort(function (a, b) {
                         const ax = Math.round(a.x || 0);
                         const bx = Math.round(b.x || 0);
                         if (ax !== bx) return ax - bx;
@@ -1276,7 +1647,7 @@ foreach ($templates as $tpl) {
                     let originalRowBottom = rowY;
                     let previewRowBottom = previewY;
 
-                    rowComponents.forEach(component => {
+                    rowComponents.forEach(function (component) {
                         component.preview_x = Math.round(component.x || 0);
                         component.preview_y = previewY;
                         component.preview_w = Math.round(component.w || 300);
@@ -1296,7 +1667,9 @@ foreach ($templates as $tpl) {
                     maxBottom = Math.max(maxBottom, previewRowBottom);
                 });
 
-                laidOut.sort((a, b) => Math.round((a.z || 0) - (b.z || 0)));
+                laidOut.sort(function (a, b) {
+                    return Math.round((a.z || 0) - (b.z || 0));
+                });
 
                 return {
                     components: laidOut,
@@ -1324,10 +1697,11 @@ foreach ($templates as $tpl) {
                 const html = bucket.html || component.default_html || '<p></p>';
 
                 return `
-                    <div class="tpl-public-item tpl-public-text js-preview-edit-text" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}" title="Double-click to edit">
-                        <div class="tpl-preview-edit-tag">Double-click to edit</div>
+                    <div class="tpl-public-item tpl-public-text js-preview-edit-text" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}" title="Click to edit">
+                        <div class="tpl-preview-edit-tag">Click to edit</div>
                         <div class="tpl-preview-text-inner">${html}</div>
-                    </div>`;
+                    </div>
+                `;
             }
 
             function previewImageMarkup(component) {
@@ -1338,21 +1712,25 @@ foreach ($templates as $tpl) {
 
                 if (imageUrl) {
                     return `
-                        <div class="tpl-public-item tpl-public-media is-filled js-preview-drop-single" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(asset.title || componentLabel(component))}">
-                            <button type="button" class="tpl-preview-remove js-preview-clear-single" data-component-id="${escapeHtml(componentId)}" title="Clear image">×</button>
-                        </div>`;
+            <div class="tpl-public-item tpl-public-media is-filled js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(asset.title || componentLabel(component))}">
+                <button type="button" class="tpl-preview-remove js-preview-clear-single" data-component-id="${escapeHtml(componentId)}" title="Remove image">×</button>
+            </div>
+        `;
                 }
 
                 return `
-                    <div class="tpl-public-item tpl-public-media js-preview-drop-single" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                        <div class="tpl-public-placeholder">
-                            <div>
-                                Drop one image here
-                            </div>
-                        </div>
-                    </div>`;
+        <div class="tpl-public-item tpl-public-media js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+            <div class="tpl-public-placeholder">
+                <div>
+                    Click to select one image
+                    <small>${escapeHtml(componentLabel(component))}</small>
+                </div>
+            </div>
+        </div>
+    `;
             }
+
 
             function previewCarouselMarkup(component) {
                 const componentId = componentKey(component);
@@ -1361,46 +1739,80 @@ foreach ($templates as $tpl) {
 
                 if (!items.length) {
                     return `
-                        <div class="tpl-public-item tpl-public-media js-preview-drop-carousel" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                            <div class="tpl-public-placeholder">
-                                <div>
-                                    Drop images here to build the carousel
-                                </div>
-                            </div>
-                        </div>`;
+            <div class="tpl-public-item tpl-public-media js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                <div class="tpl-public-placeholder">
+                    <div>
+                        Click to select carousel images
+                        <small>${escapeHtml(componentLabel(component))}</small>
+                    </div>
+                </div>
+            </div>
+        `;
                 }
 
                 return `
-                    <div class="tpl-public-item tpl-public-media is-filled js-preview-drop-carousel" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                        <div class="tpl-preview-count">${items.length} image${items.length === 1 ? '' : 's'}</div>
-                        <div class="tpl-preview-carousel-grid">
-                            ${items.map((item, index) => `
-                                <div class="tpl-preview-thumb">
-                                    <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="${escapeHtml(item.title || '')}">
-                                    <button type="button" class="tpl-preview-thumb-remove js-preview-remove-carousel" data-component-id="${escapeHtml(componentId)}" data-item-index="${index}" title="Remove image">×</button>
-                                </div>
-                            `).join('')}
+        <div class="tpl-public-item tpl-public-media is-filled js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+            <div class="tpl-preview-count">${items.length} image${items.length === 1 ? '' : 's'}</div>
+            <div class="tpl-preview-carousel-grid">
+                ${items.map(function (item, index) {
+                    return `
+                        <div class="tpl-preview-thumb">
+                            <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="">
+                            <button
+                                type="button"
+                                class="tpl-preview-thumb-remove js-preview-remove-carousel"
+                                data-component-id="${escapeHtml(componentId)}"
+                                data-item-index="${index}"
+                                title="Remove image"
+                            >×</button>
                         </div>
-                    </div>`;
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
             }
 
             function previewGalleryMarkup(component) {
                 const componentId = componentKey(component);
                 const bucket = getComponentValue(componentId) || { type: 'gallery', items: [] };
                 const items = Array.isArray(bucket.items) ? bucket.items.filter(Boolean) : [];
-                const count = items.length;
+
+                if (!items.length) {
+                    return `
+            <div class="tpl-public-item tpl-public-gallery js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                <div class="tpl-public-placeholder">
+                    <div>
+                        Click to select gallery images
+                        <small>${escapeHtml(componentLabel(component))}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+                }
 
                 return `
-                    <div class="tpl-public-item tpl-public-gallery is-filled" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                        <div class="tpl-preview-gallery-summary">
-                            <div class="tpl-preview-gallery-summary-subtitle">
-                                This gallery is automatic, so there is nothing to drag into this section.
-                                The published page will pull ${count} image${count === 1 ? '' : 's'} directly from this folder.
-                            </div>
+        <div class="tpl-public-item tpl-public-gallery is-filled js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+            <div class="tpl-preview-count">${items.length} image${items.length === 1 ? '' : 's'}</div>
+            <div class="tpl-preview-gallery-grid">
+                ${items.map(function (item, index) {
+                    return `
+                        <div class="tpl-preview-thumb">
+                            <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="">
+                            <button
+                                type="button"
+                                class="tpl-preview-thumb-remove js-preview-remove-gallery"
+                                data-component-id="${escapeHtml(componentId)}"
+                                data-item-index="${index}"
+                                title="Remove image"
+                            >×</button>
                         </div>
-                    </div>`;
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
             }
-
 
 
             function previewComponentMarkup(component) {
@@ -1413,36 +1825,30 @@ foreach ($templates as $tpl) {
             }
 
             function bindPreviewInteractions() {
-                publishPreviewCanvas.querySelectorAll('.js-preview-edit-text').forEach(node => {
-                    node.addEventListener('click', e => {
+                publishPreviewCanvas.querySelectorAll('.js-preview-edit-text').forEach(function (node) {
+                    node.addEventListener('click', function (e) {
                         e.preventDefault();
                         e.stopPropagation();
-
-                        const componentId = node.getAttribute('data-component-id');
-
-                        openTextEditor(componentId);
+                        openTextEditor(node.getAttribute('data-component-id'));
                     });
                 });
 
-                publishPreviewCanvas.querySelectorAll('.js-preview-drop-single').forEach(zone => {
-                    attachAssetDropZone(zone, asset => {
-                        const componentId = zone.getAttribute('data-component-id');
+                publishPreviewCanvas.querySelectorAll('.js-open-asset-picker').forEach(function (node) {
+                    node.addEventListener('click', function (e) {
+                        if (e.target.closest('.js-preview-clear-single') ||
+                            e.target.closest('.js-preview-remove-carousel') ||
+                            e.target.closest('.js-preview-remove-gallery')) {
+                            return;
+                        }
 
-                        setComponentValue(componentId, {
-                            type: 'image',
-                            asset: deepClone(asset)
-                        });
-
-                        state.selectedAssetId = String(asset.asset_id || '');
-                        syncHidden();
-
-                        renderAssetGallery();
-                        renderPreview();
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openAssetPicker(node.getAttribute('data-component-id'));
                     });
                 });
 
-                publishPreviewCanvas.querySelectorAll('.js-preview-clear-single').forEach(btn => {
-                    btn.addEventListener('click', e => {
+                publishPreviewCanvas.querySelectorAll('.js-preview-clear-single').forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
                         e.preventDefault();
                         e.stopPropagation();
 
@@ -1452,44 +1858,25 @@ foreach ($templates as $tpl) {
                     });
                 });
 
-                publishPreviewCanvas.querySelectorAll('.js-preview-drop-carousel').forEach(zone => {
-                    attachAssetDropZone(zone, asset => {
-                        const componentId = zone.getAttribute('data-component-id');
-                        const added = addAssetToCarousel(componentId, asset);
-
-                        if (!added) {
-                            return;
-                        }
-
-                        state.selectedAssetId = String(asset.asset_id || '');
-                        syncHidden();
-                        renderAssetGallery();
-                        renderPreview();
-                    });
-                });
-
-
-                publishPreviewCanvas.querySelectorAll('.js-preview-remove-carousel').forEach(btn => {
-                    btn.addEventListener('click', e => {
+                publishPreviewCanvas.querySelectorAll('.js-preview-remove-carousel').forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
                         e.preventDefault();
                         e.stopPropagation();
 
                         const componentId = btn.getAttribute('data-component-id');
                         const index = parseInt(btn.getAttribute('data-item-index'), 10);
-                        const existing = getComponentValue(componentId) || { type: 'carousel', items: [] };
-                        const items = Array.isArray(existing.items) ? existing.items.slice() : [];
+                        removeItemFromMultiComponent(componentId, index, 'carousel');
+                    });
+                });
 
-                        if (index >= 0) {
-                            items.splice(index, 1);
-                        }
+                publishPreviewCanvas.querySelectorAll('.js-preview-remove-gallery').forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
 
-                        setComponentValue(componentId, {
-                            type: 'carousel',
-                            items: items
-                        });
-
-                        syncHidden();
-                        renderPreview();
+                        const componentId = btn.getAttribute('data-component-id');
+                        const index = parseInt(btn.getAttribute('data-item-index'), 10);
+                        removeItemFromMultiComponent(componentId, index, 'gallery');
                     });
                 });
             }
@@ -1499,10 +1886,9 @@ foreach ($templates as $tpl) {
 
                 const definition = getDefinition();
                 const page = definition.page || {};
-                const canvasWidth = Math.max(900, parseInt(page.canvas_width || 1200, 10));
-
                 const layout = buildPreviewLayout(definition);
                 const components = layout.components;
+                const canvasWidth = Math.max(900, parseInt(page.canvas_width || 1300, 10));
                 const canvasHeight = Math.max(
                     900,
                     parseInt(page.canvas_min_height || 1400, 10),
@@ -1520,8 +1906,8 @@ foreach ($templates as $tpl) {
                 previewScale.style.width = canvasWidth + 'px';
                 previewScale.style.height = canvasHeight + 'px';
 
-                const stageWidth = Math.max(320, previewStage.clientWidth - 36);
-                const preferredScale = 0.72;
+                const stageWidth = Math.max(320, previewStage.clientWidth - 44);
+                const preferredScale = 0.84;
                 const scale = Math.min(1, preferredScale, stageWidth / canvasWidth);
 
                 previewScale.style.transform = `scale(${scale})`;
@@ -1535,7 +1921,9 @@ foreach ($templates as $tpl) {
                 state.textEditorField = componentId;
 
                 const definition = getDefinition();
-                const component = (definition.components || []).find(c => componentKey(c) === componentId);
+                const component = (definition.components || []).find(function (c) {
+                    return componentKey(c) === componentId;
+                });
 
                 textModalTitle.textContent = componentLabel(component || { type: 'dynamic_text', label: 'Dynamic Text' });
                 textModalSubtitle.textContent = 'Component ID: ' + componentId;
@@ -1553,10 +1941,10 @@ foreach ($templates as $tpl) {
                 const textarea = document.getElementById('publishRichTextEditor');
                 textarea.value = initialHtml;
 
-                setTimeout(() => {
+                setTimeout(function () {
                     tinymce.init({
                         target: textarea,
-                        height: 500,
+                        height: 300,
                         menubar: false,
                         inline: false,
                         plugins: 'link lists code table autoresize',
@@ -1568,45 +1956,36 @@ foreach ($templates as $tpl) {
             function closeTextEditor() {
                 state.textEditorField = null;
                 textModal.classList.remove('is-open');
-                tinymce.get('publishRichTextEditor')?.remove();
+                const editor = tinymce.get('publishRichTextEditor');
+                if (editor) {
+                    editor.remove();
+                }
             }
 
-            function isAssetAlreadyInCarousel(items, asset) {
-                const assetKey = getAssetKey(asset);
-                if (!assetKey) return false;
-
-                return (items || []).some(item => getAssetKey(item) === assetKey);
-            }
-
-            function addAssetToCarousel(componentId, asset) {
-                const existing = getComponentValue(componentId) || { type: 'carousel', items: [] };
+            function removeItemFromMultiComponent(componentId, index, type) {
+                const existing = getComponentValue(componentId) || { type: type, items: [] };
                 const items = Array.isArray(existing.items) ? existing.items.slice() : [];
 
-                if (isAssetAlreadyInCarousel(items, asset)) {
-                    showPageToast('This asset already added to the Image Carousel', 'error', 4000);
-                    return false;
+                if (index >= 0 && index < items.length) {
+                    items.splice(index, 1);
                 }
 
-                items.push(deepClone(asset));
-
                 setComponentValue(componentId, {
-                    type: 'carousel',
+                    type: type,
                     items: items
                 });
 
-                return true;
+                syncHidden();
+                renderPreview();
             }
-
 
             function renderAll() {
                 ensureValues();
-                bindPreviewCanvasDnD();
-                renderAssetGallery();
                 renderPreview();
                 syncHidden();
             }
 
-            templateSelect.addEventListener('change', () => {
+            templateSelect.addEventListener('change', function () {
                 state.selectedTemplateId = templateSelect.value;
 
                 const tpl = getSelectedTemplate();
@@ -1617,14 +1996,14 @@ foreach ($templates as $tpl) {
                 renderAll();
             });
 
-            protectedCheckbox.addEventListener('change', () => {
+            protectedCheckbox.addEventListener('change', function () {
                 passwordRow.style.display = protectedCheckbox.checked ? '' : 'none';
             });
 
             closeTextModal.addEventListener('click', closeTextEditor);
             cancelTextModal.addEventListener('click', closeTextEditor);
 
-            saveTextModal.addEventListener('click', () => {
+            saveTextModal.addEventListener('click', function () {
                 const editor = tinymce.get('publishRichTextEditor');
                 if (!editor || !state.textEditorField) return;
 
@@ -1638,65 +2017,57 @@ foreach ($templates as $tpl) {
                 renderPreview();
             });
 
-            textModal.addEventListener('click', e => {
-                if (e.target === textModal) closeTextEditor();
+            assetPickerClose.addEventListener('click', closeAssetPicker);
+            assetPickerCancel.addEventListener('click', closeAssetPicker);
+            assetPickerInsert.addEventListener('click', applyAssetPickerSelection);
+            assetPickerSelectAll.addEventListener('click', selectAllVisibleAssets);
+            assetPickerUnselectAll.addEventListener('click', unselectAllAssets);
+
+            assetPickerSearch.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    runPickerSearch();
+                }
             });
 
-            lightboxClose.addEventListener('click', closeLightbox);
-            lightboxPrev.addEventListener('click', previousLightbox);
-            lightboxNext.addEventListener('click', nextLightbox);
-
-            lightbox.addEventListener('click', e => {
-                if (e.target === lightbox) closeLightbox();
+            assetPickerModal.addEventListener('click', function (e) {
+                if (e.target === assetPickerModal) {
+                    closeAssetPicker();
+                }
             });
 
-            document.addEventListener('keydown', e => {
-                if (textModal.classList.contains('is-open') && e.key === 'Escape') {
+            textModal.addEventListener('click', function (e) {
+                if (e.target === textModal) {
                     closeTextEditor();
+                }
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key !== 'Escape') return;
+
+                if (assetPickerModal.classList.contains('is-open')) {
+                    closeAssetPicker();
                     return;
                 }
 
-                if (!lightbox.classList.contains('is-open')) return;
-                if (e.key === 'Escape') closeLightbox();
-                if (e.key === 'ArrowLeft') previousLightbox();
-                if (e.key === 'ArrowRight') nextLightbox();
+                if (textModal.classList.contains('is-open')) {
+                    closeTextEditor();
+                }
             });
 
-            window.addEventListener('resize', renderPreview);
+            publishForm.addEventListener('submit', function (e) {
+                const templateId = String(templateSelect.value || '').trim();
 
-            let toastHideTimer = null;
+                if (!templateId) {
+                    e.preventDefault();
+                    showPageToast('Please select a template before publishing.', 'error', 4000);
+                    templateSelect.focus();
+                }
+            });
 
-            function showPageToast(message, type = 'error', duration = 5000) {
-                if (!publishToastStack) return;
-
-                clearTimeout(toastHideTimer);
-
-                publishToastStack.innerHTML = `
-                    <div class="tpl-toast tpl-toast--${escapeHtml(type)}" role="status">
-                        ${escapeHtml(message)}
-                    </div>`;
-
-                    const toast = publishToastStack.querySelector('.tpl-toast');
-                    if (!toast) return;
-
-                    requestAnimationFrame(() => {
-                        toast.classList.add('is-visible');
-                    });
-
-                    toastHideTimer = setTimeout(() => {
-                        toast.classList.remove('is-visible');
-
-                    setTimeout(() => {
-                        if (publishToastStack.contains(toast)) {
-                            publishToastStack.innerHTML = '';
-                        }
-                    }, 180);
-                }, duration);
-            }
-
-            ensureValues();
+            normalizeAllAssets();
             renderAll();
         })();
     </script>
 </div>
-<div id="publishToastStack" class="tpl-toast-stack" aria-live="polite" aria-atomic="true"></div>
+

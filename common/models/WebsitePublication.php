@@ -82,7 +82,7 @@ class WebsitePublication extends ActiveRecord
             ->andWhere(['uri' => $this->uri, 'deleted' => null]);
 
         if (!$this->isNewRecord) {
-            $query->andWhere(['<>', 'id', $this->publication_id]);
+            $query->andWhere(['<>', 'id', $this->id]);
         }
 
         if ($query->exists()) {
@@ -100,7 +100,7 @@ class WebsitePublication extends ActiveRecord
             ->andWhere(['folder_id' => $this->folder_id, 'deleted' => null]);
 
         if (!$this->isNewRecord) {
-            $query->andWhere(['<>', 'id', $this->publication_id]);
+            $query->andWhere(['<>', 'id', $this->id]);
         }
 
         if ($query->exists()) {

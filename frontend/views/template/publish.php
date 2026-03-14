@@ -796,50 +796,6 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
             .tpl-hero-settings { grid-template-columns:1fr; }
         }
 
-        .tpl-toast-stack {
-            position: fixed;
-            top: 100px;
-            left: 0;
-            right: 0;
-            z-index: 12000;
-            pointer-events: none;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding: 0 24px;
-            top:70px;
-        }
-
-        .tpl-toast {
-            min-width:320px;
-            max-width:min(680px, calc(100vw - 40px));
-            padding:16px 20px;
-            border-radius:16px;
-            box-shadow:0 24px 50px rgba(15,23,42,.24);
-            font-size:16px;
-            font-weight:800;
-            line-height:1.45;
-            text-align:center;
-            opacity:0;
-            transform:translateY(8px) scale(.98);
-            transition:opacity .18s ease, transform .18s ease;
-        }
-
-        .tpl-toast.is-visible {
-            opacity:1;
-            transform:translateY(0) scale(1);
-        }
-
-        .tpl-toast--error {
-            background:#ffe6e6;
-            color:#a61b1b;
-            border:1px solid #dde3ea;
-        }
-        .tpl-toast--success {
-            background:#e8f7ec;
-            color:#1f7a39;
-            border:1px solid #bfe3c8;
-        }
         .tpl-protect-toggle {
             grid-column: 1;
             grid-row: 2;
@@ -862,63 +818,10 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
 
 
     </style>
-    <script>
-        let toastHideTimer = null;
-        function escapeHtml(value) {
-            return String(value ?? '').replace(/[&<>"']/g, function (m) {
-                return {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                }[m];
-            });
-        }
-
-        function showPageToast(message, type = 'success', duration = 4000) {
-            if (!publishToastStack) return;
-
-            clearTimeout(toastHideTimer);
-
-            publishToastStack.innerHTML = `
-                    <div class="tpl-toast tpl-toast--${escapeHtml(type)}" role="status">
-                        ${escapeHtml(message)}
-                    </div>`;
-
-            const toast = publishToastStack.querySelector('.tpl-toast');
-            if (!toast) return;
-
-            requestAnimationFrame(function () {
-                toast.classList.add('is-visible');
-            });
-
-            toastHideTimer = setTimeout(function () {
-                toast.classList.remove('is-visible');
-
-                setTimeout(function () {
-                    if (publishToastStack.contains(toast)) {
-                        publishToastStack.innerHTML = '';
-                    }
-                }, 180);
-            }, duration);
-        }
-    </script>
-    <div id="publishToastStack" class="tpl-toast-stack" aria-live="polite" aria-atomic="true"></div>
     <div class="tpl-publish-shell">
         <a class="breadcrum-link" href="/folders">Folders</a>
         &nbsp;&nbsp;/&nbsp;&nbsp;
         <span class="breadcrum-static">Folder Publishing</span>
-
-        <div class="flash-wrap">
-            <?php foreach (Yii::$app->session->getAllFlashes() as $type => $message): ?>
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    showPageToast("<?= Html::encode($message) ?>", "<?=Html::encode($type)?>");
-                });
-            </script>
-            <?php endforeach; ?>
-        </div>
 
         <form method="post" id="publishForm" action="<?= Url::to(['publish', 'id' => (int)($folder['id'] ?? Yii::$app->request->get('id'))]) ?>">
             <?= Html::hiddenInput(Yii::$app->request->csrfParam, Yii::$app->request->getCsrfToken()) ?>
@@ -1059,7 +962,7 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
     <script src="https://cdn.tiny.cloud/1/cbcqlkpvavpfb1f48f22qrybc82x9c8rv604z1jupes12uub/tinymce/6/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
 
     <script>
-        (function () {
+        document.addEventListener('DOMContentLoaded', function () {
             const templates = <?= Json::htmlEncode($templateMap) ?>;
             const rawAssets = <?= Json::htmlEncode(array_values($assets)) ?>;
             const assetPickerLabelPartialMatch = <?= $assetPickerLabelPartialMatch ? 'true' : 'false' ?>;
@@ -1089,7 +992,6 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
             };
 
             const templateSelect = document.getElementById('publicationTemplateId');
-            const publishToastStack = document.getElementById('publishToastStack');
             const valuesJsonInput = document.getElementById('publicationValuesJson');
             const publishPreviewCanvas = document.getElementById('publishPreviewCanvas');
             const previewScale = document.getElementById('previewScale');
@@ -1712,23 +1614,21 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
 
                 if (imageUrl) {
                     return `
-            <div class="tpl-public-item tpl-public-media is-filled js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(asset.title || componentLabel(component))}">
-                <button type="button" class="tpl-preview-remove js-preview-clear-single" data-component-id="${escapeHtml(componentId)}" title="Remove image">×</button>
-            </div>
-        `;
+                        <div class="tpl-public-item tpl-public-media is-filled js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(asset.title || componentLabel(component))}">
+                            <button type="button" class="tpl-preview-remove js-preview-clear-single" data-component-id="${escapeHtml(componentId)}" title="Remove image">×</button>
+                        </div>`;
                 }
 
                 return `
-        <div class="tpl-public-item tpl-public-media js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-            <div class="tpl-public-placeholder">
-                <div>
-                    Click to select one image
-                    <small>${escapeHtml(componentLabel(component))}</small>
-                </div>
-            </div>
-        </div>
-    `;
+                    <div class="tpl-public-item tpl-public-media js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                        <div class="tpl-public-placeholder">
+                            <div>
+                                Click to select one image
+                                <small>${escapeHtml(componentLabel(component))}</small>
+                            </div>
+                        </div>
+                    </div>`;
             }
 
 
@@ -1739,38 +1639,36 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
 
                 if (!items.length) {
                     return `
-            <div class="tpl-public-item tpl-public-media js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                <div class="tpl-public-placeholder">
-                    <div>
-                        Click to select carousel images
-                        <small>${escapeHtml(componentLabel(component))}</small>
-                    </div>
-                </div>
-            </div>
-        `;
+                        <div class="tpl-public-item tpl-public-media js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                            <div class="tpl-public-placeholder">
+                                <div>
+                                    Click to select carousel images
+                                    <small>${escapeHtml(componentLabel(component))}</small>
+                                </div>
+                            </div>
+                        </div>`;
                 }
 
                 return `
-        <div class="tpl-public-item tpl-public-media is-filled js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-            <div class="tpl-preview-count">${items.length} image${items.length === 1 ? '' : 's'}</div>
-            <div class="tpl-preview-carousel-grid">
-                ${items.map(function (item, index) {
-                    return `
-                        <div class="tpl-preview-thumb">
-                            <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="">
-                            <button
-                                type="button"
-                                class="tpl-preview-thumb-remove js-preview-remove-carousel"
-                                data-component-id="${escapeHtml(componentId)}"
-                                data-item-index="${index}"
-                                title="Remove image"
-                            >×</button>
+                    <div class="tpl-public-item tpl-public-media is-filled js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                        <div class="tpl-preview-count">${items.length} image${items.length === 1 ? '' : 's'}</div>
+                        <div class="tpl-preview-carousel-grid">
+                            ${items.map(function (item, index) {
+                                return `
+                                    <div class="tpl-preview-thumb">
+                                        <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="">
+                                        <button
+                                            type="button"
+                                            class="tpl-preview-thumb-remove js-preview-remove-carousel"
+                                            data-component-id="${escapeHtml(componentId)}"
+                                            data-item-index="${index}"
+                                            title="Remove image"
+                                        >×</button>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-    `;
+                    </div>`;
             }
 
             function previewGalleryMarkup(component) {
@@ -1780,38 +1678,36 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
 
                 if (!items.length) {
                     return `
-            <div class="tpl-public-item tpl-public-gallery js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-                <div class="tpl-public-placeholder">
-                    <div>
-                        Click to select gallery images
-                        <small>${escapeHtml(componentLabel(component))}</small>
-                    </div>
-                </div>
-            </div>
-        `;
+                        <div class="tpl-public-item tpl-public-gallery js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                            <div class="tpl-public-placeholder">
+                                <div>
+                                    Click to select gallery images
+                                    <small>${escapeHtml(componentLabel(component))}</small>
+                                </div>
+                            </div>
+                        </div>`;
                 }
 
                 return `
-        <div class="tpl-public-item tpl-public-gallery is-filled js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
-            <div class="tpl-preview-count">${items.length} image${items.length === 1 ? '' : 's'}</div>
-            <div class="tpl-preview-gallery-grid">
-                ${items.map(function (item, index) {
-                    return `
-                        <div class="tpl-preview-thumb">
-                            <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="">
-                            <button
-                                type="button"
-                                class="tpl-preview-thumb-remove js-preview-remove-gallery"
-                                data-component-id="${escapeHtml(componentId)}"
-                                data-item-index="${index}"
-                                title="Remove image"
-                            >×</button>
+                    <div class="tpl-public-item tpl-public-gallery is-filled js-open-asset-picker" data-component-id="${escapeHtml(componentId)}" style="${previewBoxStyle(component)}">
+                        <div class="tpl-preview-count">${items.length} image${items.length === 1 ? '' : 's'}</div>
+                        <div class="tpl-preview-gallery-grid">
+                            ${items.map(function (item, index) {
+                                return `
+                                    <div class="tpl-preview-thumb">
+                                        <img src="${escapeHtml(item.thumbnail_url || item.preview_url || '')}" alt="">
+                                        <button
+                                            type="button"
+                                            class="tpl-preview-thumb-remove js-preview-remove-gallery"
+                                            data-component-id="${escapeHtml(componentId)}"
+                                            data-item-index="${index}"
+                                            title="Remove image"
+                                        >×</button>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-    `;
+                    </div>`;
             }
 
 
@@ -2067,7 +1963,7 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
 
             normalizeAllAssets();
             renderAll();
-        })();
+        });
     </script>
 </div>
 

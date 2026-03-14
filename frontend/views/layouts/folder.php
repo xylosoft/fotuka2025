@@ -94,7 +94,6 @@ FolderAsset::register($this);
 </head>
 <body class="d-flex flex-column h-100">
 <?php $this->beginBody() ?>
-
 <header>
     <div>
         <img src="/images/logo.png" width="70%"/>
@@ -144,6 +143,67 @@ FolderAsset::register($this);
         </div>
     </div>
 </header>
+<div id="publishToastStack" class="tpl-toast-stack" aria-live="polite" aria-atomic="true"></div>
+<?php $pageFlashes = Yii::$app->session->getAllFlashes(); ?>
+    <script>
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, function (m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+
+        let toastHideTimer = null;
+        const publishToastStack = document.getElementById('publishToastStack');
+
+
+        function showPageToast(message, type = 'success', duration = 4000) {
+            if (!publishToastStack) return;
+
+            clearTimeout(toastHideTimer);
+
+            publishToastStack.innerHTML = `
+                <div class="tpl-toast tpl-toast--${escapeHtml(type)}" role="status">
+                    ${escapeHtml(message)}
+                </div>`;
+
+            const toast = publishToastStack.querySelector('.tpl-toast');
+            if (!toast) return;
+
+            requestAnimationFrame(function () {
+                toast.classList.add('is-visible');
+            });
+
+            toastHideTimer = setTimeout(function () {
+                toast.classList.remove('is-visible');
+
+                setTimeout(function () {
+                    if (publishToastStack.contains(toast)) {
+                        publishToastStack.innerHTML = '';
+                    }
+                }, 180);
+            }, duration);
+        }
+
+        const flashes = <?= \yii\helpers\Json::htmlEncode($pageFlashes) ?>;
+        let delay = 0;
+
+        Object.entries(flashes).forEach(function ([type, value]) {
+            const messages = Array.isArray(value) ? value : [value];
+
+            messages.forEach(function (message) {
+                setTimeout(function () {
+                    showPageToast(message, type, 4000);
+                }, delay);
+                delay += 250;
+            });
+        });
+    </script>
 
 <?php
 $controllerId = Yii::$app->controller->id;
@@ -171,23 +231,6 @@ $isWideWorkspacePage = in_array($controllerId, ['folder', 'asset', 'site']);
 </div>
 
 <script>
-    function showBanner(message, type = 'error') {
-        var $banner = $('#notification-banner');
-        var bgColor = '#F4B6B6';
-
-        if (type === 'success') bgColor = '#AEE8B2';
-
-        $banner.stop(true, true)
-            .css({
-                'background-color': bgColor,
-                'display': 'none'
-            })
-            .text(message)
-            .slideDown(200)
-            .delay(3000)
-            .fadeOut(600);
-    }
-
     window.closeAllFotukaMenus = function(options) {
         options = options || {};
 

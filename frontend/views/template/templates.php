@@ -127,15 +127,6 @@ $this->title = 'Website Templates';
         border:1px solid #fecaca;
         box-shadow:none;
     }
-    .flash-wrap {
-        margin-bottom:0px;
-    }
-    .flash-wrap .alert {
-        border-radius:14px;
-        border:none;
-        padding:14px 16px;
-        margin-bottom:14px;
-    }
     .muted {
         color:#6b7f9b;
     }
@@ -188,11 +179,6 @@ $this->title = 'Website Templates';
         <a class="breadcrum-link" href="/folders">Folders</a>
         &nbsp;&nbsp;/&nbsp;&nbsp;
         <span class="breadcrum-static">Website Templates</span>
-        <div class="flash-wrap">
-            <?php foreach (Yii::$app->session->getAllFlashes() as $type => $message): ?>
-                <div class="alert alert-<?= Html::encode($type) ?>"><?= Html::encode($message) ?></div>
-            <?php endforeach; ?>
-        </div>
 
         <div class="template-hero">
             <div>

@@ -883,30 +883,17 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
                     </div>
 
                     <div class="tpl-form-row">
-                        <label for="publicationPageTitle">Page Title</label>
-                        <input  class="tpl-input<?= $publication->hasErrors('page_title') ? ' is-invalid' : '' ?>"
-                                type="text"
-                                id="publicationPageTitle"
-                                name="WebsitePublication[page_title]"
-                                value="<?= Html::encode($pageTitleValue) ?>"
-                                maxlength="255">
-                        <div id="publicationPageTitleError"
-                             class="tpl-form-error"
-                            <?= $publication->hasErrors('page_title') ? '' : 'style="display:none;"' ?> >
-                            <?= Html::encode($publication->getFirstError('page_title')) ?>
-                        </div>
-                    </div>
-
-                    <div class="tpl-form-row">
                         <label for="publicationUri">Public URI</label>
                         <div class="tpl-inline-url">
                             <div
-                                    id="publicationUriDomain"
-                                    class="tpl-domain<?= $publication->hasErrors('uri') ? ' is-invalid' : '' ?>">
+                                style="width:240px;"
+                                id="publicationUriDomain"
+                                class="tpl-domain<?= $publication->hasErrors('uri') ? ' is-invalid' : '' ?>">
                                 https://fotuka.com/page/
                             </div>
                             <input  class="tpl-input<?= $publication->hasErrors('uri') ? ' is-invalid' : '' ?>"
                                     type="text"
+                                    style="width:213px;"
                                     id="publicationUri"
                                     name="WebsitePublication[uri]"
                                     value="<?= Html::encode($uriValue) ?>"
@@ -1090,13 +1077,11 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
             const assetPickerBulkActions = document.getElementById('assetPickerBulkActions');
 
             const publishForm = document.getElementById('publishForm');
-            const pageTitleInput = document.getElementById('publicationPageTitle');
             const uriInput = document.getElementById('publicationUri');
             const uriDomain = document.getElementById('publicationUriDomain');
             const passwordInput = document.getElementById('publicationPassword');
 
             const templateError = document.getElementById('publicationTemplateIdError');
-            const pageTitleError = document.getElementById('publicationPageTitleError');
             const uriError = document.getElementById('publicationUriError');
             const passwordError = document.getElementById('publicationPasswordError');
 
@@ -2124,14 +2109,6 @@ $assetPickerLabelPartialMatch = (bool) (Yii::$app->params['publishAssetPickerLab
                             'Please select a Template'
                         ),
                         field: templateSelect
-                    },
-                    {
-                        valid: validateRequiredField(
-                            pageTitleInput,
-                            pageTitleError,
-                            'Please enter a Page Title'
-                        ),
-                        field: pageTitleInput
                     },
                     {
                         valid: validateRequiredField(

@@ -189,7 +189,6 @@ class TemplateController extends Controller
 
             $publication->folder_id = (int) $id;
             $publication->template_id = $selectedTemplateId ?: null;
-            $publication->page_title = $pageTitle;
             $publication->uri = $uri;
             $publication->is_password_protected = $isProtected;
             $publication->allow_download_all = $allowDownloadAll;
@@ -202,11 +201,6 @@ class TemplateController extends Controller
 
             if ($selectedTemplateId <= 0) {
                 $publication->addError('template_id', 'Please select a Template');
-                $hasErrors = true;
-            }
-
-            if ($pageTitle === '') {
-                $publication->addError('page_title', 'Please enter a Page Title');
                 $hasErrors = true;
             }
 

@@ -11,7 +11,6 @@ use yii\db\ActiveRecord;
  * @property int $folder_id
  * @property int $user_id
  * @property int|null $customer_id
- * @property string|null $page_title
  * @property string $uri
  * @property string $template_snapshot_json
  * @property string|null $values_json
@@ -37,14 +36,12 @@ class WebsitePublication extends ActiveRecord
         return [
             [['folder_id', 'user_id', 'template_snapshot_json'], 'required'],
             [['template_id', 'folder_id', 'user_id', 'customer_id', 'created_at', 'updated_at', 'deleted', 'deleted_by_user_id'], 'integer'],
-            [['page_title'], 'string', 'max' => 255],
             [['uri'], 'string', 'max' => 255],
             [['template_snapshot_json', 'values_json'], 'string'],
             [['is_password_protected', 'allow_download_all'], 'boolean'],
             [['password_hash', 'plain_password'], 'string', 'max' => 255],
             ['uri', 'match', 'pattern' => '/^[A-Za-z0-9\-_]+$/', 'message' => 'Use only letters, numbers, dashes, and underscores.'],
             ['template_id', 'required', 'message' => 'Please select a Template'],
-            ['page_title', 'required', 'message' => 'Please enter a Page Title'],
             ['uri', 'required', 'message' => 'Please select a Public URI for your page'],
             ['uri', 'validateActiveUri'],
             ['folder_id', 'validateActiveFolder'],

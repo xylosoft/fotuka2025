@@ -88,9 +88,22 @@ $this->title = 'Website Templates';
         border-bottom:none;
     }
     .template-actions {
-        display:flex;
-        gap:8px;
-        flex-wrap:wrap;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+        width: 100%;
+    }
+
+    .actions-col {
+        width: 260px;
+        text-align: right !important;
+    }
+
+    .actions-cell {
+        width: 260px;
+        text-align: right;
     }
     .btn-fotuka {
         display:inline-flex;
@@ -193,7 +206,7 @@ $this->title = 'Website Templates';
                             <th>Name</th>
                             <th>Updated</th>
                             <th>In Use</th>
-                            <th style="width:260px;">Actions</th>
+                            <th class="actions-col">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -205,7 +218,7 @@ $this->title = 'Website Templates';
                                 </td>
                                 <td><?= date('M j, Y g:i a', (int) $template->updated_at) ?></td>
                                 <td><?= $template->isInUse() ? 'Yes' : 'No' ?></td>
-                                <td>
+                                <td class="actions-cell">
                                     <div class="template-actions">
                                         <a class="btn-fotuka btn-fotuka-secondary" href="/templateeditor/<?= $template->id ?>">Edit</a>
                                         <a class="btn-fotuka btn-fotuka-danger" href="<?= Url::to(['delete', 'id' => $template->id]) ?>" onclick="return confirm('Delete this template?');">Delete</a>
@@ -232,10 +245,9 @@ $this->title = 'Website Templates';
                         <thead>
                         <tr>
                             <th>Folder</th>
-                            <th>Publishing Name</th>
                             <th>Template</th>
                             <th>Publish Date</th>
-                            <th style="width:280px;">Actions</th>
+                            <th class="actions-col">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -245,13 +257,10 @@ $this->title = 'Website Templates';
                                     <span class="muted"><a href="/folders/<?=$publication->folder->id?>"><?=$publication->folder->name ?></a></span>
                                 </td>
                                 <td>
-                                    <a href="<?= Url::to(['page', 'uri' => $publication->uri]) ?>" target="_blank"><?= $publication->page_title ?></a>
-                                </td>
-                                <td>
                                     <a href="/templateeditor/<?=$publication->template->id?>"><?= Html::encode($publication->template ? $publication->template->name : ('Template #' . $publication->template_id)) ?></a>
                                 </td>
                                 <td><?= date('M j, Y g:i a', (int) $publication->created_at) ?></td>
-                                <td>
+                                <td class="actions-cell">
                                     <div class="template-actions">
                                         <a class="btn-fotuka btn-fotuka-secondary" href="/publish/<?= $publication->folder_id ?>">Edit</a>
                                         <a class="btn-fotuka btn-fotuka-danger" href="<?= Url::to(['publication-delete', 'id' => $publication->id]) ?>" onclick="return confirm('Delete this published page? The public page will no longer be available for anyone.');">Delete</a>

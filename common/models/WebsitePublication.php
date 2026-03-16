@@ -192,4 +192,25 @@ class WebsitePublication extends ActiveRecord
 
         return $query->andWhere([static::tableName() . '.deleted' => null]);
     }
+
+    public function getFolder()
+    {
+        return $this->hasOne(Folder::class, ['id' => 'folder_id']);
+    }
+
+    public function getUser()
+    {
+        return $this->hasOne(User::class, ['id' => 'user_id']);
+    }
+
+    public function getCustomer()
+    {
+        return $this->hasOne(Customer::class, ['id' => 'customer_id']);
+    }
+
+    public function getWebsiteTemplate()
+    {
+        return $this->hasOne(WebsiteTemplate::class, ['id' => 'customer_id']);
+    }
+
 }

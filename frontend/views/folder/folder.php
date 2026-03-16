@@ -7,7 +7,10 @@ $this->title = 'Fotuka';
 $id = $this->params['id'];
 $selectedId = $id ?? '#';
 
-$id = $_COOKIE[Yii::$app->params['FOLDER_COOKIE']]??null;
+if (!$id){
+    $id = $_COOKIE[Yii::$app->params['FOLDER_COOKIE']]??null;
+}
+
 
 if ($id == "null"){
     $id = null;

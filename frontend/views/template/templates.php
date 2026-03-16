@@ -165,14 +165,6 @@ $this->title = 'Website Templates';
         border-color:#2563eb;
         color:#fff;
     }
-    .template-link {
-        color:#2563eb;
-        text-decoration:none;
-        font-weight:700;
-    }
-    .template-link:hover {
-        text-decoration:underline;
-    }
 </style>
 <div class="template-index-page">
     <div class="template-index-shell">
@@ -250,13 +242,14 @@ $this->title = 'Website Templates';
                         <?php foreach ($publications as $publication): ?>
                             <tr>
                                 <td>
-                                    <strong><?= Html::encode($folderNames[$publication->folder_id] ?? ('Folder #' . $publication->folder_id)) ?></strong><br>
-                                    <span class="muted">Folder ID #<?= (int) $publication->folder_id ?></span>
+                                    <span class="muted"><a href="/folders/<?=$publication->folder->id?>"><?=$publication->folder->name ?></a></span>
                                 </td>
                                 <td>
-                                    <a target="_blank" class="template-link" href="<?= Url::to(['page', 'uri' => $publication->uri]) ?>" target="_blank"><?= $publication->page_title ?></a>
+                                    <a href="<?= Url::to(['page', 'uri' => $publication->uri]) ?>" target="_blank"><?= $publication->page_title ?></a>
                                 </td>
-                                <td><?= Html::encode($publication->template ? $publication->template->name : ('Template #' . $publication->template_id)) ?></td>
+                                <td>
+                                    <a href="/templateeditor/<?=$publication->template->id?>"><?= Html::encode($publication->template ? $publication->template->name : ('Template #' . $publication->template_id)) ?></a>
+                                </td>
                                 <td><?= date('M j, Y g:i a', (int) $publication->created_at) ?></td>
                                 <td>
                                     <div class="template-actions">

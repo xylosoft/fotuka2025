@@ -43,7 +43,7 @@ return [
                 'folder/move' => 'folder/move',
                 'folder/rename' => 'folder/rename',
                 'folders' => 'folder/folders',
-                'folder/<id:\d+>' => 'folder/folders',
+                'folders/<id:\d+>' => 'folder/folders',
                 'asset/upload/<id:\d+>' => 'asset/upload',
                 'folder/delete' => 'folder/delete',
 

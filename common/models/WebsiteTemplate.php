@@ -115,7 +115,7 @@ class WebsiteTemplate extends ActiveRecord
 
     public function getActivePublications()
     {
-        return $this->hasMany(WebsitePublication::class, ['id' => 'id'])
+        return $this->hasMany(WebsitePublication::class, ['template_id' => 'id'])
             ->andWhere([WebsitePublication::tableName() . '.deleted' => null]);
     }
 

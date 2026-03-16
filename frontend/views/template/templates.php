@@ -12,7 +12,10 @@ use yii\widgets\LinkPager;
 /** @var array $folderNames */
 
 $this->title = 'Website Templates';
-?>
+$formatter = clone Yii::$app->formatter;
+$formatter->defaultTimeZone = 'UTC';
+// TODO: This needs to be based on the users's timezone
+$formatter->timeZone = 'America/Chicago';?>
 <style>
     html, body {
         margin: 0;
@@ -204,7 +207,8 @@ $this->title = 'Website Templates';
                         <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Updated</th>
+                            <th>Created</th>
+                            <th>Last Updated</th>
                             <th>In Use</th>
                             <th class="actions-col">Actions</th>
                         </tr>
@@ -213,10 +217,10 @@ $this->title = 'Website Templates';
                         <?php foreach ($templates as $template): ?>
                             <tr>
                                 <td>
-                                    <strong><?= Html::encode($template->name) ?></strong><br>
-                                    <span class="muted">ID #<?= (int) $template->id ?></span>
+                                    <a href="/templateeditor/<?=$template->id?>"><?= Html::encode($template->name) ?></a>
                                 </td>
-                                <td><?= date('M j, Y g:i a', (int) $template->updated_at) ?></td>
+                                <td><?= $formatter->asDatetime((int) $template->updated_at, 'php:M j, Y g:i a'); ?> </td>
+                                <td><?= $formatter->asDatetime((int) $template->updated_at, 'php:M j, Y g:i a'); ?> </td>
                                 <td><?= $template->isInUse() ? 'Yes' : 'No' ?></td>
                                 <td class="actions-cell">
                                     <div class="template-actions">
@@ -246,7 +250,7 @@ $this->title = 'Website Templates';
                         <tr>
                             <th>Folder</th>
                             <th>Template</th>
-                            <th>Publish Date</th>
+                            <th>Publishing Date</th>
                             <th class="actions-col">Actions</th>
                         </tr>
                         </thead>
@@ -257,9 +261,9 @@ $this->title = 'Website Templates';
                                     <span class="muted"><a href="/folders/<?=$publication->folder->id?>"><?=$publication->folder->name ?></a></span>
                                 </td>
                                 <td>
-                                    <a href="/templateeditor/<?=$publication->template->id?>"><?= Html::encode($publication->template ? $publication->template->name : ('Template #' . $publication->template_id)) ?></a>
+                                    <a href="/templateeditor/<?=$publication->template->id?>"><?= Html::encode($publication->template->name) ?></a>
                                 </td>
-                                <td><?= date('M j, Y g:i a', (int) $publication->created_at) ?></td>
+                                <td><?= $formatter->asDatetime((int) $publication->created_at, 'php:M j, Y g:i a'); ?> </td>
                                 <td class="actions-cell">
                                     <div class="template-actions">
                                         <a class="btn-fotuka btn-fotuka-secondary" href="/publish/<?= $publication->folder_id ?>">Edit</a>

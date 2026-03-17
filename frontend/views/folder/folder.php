@@ -29,6 +29,16 @@ $gdImport = (int)Yii::$app->request->get('gd_import', 0);
 $googleConnected = $user && $user->hasGoogleDriveConnected();
 ?>
 <div class="app split-layout" id="splitLayout">
+    <script>
+        (function () {
+            try {
+                var saved = Number(localStorage.getItem('fotuka.leftpanelWidth'));
+                if (saved) {
+                    document.write('<style>#leftpanel{width:' + saved + 'px;}</style>');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <aside class="sidebar" id="leftpanel">
         <div class="folder-search">
             <i class="fa fa-search"></i>
@@ -50,7 +60,7 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
             <div id="notification-banner" class="notification"></div>
             <div class="folder-header">
                 <div class="folder-title">
-                    <span id="currentFolderName"><?=$folder?$folder->name:"Home"?></span>
+                    <span id="currentFolderName"><?=$folder?$folder->name:""?></span>
                     <input type="text" id="renameInput" class="rename-input" style="display:none;">
                 </div>
 
@@ -288,6 +298,7 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
     let selectionMode = false;
     const autoImport = <?= $gdImport ?>;
     let currentPreviewAssetId = null;
+    let treeLoaded = false;
 
     function getAssetOrder() {
         return $('#assetGrid .asset-card[data-asset-id]')
@@ -413,17 +424,18 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
         // fetch first page (and folder name)
 
         var tree = window.jQuery('#folderTree').jstree(true);
+        window.selectedFolderId = folderId?folderId:null;
         tree.deselect_all();
         tree.open_node(folderId?folderId:0);
         tree.select_node(folderId?folderId:0);
-        window.selectedFolderId = folderId?folderId:null;
+
 
         if (folderId == null){
             $('#dropZone').hide();
             $('#currentFolderName').text("Home");
             $('#subfolders').empty();
             $('#btnEnterSelection').hide();
-            selectHome();
+            selectHome();$('#currentFolderName').text("Home");
             $('#folderview').show();
         }else{
             $('#folderview').hide();
@@ -968,7 +980,6 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
         }else{
             fetchFolders();
         }
-
     }
 
     // CHECKED
@@ -1818,7 +1829,8 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
                 }
             });
         }).on("changed.jstree", function (e, data) { // CHECKED
-            if (data.action === "select_node" || data.action === "deselect_node") {
+            console.log("changed.jstree" + treeLoaded);
+            if (treeLoaded && data.action === "select_node" || data.action === "deselect_node") {
                 var node = data.node;
                 var folderId = node.id;
                 if (!folderId || isNaN(folderId)){
@@ -2224,7 +2236,9 @@ $googleConnected = $user && $user->hasGoogleDriveConnected();
         });
 
         $('#folderTree').on('ready.jstree', function () {
+            console.log('ready.jstree');
             loadFolder(<?=$id?>);
+            treeLoaded = true;
         })
 
         const layout = document.getElementById('splitLayout');

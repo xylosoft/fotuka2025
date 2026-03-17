@@ -18,7 +18,7 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
     html, body {
         min-height: 100%;
         margin: 0;
-        background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
+        background-color: #f4f8fc;
     }
 
     .template-editor-page {
@@ -30,8 +30,6 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
         margin-left: -50vw;
         margin-right: -50vw;
         width: 100vw;
-        background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
-
         padding: 0 20px 24px;
         color: #10233f;
     }
@@ -696,7 +694,17 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
         border: 1px solid #dc3545;
         box-shadow: 0 0 0 1px rgba(220, 53, 69, 0.08);
     }
-
+    .table-action-btn-sm {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 18px;
+        min-height: 40px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 16px;
+        line-height: 1;
+    }
 </style>
 <div class="template-editor-page">
     <form id="templateEditorForm" method="post">

@@ -19,15 +19,13 @@ $formatter->timeZone = 'America/Chicago';?>
 <style>
     html, body {
         margin: 0;
-        background: linear-gradient(180deg, #f4f8fc 0%, #edf4fb 100%);
+        background-color: #f4f8fc;
     }
     .template-index-page {
         color: #10233f;
         padding: 0px;
         padding-top: 0;
         margin-top: 24px;
-        background: linear-gradient(180deg, #f5f8fc 0%, #eef4fb 100%);
-
     }
     .template-index-shell {
         min-width:1280px;
@@ -181,6 +179,18 @@ $formatter->timeZone = 'America/Chicago';?>
         border-color:#2563eb;
         color:#fff;
     }
+    .table-action-btn-sm {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 8px;
+        min-height: 30px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 10px;
+        line-height: 1;
+    }
+
 </style>
 <div class="template-index-page">
     <div class="template-index-shell">
@@ -224,8 +234,8 @@ $formatter->timeZone = 'America/Chicago';?>
                                 <td><?= $template->isInUse() ? 'Yes' : 'No' ?></td>
                                 <td class="actions-cell">
                                     <div class="template-actions">
-                                        <a class="btn-fotuka btn-fotuka-secondary" href="/templateeditor/<?= $template->id ?>">Edit</a>
-                                        <a class="btn-fotuka btn-fotuka-danger" href="<?= Url::to(['delete', 'id' => $template->id]) ?>" onclick="return confirm('Delete this template?');">Delete</a>
+                                        <a class="btn-fotuka btn-fotuka-secondary table-action-btn-sm" href="/templateeditor/<?= $template->id ?>">Edit</a>
+                                        <a class="btn-fotuka btn-fotuka-danger table-action-btn-sm" href="<?= Url::to(['delete', 'id' => $template->id]) ?>" onclick="return confirm('Delete this template?');">Delete</a>
                                     </div>
                                 </td>
                             </tr>
@@ -266,8 +276,8 @@ $formatter->timeZone = 'America/Chicago';?>
                                 <td><?= $formatter->asDatetime((int) $publication->created_at, 'php:M j, Y g:i a'); ?> </td>
                                 <td class="actions-cell">
                                     <div class="template-actions">
-                                        <a class="btn-fotuka btn-fotuka-secondary" href="/publish/<?= $publication->folder_id ?>">Edit</a>
-                                        <a class="btn-fotuka btn-fotuka-danger" href="<?= Url::to(['publication-delete', 'id' => $publication->id]) ?>" onclick="return confirm('Delete this published page? The public page will no longer be available for anyone.');">Delete</a>
+                                        <a class="btn-fotuka btn-fotuka-secondary table-action-btn-sm" href="/publish/<?= $publication->folder_id ?>">Edit</a>
+                                        <a class="btn-fotuka btn-fotuka-danger table-action-btn-sm" href="<?= Url::to(['publication-delete', 'id' => $publication->id]) ?>" onclick="return confirm('Delete this published page? The public page will no longer be available for anyone.');">Delete</a>
                                     </div>
                                 </td>
                             </tr>
@@ -282,6 +292,7 @@ $formatter->timeZone = 'America/Chicago';?>
                     <div class="table-empty">There are no published folders yet.</div>
                 <?php endif; ?>
             </div>
+            <div stylle="height:18px;"></div>
         </div>
     </div>
 </div>

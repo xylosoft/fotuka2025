@@ -2,6 +2,7 @@
 
 use yii\helpers\Html;
 use yii\helpers\Json;
+use yii\widgets\ActiveForm;
 
 /** @var yii\web\View $this */
 /** @var common\models\WebsiteTemplate $model */
@@ -685,9 +686,23 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
         font-weight: 500;
         text-align: center;
     }
+    .tpl-field-error {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 6px;
+    }
+
+    .tpl-input.tpl-input-error {
+        border: 1px solid #dc3545;
+        box-shadow: 0 0 0 1px rgba(220, 53, 69, 0.08);
+    }
+
 </style>
 <div class="template-editor-page">
     <form id="templateEditorForm" method="post">
+    <?php
+        $form = ActiveForm::begin(['id' => 'templateEditorForm','method' => 'post',]);
+    ?>
         <?= Html::hiddenInput(Yii::$app->request->csrfParam, Yii::$app->request->getCsrfToken()) ?>
         <input type="hidden" name="WebsiteTemplate[definition_json]" id="definitionJsonField" value="<?= Html::encode($model->definition_json) ?>">
 
@@ -700,10 +715,22 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
         </div>
         <div class="tpl-editor-shell">
             <div class="tpl-editor-panel">
-                <div class="tpl-form-row">
-                    <label>Template name</label>
-                    <input class="tpl-input" type="text" name="WebsiteTemplate[name]" id="templateNameInput" placeholder='Untitled Template' value="<?= Html::encode($model->name) ?>">
-                    <div id="templateNameError" class="tpl-field-error" style="display:none;">Please enter a name for this Template</div>
+                <div class="tpl-form-row<?= $model->hasErrors('name') ? ' has-error' : '' ?>">
+                    <label for="templateNameInput">Template name</label>
+
+                    <?= Html::activeTextInput($model, 'name', [
+                        'id' => 'templateNameInput',
+                        'class' => 'tpl-input' . ($model->hasErrors('name') ? ' tpl-input-error' : ''),
+                        'placeholder' => 'Untitled Template',
+                    ]) ?>
+
+                    <div
+                            id="templateNameError"
+                            class="tpl-field-error"
+                            style="<?= $model->hasErrors('name') ? 'display:block;' : 'display:none;' ?>"
+                    >
+                        <?= Html::encode($model->getFirstError('name')) ?>
+                    </div>
                 </div>
 
                 <div class="tpl-section-title">Page Elements</div>
@@ -769,9 +796,10 @@ $canvasMinHeight = max(1500, (int) ($page['canvas_min_height'] ?? 1500));
                 </div>
             </div>
         </div>
-    </form>
+    <?php ActiveForm::end(); ?>
 
-    <div class="tpl-modal-backdrop" id="textEditorModal">
+
+        <div class="tpl-modal-backdrop" id="textEditorModal">
         <div class="tpl-modal-card">
             <div class="tpl-modal-head">
                 <h3>Edit Content</h3>

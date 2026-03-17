@@ -23,7 +23,7 @@ class TemplateController extends Controller
 
         $templatePagination = new Pagination([
             'totalCount' => $templateQuery->count(),
-            'pageSize' => 10,
+            'pageSize' => 5,
             'pageParam' => 'templatePage',
         ]);
 
@@ -41,7 +41,7 @@ class TemplateController extends Controller
 
         $publicationPagination = new Pagination([
             'totalCount' => $publicationQuery->count(),
-            'pageSize' => 10,
+            'pageSize' => 5,
             'pageParam' => 'publicationPage',
         ]);
 
@@ -95,9 +95,29 @@ class TemplateController extends Controller
 
                 $model->name = trim((string)$model->name);
                 // TODO: Check if this is still needed. I don't think so.
+                /*
                 if ($model->name === '') {
                     $model->name = 'Untitled Template';
+                }*/
+                $duplicateQuery = WebsiteTemplate::findActive()
+                    ->andWhere([
+                        'customer_id' => $model->customer_id,
+                        'name' => $model->name,
+                    ]);
+
+                if (!$model->isNewRecord) {
+                    $duplicateQuery->andWhere(['<>', 'id', (int) $model->id]);
                 }
+
+                if ($duplicateQuery->exists()) {
+                    $model->addError('name', 'A Template with this name already exists.');
+
+                    return $this->render('editor', [
+                        'model' => $model,
+                        'definition' => $model->getDefinitionArray(),
+                    ]);
+                }
+
 
                 if (empty($model->definition_json)) {
                     $model->setDefinitionArray(WebsiteTemplate::defaultDefinition());
